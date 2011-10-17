@@ -185,9 +185,9 @@ vars.AddVariables(
                     'enables Lua Tiny RAM enhancements',
                     True ),
   MatchEnumVariable('boot',
-                    'boot mode, standard will boot to shell, luarpc boots to an rpc server',
+                    'boot mode, standard will boot to shell, serial boots to an rpc server over UART, socket boots to an rpc server over TCP/IP',
                     'standard',
-                    allowed_values=[ 'standard' , 'luarpc' ] ),
+                    allowed_values=[ 'standard' , 'serial' , 'socket' ] ),
   MatchEnumVariable('romfs',
                     'ROMFS compilation mode',
                     'verbatim',
@@ -321,8 +321,10 @@ if not GetOption( 'help' ):
   elif comp['allocator'] == 'simple':
      conf.env.Append(CPPDEFINES = ['USE_SIMPLE_ALLOCATOR'])
 
-  if comp['boot'] == 'luarpc':
-    conf.env.Append(CPPDEFINES = ['ELUA_BOOT_RPC'])
+  if comp['boot'] == 'serial':
+    conf.env.Append(CPPDEFINES = ['ELUA_BOOT_RPC_SERIAL'])
+  elif comp['boot'] == 'socket':
+    conf.env.Append(CPPDEFINES = ['ELUA_BOOT_RPC_SOCKET'])
 
   # Special macro definitions for the SYM target
   if platform == 'sim':
@@ -347,7 +349,7 @@ if not GetOption( 'help' ):
 
   # Application files
   app_files = """ src/main.c src/romfs.c src/semifs.c src/xmodem.c src/shell.c src/term.c src/common.c src/common_tmr.c src/buf.c src/elua_adc.c src/dlmalloc.c 
-                  src/salloc.c src/luarpc_elua_uart.c src/elua_int.c src/linenoise.c src/common_uart.c src/eluarpc.c """
+                  src/salloc.c src/luarpc_elua_uart.c src/luarpc_elua_socket.c src/elua_int.c src/linenoise.c src/common_uart.c src/eluarpc.c """
 
   # Newlib related files
   newlib_files = " src/newlib/devman.c src/newlib/stubs.c src/newlib/genstd.c src/newlib/stdtcp.c"

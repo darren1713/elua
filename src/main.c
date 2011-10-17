@@ -41,7 +41,7 @@ char *boot_order[] = {
 extern char etext[];
 
 
-#ifdef ELUA_BOOT_RPC
+#ifdef ELUA_BOOT_RPC_SERIAL
 
 #ifndef RPC_UART_ID
   #define RPC_UART_ID     CON_UART_ID
@@ -55,22 +55,33 @@ extern char etext[];
   #define RPC_UART_SPEED  CON_UART_SPEED
 #endif
 
+#endif // ELUA_BOOT_RPC_SERIAL
+
+#ifdef ELUA_BOOT_RPC_SOCKET
+  #define RPC_PORT_ID     12346
+#endif
+
 void boot_rpc( void )
 {
   lua_State *L = lua_open();
   luaL_openlibs(L);  /* open libraries */
   
+#ifdef ELUA_BOOT_RPC_SERIAL
   // Set up UART for 8N1 w/ adjustable baud rate
   platform_uart_setup( RPC_UART_ID, RPC_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
+#endif
   
   // Start RPC Server
   lua_getglobal( L, "rpc" );
   lua_getfield( L, -1, "server" );
+#if defined( ELUA_BOOT_RPC_SERIAL )
   lua_pushnumber( L, RPC_UART_ID );
+#elif defined( ELUA_BOOT_RPC_SOCKET )
+  lua_pushnumber( L, RPC_PORT_ID );
+#endif
   lua_pushnumber( L, RPC_TIMER_ID );
   lua_pcall( L, 2, 0, 0 );
 }
-#endif
 
 // ****************************************************************************
 //  Program entry point
@@ -114,7 +125,7 @@ int main( void )
     }
   }
 
-#ifdef ELUA_BOOT_RPC
+#if defined( ELUA_BOOT_RPC_SERIAL ) || defined( ELUA_BOOT_RPC_SOCKET )
   boot_rpc();
 #else
   
@@ -127,7 +138,7 @@ int main( void )
   }
   else
     shell_start();
-#endif // #ifdef ELUA_BOOT_RPC
+#endif // #if defined( ELUA_BOOT_RPC_* )
 
 #ifdef ELUA_SIMULATOR
   hostif_exit(0);

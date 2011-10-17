@@ -5,7 +5,7 @@
 #include "platform_conf.h"
 #include "luarpc_rpc.h"
 
-#if defined( BUILD_RPC )
+#if defined( BUILD_RPC ) && defined ( ELUA_BOOT_RPC_SERIAL )
 
 // Buffer for async dispatch
 int adispatch_buff = -1;

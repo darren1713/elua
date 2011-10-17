@@ -1223,7 +1223,7 @@ static void read_cmd_call( Transport *tpt, lua_State *L )
   char *token = NULL;
 
   // read function name
-  len = transport_read_u32( tpt ); /* function name string length */ 
+  len = transport_read_u32( tpt ); /* function name string length */
   funcname = ( char * )alloca( len + 1 );
   transport_read_string( tpt, funcname, len );
   funcname[ len ] = 0;
