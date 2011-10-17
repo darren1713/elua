@@ -10,7 +10,7 @@
 #define MAX_LINK_ERRS ( 2 ) // Maximum number of framing errors before connection reset
 
 #define LUARPC_MODE "elua"
-
+#define MAXCON ( 1 )
 // a kind of silly way to get the maximum int, but oh well ...
 #define MAXINT ((int)((((unsigned int)(-1)) << 1) >> 1))
 

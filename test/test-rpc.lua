@@ -4,11 +4,12 @@ end
 
 rpc.on_error (error_handler);
 
-slave,err = rpc.connect ("/dev/tty.usbserial-FTE3HV7L");
+--slave,err = rpc.connect ("/dev/tty.usbserial-FTE3HV7L");
 -- slave,err = rpc.connect ("/dev/tty.usbserial-ftCYPMYJ");
 -- slave,err = rpc.connect("/dev/tty.usbserial-04110857B")
 -- slave,err = rpc.connect("/dev/tty.usbserial-A9005fG0")
 --slave,err = rpc.connect ("/dev/ttys0");
+slave,err = rpc.connect ("192.168.1.90",12346)
 
 print("Platform: " .. slave.pd.platform())
 print("CPU: " .. slave.pd.cpu())

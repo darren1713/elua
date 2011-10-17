@@ -7,7 +7,8 @@
 #include "auxmods.h"
 
 #define BUILD_RPC
-#define LUARPC_ENABLE_SERIAL
+//#define LUARPC_ENABLE_SERIAL
+#define LUARPC_ENABLE_SOCKET
 
 #define LUA_PLATFORM_LIBS_REG \
   {LUA_OSLIBNAME, luaopen_os}
