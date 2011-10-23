@@ -35,6 +35,7 @@ void transport_open(Transport *tpt)
 {
   struct exception e;
   tpt->fd = elua_net_socket(ELUA_NET_SOCK_STREAM);
+  printf("LSock: %d\n", tpt->fd);
   if (tpt->fd == INVALID_TRANSPORT) {
     e.errnum = elua_sock_err(tpt->fd);
     e.type = fatal;
@@ -70,6 +71,7 @@ void transport_accept (Transport *tpt, Transport *atpt)
   u32 to_us = 0; /* Not sure how to use this */
   TRANSPORT_VERIFY_OPEN;
   atpt->fd = elua_accept(ELUA_PORT_ID, tpt->tmr_id, to_us, &ret_ip);
+  printf( "ASock: %d\n", atpt->fd );
   if (atpt->fd == INVALID_TRANSPORT) {
     e.errnum = elua_sock_err(atpt->fd);
     e.type = fatal;
@@ -104,7 +106,7 @@ void transport_open_listener(lua_State *L, ServerHandle *handle)
 
   transport_open(&handle->ltpt);
   /* Accept also listens */
-  transport_accept(&handle->ltpt, &handle->atpt);
+  //transport_accept(&handle->ltpt, &handle->atpt);
 }
 
 /* Open connection */
@@ -124,8 +126,8 @@ int transport_open_connection(lua_State *L, Handle *handle)
   port = lua_tonumber( L, 2 );
   
   transport_open(&handle->tpt);
-  if (elua_net_connect(&handle->tpt.fd, ip, port) != 0) {
-    e.errnum = elua_sock_err(&handle->tpt.fd);
+  if (elua_net_connect(handle->tpt.fd, ip, port) != 0) {
+    e.errnum = elua_sock_err(handle->tpt.fd);
     e.type = fatal;
     Throw( e );
   }
@@ -136,6 +138,7 @@ int transport_open_connection(lua_State *L, Handle *handle)
 void transport_read_buffer (Transport *tpt, u8 *buffer, int length)
 {
   int n = 0;
+  int i;
   int timeout = -1; /* Took this from UART INFINITE timeout */
   struct exception e;
   TRANSPORT_VERIFY_OPEN;
@@ -151,15 +154,25 @@ void transport_read_buffer (Transport *tpt, u8 *buffer, int length)
     e.type = fatal;
     Throw( e );
   }
+  printf("I: ");
+  for(i = 0; i < length; i++)
+    printf("%02X ", buffer[i] );
+  printf("\n");
 }
 
 /* Write to socket */
 void transport_write_buffer( Transport *tpt, const u8 *buffer, int length )
 {
-  int n;
+  int n, i;
   struct exception e;
   TRANSPORT_VERIFY_OPEN;
   n = elua_net_send(tpt->fd, buffer, (elua_net_size)length);
+
+  printf("O: ");
+  for(i = 0; i < length; i++)
+    printf("%02X ", buffer[i] );
+  printf("\n");
+
   if (n == 0) {
     e.errnum = ERR_EOF;
     e.type = nonfatal;

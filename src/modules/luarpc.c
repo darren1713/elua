@@ -14,6 +14,7 @@
 //  - port from Lua 4.x to 5.x
 
 #include <stdlib.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
@@ -1142,8 +1143,9 @@ static int rpc_connect( lua_State *L )
   {
     handle = handle_create ( L );
     transport_open_connection( L, handle );
-    
+    sleep(1);
     transport_write_u8( &handle->tpt, RPC_CMD_CON );
+    //sleep(1);
     client_negotiate( &handle->tpt );
   }
   Catch( e )

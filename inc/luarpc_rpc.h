@@ -1,6 +1,7 @@
 #include "cexcept.h"
 #include "type.h"
 #include "serial.h"
+#include "platform_conf.h"
 
 /****************************************************************************/
 // Parameters
@@ -81,7 +82,11 @@ extern struct exception_context the_exception_context[ 1 ];
 typedef struct _Transport Transport;
 struct _Transport 
 {
+#if defined( ELUA_BOOT_RPC_SOCKET ) // FIXME: not just for boot mode
+  int fd;
+#else
   ser_handler fd;
+#endif
   unsigned tmr_id;
   u8     loc_little: 1,               // Local is little endian?
          loc_armflt: 1,               // local float representation is arm float?
