@@ -298,6 +298,7 @@ void transport_read_buffer (Transport *tpt, u8 *buffer, int length)
   struct exception e;
   int i;
   int olength = length;
+  u8 *obuffer = buffer;
   TRANSPORT_VERIFY_OPEN;
   while (length > 0) {
     int n = read (tpt->fd,(void*) buffer,length);
@@ -321,7 +322,7 @@ void transport_read_buffer (Transport *tpt, u8 *buffer, int length)
 
   printf("I: ");
   for(i = 0; i < olength; i++)
-    printf("%02X ", buffer[i] );
+    printf("%02X ", obuffer[i] );
   printf("\n");
 
 }

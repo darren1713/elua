@@ -141,6 +141,7 @@ void transport_read_buffer (Transport *tpt, u8 *buffer, int length)
   int i;
   int timeout = 0; /* Took this from UART INFINITE timeout */
   int  olength = length;
+  u8 *obuffer = buffer;
   struct exception e;
   TRANSPORT_VERIFY_OPEN;
 
@@ -163,7 +164,7 @@ void transport_read_buffer (Transport *tpt, u8 *buffer, int length)
 
   printf("I: ");
   for(i = 0; i < olength; i++)
-    printf("%02X ", buffer[i] );
+    printf("%02X ", obuffer[i] );
   printf("\n");
 }
 
