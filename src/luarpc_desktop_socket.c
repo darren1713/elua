@@ -333,6 +333,7 @@ void transport_write_buffer (Transport *tpt, const u8 *buffer, int length)
   struct exception e;
   int n, i;
   TRANSPORT_VERIFY_OPEN;
+  sleep(1);
   n = write (tpt->fd,buffer,length);
 
   printf("O: ");

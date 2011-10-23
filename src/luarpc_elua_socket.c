@@ -139,23 +139,30 @@ void transport_read_buffer (Transport *tpt, u8 *buffer, int length)
 {
   int n = 0;
   int i;
-  int timeout = -1; /* Took this from UART INFINITE timeout */
+  int timeout = 0; /* Took this from UART INFINITE timeout */
+  int  olength = length;
   struct exception e;
   TRANSPORT_VERIFY_OPEN;
-  /* Check on the arguments again */
-  n = elua_net_recv (tpt->fd, (void*) buffer, length, -1, tpt->tmr_id, timeout);
-  if (n == 0) {
-    e.errnum = ERR_EOF;
-    e.type = nonfatal;
-    Throw( e );
+
+  while (length > 0)
+  {
+    n = elua_net_recv (tpt->fd, (void*) buffer, length, -1, tpt->tmr_id, timeout);
+    if (n == 0) {
+      e.errnum = ERR_EOF;
+      e.type = nonfatal;
+      Throw( e );
+    }
+    if (n < 0) {
+      e.errnum = elua_sock_err(tpt->fd);
+      e.type = fatal;
+      Throw( e );
+    }
+    buffer += n;
+    length -= n;
   }
-  if (n < 0) {
-    e.errnum = elua_sock_err(tpt->fd);
-    e.type = fatal;
-    Throw( e );
-  }
+
   printf("I: ");
-  for(i = 0; i < length; i++)
+  for(i = 0; i < olength; i++)
     printf("%02X ", buffer[i] );
   printf("\n");
 }
