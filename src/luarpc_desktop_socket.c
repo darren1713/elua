@@ -333,7 +333,7 @@ void transport_write_buffer (Transport *tpt, const u8 *buffer, int length)
   struct exception e;
   int n, i;
   TRANSPORT_VERIFY_OPEN;
-  sleep(1);
+  usleep(300000);
   n = write (tpt->fd,buffer,length);
 
   printf("O: ");
@@ -378,7 +378,7 @@ int transport_open_connection(lua_State *L, Handle *handle)
 
   /* connect the transport to the target server */
   transport_connect (&handle->tpt,ip_address,(u16) ip_port);
-  sleep(1); // for some reason need an ex
+  usleep(100000); // for some reason need an ex
   return 1;
 }
 
