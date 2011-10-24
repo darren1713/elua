@@ -1143,9 +1143,7 @@ static int rpc_connect( lua_State *L )
   {
     handle = handle_create ( L );
     transport_open_connection( L, handle );
-
-    transport_write_u8( &handle->tpt, RPC_CMD_CON );
-
+    helper_wait_ready( &handle->tpt, RPC_CMD_CON );
     client_negotiate( &handle->tpt );
   }
   Catch( e )
@@ -1527,6 +1525,7 @@ static void rpc_dispatch_helper( lua_State *L, ServerHandle *handle )
       switch ( transport_read_u8( &handle->atpt ) )
       {
         case RPC_CMD_CON:
+          transport_write_u8( &handle->atpt, RPC_READY );
           server_negotiate( &handle->atpt );
           break;
         default: // connection must be established to issue any other commands

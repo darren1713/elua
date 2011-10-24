@@ -35,7 +35,6 @@ void transport_open(Transport *tpt)
 {
   struct exception e;
   tpt->fd = elua_net_socket(ELUA_NET_SOCK_STREAM);
-  printf("LSock: %d\n", tpt->fd);
   if (tpt->fd == INVALID_TRANSPORT) {
     e.errnum = elua_sock_err(tpt->fd);
     e.type = fatal;
@@ -71,7 +70,6 @@ void transport_accept (Transport *tpt, Transport *atpt)
   u32 to_us = 0; /* Not sure how to use this */
   TRANSPORT_VERIFY_OPEN;
   atpt->fd = elua_accept(ELUA_PORT_ID, tpt->tmr_id, to_us, &ret_ip);
-  printf( "ASock: %d\n", atpt->fd );
   if (atpt->fd == INVALID_TRANSPORT) {
     e.errnum = elua_sock_err(atpt->fd);
     e.type = fatal;
@@ -138,48 +136,60 @@ int transport_open_connection(lua_State *L, Handle *handle)
 void transport_read_buffer (Transport *tpt, u8 *buffer, int length)
 {
   int n = 0;
-  int i;
   int timeout = 0; /* Took this from UART INFINITE timeout */
+#if defined( LUARPC_DEBUG )
+  int i;
   int  olength = length;
   u8 *obuffer = buffer;
+#endif
   struct exception e;
   TRANSPORT_VERIFY_OPEN;
 
   while (length > 0)
   {
-    n = elua_net_recv (tpt->fd, (void*) buffer, length, -1, tpt->tmr_id, timeout);
+    n = elua_net_recv(tpt->fd, (void*) buffer, length, -1, tpt->tmr_id, timeout);
+
     if (n == 0) {
       e.errnum = ERR_EOF;
       e.type = nonfatal;
       Throw( e );
     }
+
     if (n < 0) {
       e.errnum = elua_sock_err(tpt->fd);
       e.type = fatal;
       Throw( e );
     }
+
     buffer += n;
     length -= n;
   }
 
+#if defined( LUARPC_DEBUG )
   printf("I: ");
   for(i = 0; i < olength; i++)
     printf("%02X ", obuffer[i] );
   printf("\n");
+#endif
 }
 
 /* Write to socket */
 void transport_write_buffer( Transport *tpt, const u8 *buffer, int length )
 {
-  int n, i;
+  int n;
+#if defined( LUARPC_DEBUG )
+  int i;
+#endif
   struct exception e;
   TRANSPORT_VERIFY_OPEN;
   n = elua_net_send(tpt->fd, buffer, (elua_net_size)length);
 
+#if defined( LUARPC_DEBUG )
   printf("O: ");
   for(i = 0; i < length; i++)
     printf("%02X ", buffer[i] );
   printf("\n");
+#endif
 
   if (n == 0) {
     e.errnum = ERR_EOF;

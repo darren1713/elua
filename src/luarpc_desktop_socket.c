@@ -297,8 +297,10 @@ void transport_read_buffer (Transport *tpt, u8 *buffer, int length)
 {
   struct exception e;
   int i;
+#if defined( LUARPC_DEBUG )
   int olength = length;
   u8 *obuffer = buffer;
+#endif
   TRANSPORT_VERIFY_OPEN;
   while (length > 0) {
     int n = read (tpt->fd,(void*) buffer,length);
@@ -320,10 +322,12 @@ void transport_read_buffer (Transport *tpt, u8 *buffer, int length)
     length -= n;
   }
 
+#if defined( LUARPC_DEBUG )
   printf("I: ");
   for(i = 0; i < olength; i++)
     printf("%02X ", obuffer[i] );
   printf("\n");
+#endif
 
 }
 
@@ -334,13 +338,15 @@ void transport_write_buffer (Transport *tpt, const u8 *buffer, int length)
   struct exception e;
   int n, i;
   TRANSPORT_VERIFY_OPEN;
-  usleep(300000);
+  usleep(100000);
   n = write (tpt->fd,buffer,length);
-
+  
+#if defined( LUARPC_DEBUG )
   printf("O: ");
   for(i = 0; i < length; i++)
     printf("%02X ", buffer[i] );
   printf("\n");
+#endif
 
   if (n != length) 
   {
@@ -379,7 +385,7 @@ int transport_open_connection(lua_State *L, Handle *handle)
 
   /* connect the transport to the target server */
   transport_connect (&handle->tpt,ip_address,(u16) ip_port);
-  usleep(100000); // for some reason need an ex
+  //usleep(100000); // for some reason need an ex
   return 1;
 }
 
