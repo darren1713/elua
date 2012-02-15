@@ -2,9 +2,27 @@
 
 addi( sf( 'src/platform/%s/FWLib/library/inc', platform ) )
 
+-- Board selection
+if comp.board:upper()  == "OMNIEXT" then
+  addm( 'BOARD=OMNIEXT' )
+elseif comp.board:upper()  == "ET-STM32" then
+  addm( 'BOARD=ET-STM32' )
+else
+  print( sf( "Invalid board for %s platform (%s)", platform, comp.board ) )
+  os.exit( -1 )
+end
+
 local fwlib_files = utils.get_files( "src/platform/" .. platform .. "/FWLib/library/src", ".*%.c$" )
 
-specific_files = "core_cm3.c system_stm32f10x.c startup_stm32f10x_hd.s platform.c stm32f10x_it.c lcd.c lua_lcd.c platform_int.c enc.c"
+specific_files = "core_cm3.c system_stm32f10x.c startup_stm32f10x_hd.s stm32f10x_it.c platform_int.c enc.c"
+
+if comp.board:upper()  == "OMNIEXT" then
+  -- Specific files for Omnima STM32Expander
+  specific_files = specific_files .. " platform-omniext.c sprintf.c uart.c lua_1-wire.c omniexp.c i2c-bb.c ds2482.c ow.c"
+elseif comp.board:upper()  == "ET-STM32" then
+  -- Specific files for ET-STM32
+  specific_files = specific_files .. " platform.c lcd.c lua_lcd.c"
+end
 
 local ldscript = "stm32.ld"
   
@@ -16,7 +34,11 @@ ldscript = sf( "src/platform/%s/%s", platform, ldscript )
 addm( { "FOR" .. cnorm( comp.cpu ), "FOR" .. cnorm( comp.board ), 'gcc', 'CORTEX_M3' } )
 
 -- Standard GCC Flags
+if comp.board:upper()  == "OMNIEXT" then
+addcf( { '-ffunction-sections', '-fdata-sections', '-fno-strict-aliasing', '-Wall' , "-Os", "-DHSE_VALUE=16000000", "-DSYSCLOCK_CL=72000000"} )
+elseif comp.board:upper()  == "ET-STM32" then
 addcf( { '-ffunction-sections', '-fdata-sections', '-fno-strict-aliasing', '-Wall' } )
+end
 addlf( { '-nostartfiles','-nostdlib', '-T', ldscript, '-Wl,--gc-sections', '-Wl,--allow-multiple-definition' } )
 addaf( { '-x', 'assembler-with-cpp', '-c', '-Wall' } )
 addlib( { 'c','gcc','m' } )

@@ -18,6 +18,9 @@
 #include "hostif.h"
 #endif
 
+#define DEBUG
+#include "trace.h"
+
 // Validate eLua configuratin options
 #include "validate.h"
 
@@ -48,7 +51,7 @@ extern char etext[];
 #endif
 
 #ifndef RPC_TIMER_ID
-  #define RPC_TIMER_ID    PLATFORM_TIMER_SYS_ID
+  #define RPC_TIMER_ID    CON_TIMER_ID
 #endif
 
 #ifndef RPC_UART_SPEED
@@ -57,18 +60,23 @@ extern char etext[];
 
 void boot_rpc( void )
 {
+  TRACE("1");
   lua_State *L = lua_open();
   luaL_openlibs(L);  /* open libraries */
+  
+  TRACE("2");
   
   // Set up UART for 8N1 w/ adjustable baud rate
   platform_uart_setup( RPC_UART_ID, RPC_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
   
+  TRACE("3");
+  
   // Start RPC Server
-  lua_getglobal( L, "rpc" );
-  lua_getfield( L, -1, "server" );
-  lua_pushnumber( L, RPC_UART_ID );
-  lua_pushnumber( L, RPC_TIMER_ID );
-  lua_pcall( L, 2, 0, 0 );
+  lua_getglobal( L, "rpc" ); TRACE("4");
+  lua_getfield( L, -1, "server" ); TRACE("5");
+  lua_pushnumber( L, RPC_UART_ID ); TRACE("6");
+  lua_pushnumber( L, RPC_TIMER_ID ); TRACE("7");
+  lua_pcall( L, 2, 0, 0 ); TRACE("8");
 }
 #endif
 
@@ -79,30 +87,36 @@ int main( void )
 {
   int i;
   FILE* fp;
-
-  // Initialize platform first
+  
+#ifdef DEBUG
+  delay_ms(1000);
+#endif
+  
   if( platform_init() != PLATFORM_OK )
   {
     // This should never happen
     while( 1 );
   }
+  
+  TRACE("OmnimaExt - eLua - Initialized\n"); 
 
-  // Initialize device manager
+  TRACE("eLua - Initialize device manager\n"); 
   dm_init();
 
-  // Register the ROM filesystem
+  TRACE("eLua - Register the ROM filesystem\n");
   dm_register( romfs_init() );
 
-  // Register the MMC filesystem
+  TRACE("eLua - Register the MMC filesystem\n");
   dm_register( mmcfs_init() );
 
-  // Register the Semihosting filesystem
+  TRACE("eLua - Register the Semihosting filesystem\n");
   dm_register( semifs_init() );
 
-  // Register the remote filesystem
+  TRACE("eLua - Register the remote filesystem\n");
   dm_register( remotefs_init() );
 
-  // Search for autorun files in the defined order and execute the 1st if found
+  TRACE("eLua - Search for autorun files\n");
+  //in the defined order and execute the 1st if found
   for( i = 0; i < sizeof( boot_order ) / sizeof( *boot_order ); i++ )
   {
     if( ( fp = fopen( boot_order[ i ], "r" ) ) != NULL )
@@ -115,18 +129,22 @@ int main( void )
   }
 
 #ifdef ELUA_BOOT_RPC
+  TRACE("eLua - boot_rpc");
   boot_rpc();
 #else
   
   // Run the shell
   if( shell_init() == 0 )
   {
-    // Start Lua directly
+    TRACE("eLua - Start Lua directly");
     char* lua_argv[] = { "lua", NULL };
     lua_main( 1, lua_argv );
   }
   else
+  {
+    TRACE("eLua - shell_start");
     shell_start();
+  }
 #endif // #ifdef ELUA_BOOT_RPC
 
 #ifdef ELUA_SIMULATOR

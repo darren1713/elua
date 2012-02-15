@@ -12,24 +12,45 @@
 
 // *****************************************************************************
 // Define here what components you want for this platform
-
-#define BUILD_XMODEM
-#define BUILD_SHELL
-#define BUILD_ROMFS
-//#define BUILD_MMCFS
-#define BUILD_TERM
-//#define BUILD_UIP
-//#define BUILD_DHCPC
-//#define BUILD_DNS
-#define BUILD_CON_GENERIC
-#define BUILD_ADC
-#define BUILD_RPC
-//#define BUILD_RFS
-//#define BUILD_CON_TCP
-#define BUILD_LINENOISE
-#define BUILD_C_INT_HANDLERS
-#define BUILD_LUA_INT_HANDLERS
-#define ENABLE_ENC
+#if BOARD == OMNIEXT
+  #define BUILD_XMODEM
+  #define BUILD_SHELL
+  #define BUILD_ROMFS
+  //#define BUILD_MMCFS
+  #define BUILD_TERM
+  //#define BUILD_UIP
+  //#define BUILD_DHCPC
+  //#define BUILD_DNS
+  #define BUILD_CON_GENERIC
+  #define BUILD_ADC
+  #define BUILD_RPC
+  //#define BUILD_RFS
+  //#define BUILD_CON_TCP
+  #define BUILD_LINENOISE
+  #define BUILD_C_INT_HANDLERS
+  #define BUILD_LUA_INT_HANDLERS
+  #define ENABLE_ENC
+#elif BOARD == ET-STM32
+  #define BUILD_XMODEM
+  #define BUILD_SHELL
+  #define BUILD_ROMFS
+  //#define BUILD_MMCFS
+  #define BUILD_TERM
+  //#define BUILD_UIP
+  //#define BUILD_DHCPC
+  //#define BUILD_DNS
+  #define BUILD_CON_GENERIC
+  #define BUILD_ADC
+  #define BUILD_RPC
+  //#define BUILD_RFS
+  //#define BUILD_CON_TCP
+  #define BUILD_LINENOISE
+  #define BUILD_C_INT_HANDLERS
+  #define BUILD_LUA_INT_HANDLERS
+  #define ENABLE_ENC
+#else
+  #error Unknown board for stm32 platform
+#endif
 
 #define PLATFORM_HAS_SYSTIMER
 
@@ -44,6 +65,7 @@
 // *****************************************************************************
 // Auxiliary libraries that will be compiled for this platform
 
+#if BOARD == ET-STM32
 //#ifdef FORSTM3210E_EVAL
 //#define AUXLIB_LCD      "stm3210lcd"
 //LUALIB_API int ( luaopen_lcd )( lua_State* L );
@@ -51,11 +73,11 @@
 //#else
 #define LCDLINE
 //#endif
+#endif
 
 #ifdef ENABLE_ENC
 #define PS_LIB_TABLE_NAME "stm32"
 #endif
-
 
 #ifdef BUILD_ADC
 #define ADCLINE _ROM( AUXLIB_ADC, luaopen_adc, adc_map )
@@ -79,6 +101,27 @@
 #define PLATLINE
 #endif
 
+#if BOARD == OMNIEXT
+#define LUA_PLATFORM_LIBS_ROM\
+  _ROM( AUXLIB_OMNIEXP, luaopen_omniexp, omniexp_map )\
+  _ROM( AUXLIB_1WIRE, luaopen_1wire, w1_map )\
+  _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
+  _ROM( AUXLIB_SPI, luaopen_spi, spi_map )\
+  _ROM( AUXLIB_PD, luaopen_pd, pd_map )\
+  _ROM( AUXLIB_UART, luaopen_uart, uart_map )\
+  _ROM( AUXLIB_TERM, luaopen_term, term_map )\
+  _ROM( AUXLIB_PACK, luaopen_pack, pack_map )\
+  _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
+  _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
+  _ROM( AUXLIB_ELUA, luaopen_elua, elua_map )\
+  _ROM( AUXLIB_TMR, luaopen_tmr, tmr_map )\
+  ADCLINE\
+  _ROM( AUXLIB_PWM, luaopen_pwm, pwm_map )\
+  RPCLINE\
+  _ROM( AUXLIB_ELUA, luaopen_elua, elua_map )\
+  _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )\
+  PLATLINE
+#elif BOARD == ET-STM32
 #define LUA_PLATFORM_LIBS_ROM\
   _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
   _ROM( AUXLIB_SPI, luaopen_spi, spi_map )\
@@ -98,6 +141,9 @@
   _ROM( AUXLIB_ELUA, luaopen_elua, elua_map )\
   _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )\
   PLATLINE
+#else
+  #error Unknown board for stm32 platform
+#endif
 
 // *****************************************************************************
 // Configuration data
@@ -109,14 +155,27 @@
 #define VTMR_FREQ_HZ          10
 
 // Number of resources (0 if not available/not implemented)
-#define NUM_PIO               7
-#define NUM_SPI               2
-#define NUM_UART              5
-#define NUM_TIMER             5
-#define NUM_PHYS_TIMER        5
-#define NUM_PWM               4
-#define NUM_ADC               16
-#define NUM_CAN               1
+#if BOARD == OMNIEXT
+  #define NUM_PIO               4
+  #define NUM_SPI               2
+  #define NUM_UART              3
+  #define NUM_TIMER             5
+  #define NUM_PHYS_TIMER        5
+  #define NUM_PWM               4
+  #define NUM_ADC               16
+  #define NUM_CAN               0
+#elif BOARD == ET-STM32
+  #define NUM_PIO               7
+  #define NUM_SPI               2
+  #define NUM_UART              5
+  #define NUM_TIMER             5
+  #define NUM_PHYS_TIMER        5
+  #define NUM_PWM               4
+  #define NUM_ADC               16
+  #define NUM_CAN               1
+#else
+  #error Unknown board for stm32 platform
+#endif
 
 // Enable RX buffering on UART
 #define BUF_ENABLE_UART

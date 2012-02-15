@@ -14,7 +14,7 @@ local boards =
   'MOD711', 'STM3210E-EVAL', 
   { board = 'ATEVK1100', options = '' },
   { board = 'ATEVK1101', options = '' },
-  'ET-STM32', 'EAGLE-100', 'ELUA-PUC', 'MBED',
+  'ET-STM32', 'EAGLE-100', 'ELUA-PUC', 'MBED', 'OMNIEXT'
   { board = 'MIZAR32', options = "target=lualong" },
   { board = 'PC', options = "" }
 }

@@ -144,6 +144,10 @@ static int term_translate( int data )
     platform_uart_recv( CON_UART_ID, CON_TIMER_ID, TERM_TIMEOUT );
     return KC_ENTER;
   }
+  else if( data == 0x0A )
+  {
+    return KC_ENTER;
+  }  
   else
   {
     switch( data )
