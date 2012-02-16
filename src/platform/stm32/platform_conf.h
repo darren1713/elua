@@ -89,7 +89,7 @@
 #define BUILD_RPC
 #endif
 
-#if defined( BUILD_RPC ) 
+#if defined( BUILD_RPC )
 #define RPCLINE _ROM( AUXLIB_RPC, luaopen_rpc, rpc_map )
 #else
 #define RPCLINE
@@ -101,7 +101,7 @@
 #define PLATLINE
 #endif
 
-#if BOARD == OMNIEXT
+#if defined( ELUA_BOARD_OMINIEXT )
 #define LUA_PLATFORM_LIBS_ROM\
   _ROM( AUXLIB_OMNIEXP, luaopen_omniexp, omniexp_map )\
   _ROM( AUXLIB_1WIRE, luaopen_1wire, w1_map )\
@@ -121,7 +121,7 @@
   _ROM( AUXLIB_ELUA, luaopen_elua, elua_map )\
   _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )\
   PLATLINE
-#elif BOARD == ET-STM32
+#elif defined( ELUA_BOARD_ETSTM32 )
 #define LUA_PLATFORM_LIBS_ROM\
   _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
   _ROM( AUXLIB_SPI, luaopen_spi, spi_map )\
@@ -155,7 +155,7 @@
 #define VTMR_FREQ_HZ          10
 
 // Number of resources (0 if not available/not implemented)
-#if BOARD == OMNIEXT
+#if defined( ELUA_BOARD_OMINIEXT )
   #define NUM_PIO               4
   #define NUM_SPI               2
   #define NUM_UART              3
@@ -164,7 +164,7 @@
   #define NUM_PWM               4
   #define NUM_ADC               16
   #define NUM_CAN               0
-#elif BOARD == ET-STM32
+#elif defined( ELUA_BOARD_ETSTM32 )
   #define NUM_PIO               7
   #define NUM_SPI               2
   #define NUM_UART              5

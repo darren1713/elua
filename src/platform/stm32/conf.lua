@@ -21,11 +21,11 @@ if comp.board:upper()  == "OMNIEXT" then
   specific_files = specific_files .. " platform-omniext.c sprintf.c uart.c lua_1-wire.c omniexp.c i2c-bb.c ds2482.c ow.c"
 elseif comp.board:upper()  == "ET-STM32" then
   -- Specific files for ET-STM32
-  specific_files = specific_files .. " platform.c lcd.c lua_lcd.c"
+  specific_files = specific_files .. " sprintf.c uart.c platform.c lcd.c lua_lcd.c"
 end
 
 local ldscript = "stm32.ld"
-  
+
 -- Prepend with path
 specific_files = fwlib_files .. " " .. utils.prepend_path( specific_files, "src/platform/" .. platform )
 specific_files = specific_files .. " src/platform/cortex_utils.s src/platform/arm_cortex_interrupts.c"

@@ -28,7 +28,7 @@
 #include "romfs.h"
 #include "semifs.h"
 
-// Define here your autorun/boot files, 
+// Define here your autorun/boot files,
 // in the order you want eLua to search for them
 char *boot_order[] = {
 #if defined(BUILD_MMCFS)
@@ -51,7 +51,7 @@ extern char etext[];
 #endif
 
 #ifndef RPC_TIMER_ID
-  #define RPC_TIMER_ID    CON_TIMER_ID
+  #define RPC_TIMER_ID    PLATFORM_TIMER_SYS_ID
 #endif
 
 #ifndef RPC_UART_SPEED
@@ -63,14 +63,14 @@ void boot_rpc( void )
   TRACE("1");
   lua_State *L = lua_open();
   luaL_openlibs(L);  /* open libraries */
-  
+
   TRACE("2");
-  
+
   // Set up UART for 8N1 w/ adjustable baud rate
   platform_uart_setup( RPC_UART_ID, RPC_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
-  
+
   TRACE("3");
-  
+
   // Start RPC Server
   lua_getglobal( L, "rpc" ); TRACE("4");
   lua_getfield( L, -1, "server" ); TRACE("5");
@@ -87,20 +87,20 @@ int main( void )
 {
   int i;
   FILE* fp;
-  
-#ifdef DEBUG
-  delay_ms(1000);
-#endif
-  
+
+  //#ifdef DEBUG
+  //delay_ms(1000);
+  //#endif
+
   if( platform_init() != PLATFORM_OK )
   {
     // This should never happen
     while( 1 );
   }
-  
-  TRACE("OmnimaExt - eLua - Initialized\n"); 
 
-  TRACE("eLua - Initialize device manager\n"); 
+  TRACE("OmnimaExt - eLua - Initialized\n");
+
+  TRACE("eLua - Initialize device manager\n");
   dm_init();
 
   TRACE("eLua - Register the ROM filesystem\n");
@@ -132,7 +132,7 @@ int main( void )
   TRACE("eLua - boot_rpc");
   boot_rpc();
 #else
-  
+
   // Run the shell
   if( shell_init() == 0 )
   {
