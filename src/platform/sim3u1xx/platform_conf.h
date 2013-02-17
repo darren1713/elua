@@ -13,6 +13,7 @@
 
 #define BUILD_XMODEM
 #define BUILD_SHELL
+#define BUILD_ADVANCED_SHELL
 #define BUILD_ROMFS
 #define BUILD_TERM
 #define BUILD_CON_GENERIC
