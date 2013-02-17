@@ -20,6 +20,11 @@ int uart_last_sent = -1;
 #define SERMUX_PHYS_ID        ( 0xFFFF )
 #endif // #ifdef BUILD_SERMUX
 
+#if defined(EXTERNAL_CONSOLE)
+extern void console_transmit( unsigned id, u8 data );
+extern int console_receive( unsigned id, timer_data_type timeout );
+#endif
+
 // The platform UART functions
 int platform_uart_exists( unsigned id )
 {
@@ -47,29 +52,13 @@ static int cmn_recv_helper( unsigned id, timer_data_type timeout )
   t_buf_data data;
 #endif
 
-#ifdef BUILD_USB_CDC
-  //read usb serial port if it is active
-  if( console_cdc_active )
+#if defined(EXTERNAL_CONSOLE)
+  if(id == CON_VIRTUAL_ID)
   {
-    ret = platform_usb_cdc_recv( timeout );
+    ret = console_receive(id, timeout);
     if(ret >= 0)
       return ret;
-  }
-#endif
-#if defined( CONSOLE2_ENABLE )
-  //read from second uart
-#ifdef BUF_ENABLE_UART
-  if( buf_is_enabled( BUF_ID_UART, CON2_UART_ID ) )
-  {
-      if ( ( buf_read( BUF_ID_UART, CON2_UART_ID, &data ) ) != PLATFORM_UNDERFLOW )
-        return ( int )data;
-  }
-  else
-#endif // #ifdef BUF_ENABLE_UART
-  {
-    ret = platform_s_uart_recv( CON2_UART_ID, timeout );
-    if(ret >= 0)
-      return ret;
+    return -1;
   }
 #endif
 
@@ -162,12 +151,12 @@ static void cmn_rx_handler( int usart_id, u8 data )
 // Send: version with and without mux
 void platform_uart_send( unsigned id, u8 data ) 
 {
-#ifdef BUILD_USB_CDC
-  if( console_cdc_active )
-    platform_usb_cdc_send( data );
-#endif
-#if defined( CONSOLE2_ENABLE )
-  platform_s_uart_send( CON2_UART_ID, data ); //Send to second serial port too
+#if defined(EXTERNAL_CONSOLE)
+  if(id == CON_VIRTUAL_ID)
+  {
+    console_transmit( id, data );
+    return;
+  }
 #endif
 #ifdef BUILD_SERMUX
   if( id >= SERMUX_SERVICE_ID_FIRST && id < SERMUX_SERVICE_ID_FIRST + SERMUX_NUM_VUART )

@@ -44,7 +44,6 @@
 // ****************************************************************************
 // Platform initialization
 
-//#define CHARGER_MOSFETS_PRESENT
 #define PIN_CHECK_INTERVAL 10
 int wake_reason = WAKE_UNKNOWN;
 
@@ -144,7 +143,6 @@ void WDTIMER0_IRQHandler(void)
 }
 
 #if defined( BUILD_USB_CDC )
-unsigned console_uart_id = CON_UART_ID_HW_UART;
 unsigned console_cdc_active = 0;
 #endif
 
@@ -252,17 +250,6 @@ int platform_init()
 #endif
 
 #if defined( BUILD_USB_CDC )
-  // Setup console UART
-  platform_uart_setup( CON_UART_ID_HW_UART, CON_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
-  platform_uart_set_flow_control( CON_UART_ID_HW_UART, PLATFORM_UART_FLOW_NONE );
-  platform_uart_set_buffer( CON_UART_ID_HW_UART, CON_BUF_SIZE );
-
-#if defined( CONSOLE2_ENABLE )
-  // Setup console2 UART
-  platform_uart_setup( CON2_UART_ID, CON2_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
-  platform_uart_set_flow_control( CON2_UART_ID, PLATFORM_UART_FLOW_NONE );
-  platform_uart_set_buffer( CON2_UART_ID, CON_BUF_SIZE );
-#endif
 
   usb_init();
   hw_init();
@@ -602,7 +589,8 @@ void pios_init( void )
   SI32_PBSTD_A_disable_pullup_resistors( SI32_PBSTD_1 );
 
   //PB0.1 is external input 2
-  SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_0, 0x00000002);
+  //PB0.0 is accel INT1
+  SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_0, 0x00000003);
   SI32_PBSTD_A_disable_pullup_resistors( SI32_PBSTD_0 );
 
   // Enable Crossbar1 signals & set properties
@@ -674,7 +662,7 @@ void pios_init( void )
   // SI32_PBHD_A_enable_n_channel_drivers(SI32_PBHD_4, 0x003F);
   // SI32_PBHD_A_enable_p_channel_drivers(SI32_PBHD_4, 0x003F);
   // SI32_PBHD_A_enable_pin_current_limit(SI32_PBHD_4, 0x003F);
-
+#ifndef CHARGER_MOSFETS_PRESENT
   //Enable blue LED's if we are on or just in a PM9 temporary sleep...
   if(rram_read_bit(RRAM_BIT_POWEROFF) == POWEROFF_MODE_ACTIVE)
   {
@@ -686,6 +674,7 @@ void pios_init( void )
     SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x02 );
     SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x08 );
   }
+#endif
 }
 
 
@@ -1513,12 +1502,15 @@ void myPB_enter_off_config()
   //Set I2C pins to analog float...
   SI32_PBSTD_A_set_pins_analog( SI32_PBSTD_0, 0x0000C000);
   SI32_PBSTD_A_write_pins_low( SI32_PBSTD_0, 0xC000 );
+#ifdef BLUETOOTH_POWEREDWHILESLEEPING
   //Set bluetooth pins to analog float...
-  //SI32_PBSTD_A_set_pins_analog( SI32_PBSTD_1, 0x00000080);
-  //SI32_PBSTD_A_write_pins_high( SI32_PBSTD_1, 0x0080 );
-  //SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 0x0080);
+  SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 0x0080);
+  SI32_PBSTD_A_write_pins_high( SI32_PBSTD_1, 0x0080 );
+#endif
+  //Set 5V pin to analog float...
+  SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 0x00000200);
+  SI32_PBSTD_A_write_pins_low( SI32_PBSTD_1, 0x0200 );
   
-
   SI32_PBHD_A_set_pins_push_pull_output( SI32_PBHD_4, 0x00 );
   SI32_PBHD_A_set_pins_low_drive_strength(SI32_PBHD_4, 0x3F);
   SI32_PBHD_A_disable_bias( SI32_PBHD_4 );
@@ -1545,6 +1537,9 @@ void sim3_pmu_pm9( unsigned seconds )
     printf("Unit is powered, no PM9\n");
     wake_reason = WAKE_POWERCONNECTED;
     rram_write_int(RRAM_INT_SLEEPTIME, seconds);
+#ifdef EXTRA_SLEEP_HOOK
+    extras_sleep_hook(PIN_CHECK_INTERVAL);
+#endif
     return;
   }
   if(seconds == TRICK_TO_REBOOT_WITHOUT_DFU_MODE)
@@ -1594,10 +1589,11 @@ void sim3_pmu_pm9( unsigned seconds )
 
   // Enter Sleep Mode
   myPB_enter_off_config();
+#ifndef BLUETOOTH_POWEREDWHILESLEEPING
   VMON0_enter_power_9_mode_from_normal_power_mode();
   LDO0_enter_power_9_mode_from_normal_power_mode();
   VREG0_enter_power_9_mode_from_normal_power_mode();
-  //PMU0_enter_power_9_mode_from_normal_power_mode();
+#endif
   RSTSRC0_enter_power_9_mode_from_normal_power_mode();
 
   //Reset RTC Timer and clear any interrupts
@@ -1903,7 +1899,7 @@ int platform_flash_erase_sector( u32 sector_id )
 
 unsigned platform_get_console_uart( void )
 {
-  return console_uart_id;
+  return CON_UART_ID;
 }
 
 void platform_usb_cdc_send( u8 data )

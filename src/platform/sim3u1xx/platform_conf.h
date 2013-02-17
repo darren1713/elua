@@ -35,10 +35,16 @@
 
 extern unsigned platform_get_console_uart( void );
 
+#define EXTERNAL_CONSOLE
 
 #if defined( BUILD_USB_CDC )
+#if defined( EXTERNAL_CONSOLE )
+#define CON_VIRTUAL_ID 255
+#define CON_UART_ID CON_VIRTUAL_ID
+#else
 #define CON_UART_ID         ( platform_get_console_uart() )
 #define CON_UART_ID_HW_UART  0
+#endif
 #else
 #if defined( ELUA_BOARD_SIM3U1XXBDK )
 #define CON_UART_ID           2
@@ -47,11 +53,6 @@ extern unsigned platform_get_console_uart( void );
 #endif
 #endif
 #define CON_UART_SPEED        115200
-#define CONSOLE2_ENABLE
-#ifdef CONSOLE2_ENABLE
-#define CON2_UART_ID          1
-#define CON2_UART_SPEED       57600
-#endif
 #define TERM_LINES            25
 #define TERM_COLS             80
 
@@ -262,6 +263,12 @@ typedef enum {
 extern int wake_reason;
 
 extern unsigned console_cdc_active;
+
+//define CHARGER_MOSFETS_PRESENT
+//define BLUETOOTH_POWEREDWHILESLEEPING
+
+#undef SHELL_WELCOMEMSG
+#define SHELL_WELCOMEMSG "\nGSatMicro %s\n"
 
 #endif // #ifndef __PLATFORM_CONF_H__
 
