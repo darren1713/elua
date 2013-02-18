@@ -363,8 +363,10 @@ void shell_start()
 {
   char cmd[ SHELL_MAXSIZE + 1 ];
   const SHELL_COMMAND *pcmd;
+#ifdef BUILD_UIP
   int i;
-
+#endif
+  
   printf( SHELL_WELCOMEMSG, ELUA_STR_VERSION );
   while( 1 )
   {

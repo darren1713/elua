@@ -271,5 +271,10 @@ extern unsigned console_cdc_active;
 #undef SHELL_WELCOMEMSG
 #define SHELL_WELCOMEMSG "\nGSatMicro %s\n"
 
+#undef SHELL_PROMPT
+#define SHELL_PROMPT                    "GSatMicro# "
+
+//define DEBUG_I2C
+
 #endif // #ifndef __PLATFORM_CONF_H__
 
