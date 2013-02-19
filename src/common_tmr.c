@@ -312,6 +312,8 @@ timer_data_type platform_timer_get_diff_us( unsigned id, timer_data_type start, 
 {
   u32 freq;
   u64 tstart = ( u64 )start, tend = ( u64 )end;
+  u64 tstarttmp = tstart;
+  u64 tendtmp = tend;
     
   freq = platform_timer_op( id, PLATFORM_TIMER_OP_GET_CLOCK, 0 );
   if( tstart > tend )
@@ -403,6 +405,7 @@ int platform_timer_set_match_int( unsigned id, timer_data_type period_us, int ty
 
 static u32 cmn_systimer_ticks_for_us;
 static volatile u64 cmn_systimer_counter;
+static volatile u8 cmn_systimer_toggle = 0;
 static u32 cmn_systimer_us_per_interrupt;
 
 void cmn_systimer_set_base_freq( u32 freq_hz )
@@ -422,18 +425,19 @@ void cmn_systimer_set_interrupt_period_us( u32 period )
 
 void cmn_systimer_periodic()
 {
+  cmn_systimer_toggle ^= 1;
   cmn_systimer_counter += cmn_systimer_us_per_interrupt;
 }
-
 timer_data_type cmn_systimer_get()
 {
-  u64 tempcnt, crtsys;
-
+  u64 tempcnt, crtsys, rawcrtsys;
+  u8 tmptoggle;
   do
   {
-    crtsys = cmn_systimer_counter;
+    tmptoggle = cmn_systimer_toggle;
     tempcnt = platform_timer_sys_raw_read();
-  } while ( cmn_systimer_counter != crtsys);
+    crtsys = cmn_systimer_counter;
+  } while( platform_timer_sys_raw_read() < tempcnt || cmn_systimer_toggle != tmptoggle );
 
   crtsys += tempcnt / cmn_systimer_ticks_for_us;
   if( crtsys > PLATFORM_TIMER_SYS_MAX ) // timer overflow
@@ -443,6 +447,7 @@ timer_data_type cmn_systimer_get()
     cmn_systimer_counter = 0;
     platform_timer_sys_enable_int();
   }
+
   return ( timer_data_type )crtsys;
 }
 
