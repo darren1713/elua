@@ -44,7 +44,6 @@
 // ****************************************************************************
 // Platform initialization
 
-//#define CHARGER_MOSFETS_PRESENT
 #define PIN_CHECK_INTERVAL 10
 int wake_reason = WAKE_UNKNOWN;
 
@@ -62,6 +61,10 @@ int wake_reason = WAKE_UNKNOWN;
 extern void extras_sleep_hook( int seconds );
 #endif
 
+//I2C
+#define I2C_TIMEOUT_SYSTICKS 3
+static volatile int i2c_timeout_timer = I2C_TIMEOUT_SYSTICKS;
+
 int rram_reg[RRAM_SIZE] __attribute__((section(".sret")));
 static int rtc_remaining = 0;
 static u8 sleep_delay = 0;
@@ -74,6 +77,7 @@ extern int load_lua_function (char *func);
 static void pios_init();
 static void clk_init();
 static void rtc_init();
+static void gTIMER0_enter_auto_reload_config(void);
 
 void hard_fault_handler_c(unsigned int * hardfault_args)
 {
@@ -144,7 +148,6 @@ void WDTIMER0_IRQHandler(void)
 }
 
 #if defined( BUILD_USB_CDC )
-unsigned console_uart_id = CON_UART_ID_HW_UART;
 unsigned console_cdc_active = 0;
 #endif
 
@@ -198,6 +201,7 @@ void reset_parameters()
 
 int platform_init()
 {
+  int i;
   SystemInit();
 
   // Configure the NVIC Preemption Priority Bits:
@@ -235,8 +239,6 @@ int platform_init()
   // Enable SysTick
   SysTick_Config( cmsis_get_cpu_frequency() / SYSTICKHZ );
 
-  NVIC_SetPriority(SysTick_IRQn, (1 << __NVIC_PRIO_BITS) - 1);
-
   // RTC Configuration
   SI32_RTC_A_start_timer_capture(SI32_RTC_0);
   while(SI32_RTC_A_is_timer_capture_in_progress(SI32_RTC_0));
@@ -252,17 +254,6 @@ int platform_init()
 #endif
 
 #if defined( BUILD_USB_CDC )
-  // Setup console UART
-  platform_uart_setup( CON_UART_ID_HW_UART, CON_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
-  platform_uart_set_flow_control( CON_UART_ID_HW_UART, PLATFORM_UART_FLOW_NONE );
-  platform_uart_set_buffer( CON_UART_ID_HW_UART, CON_BUF_SIZE );
-
-#if defined( CONSOLE2_ENABLE )
-  // Setup console2 UART
-  platform_uart_setup( CON2_UART_ID, CON2_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
-  platform_uart_set_flow_control( CON2_UART_ID, PLATFORM_UART_FLOW_NONE );
-  platform_uart_set_buffer( CON2_UART_ID, CON_BUF_SIZE );
-#endif
 
   usb_init();
   hw_init();
@@ -347,6 +338,32 @@ int platform_init()
 #if defined( INT_SYSINIT )
     cmn_int_handler( INT_SYSINIT, 0 );
 #endif
+
+  // Set the Systick as the highest priority, then uarts, then the rest
+  NVIC_SetPriority(SysTick_IRQn, (1 << __NVIC_PRIO_BITS) - 1);
+  for(i=WDTIMER0_IRQn;i<=VREG0LOW_IRQn;i++)
+  {
+    switch(i)
+    {
+      case UART0_IRQn:
+      case UART1_IRQn:
+      case USB0_IRQn:
+      case USART0_IRQn:
+      case USART1_IRQn:
+        NVIC_SetPriority(i, (1 << __NVIC_PRIO_BITS) - 3);
+        break;
+      case TIMER0L_IRQn:
+      case TIMER0H_IRQn:
+        NVIC_SetPriority(i, (1 << __NVIC_PRIO_BITS) - 2);
+        break;
+      default:
+        NVIC_SetPriority(i, (1 << __NVIC_PRIO_BITS) - 1);
+        break;
+    }
+  }
+
+  // Enable Timer 0
+  gTIMER0_enter_auto_reload_config();
 
   // Setup Watchdog Timer
   SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
@@ -492,15 +509,10 @@ void SecondsTick_Handler()
   }
 }
 
-// SysTick interrupt handler
-void SysTick_Handler()
+static u8 seconds_tick_pending = 0;
+void TIMER0H_IRQHandler(void)
 {
-  // Handle virtual timers
-  cmn_virtual_timer_cb();
-
-  // Handle system timer call
-  cmn_systimer_periodic();
-
+ 
 #if defined( BUILD_USB_CDC )
   //Check if USB is powered. It will not actually TX/RX unless enumerated though
   if( ( SI32_PBSTD_A_read_pins( SI32_PBSTD_3 ) & ( 1 << 8 ) ) )
@@ -513,15 +525,61 @@ void SysTick_Handler()
 #endif
 
 #if defined( INT_SYSTICK )
-    cmn_int_handler( INT_SYSTICK, 0 );
+  cmn_int_handler( INT_SYSTICK, 0 );
 #endif
+
+  if(seconds_tick_pending)
+  {
+    SecondsTick_Handler();
+    seconds_tick_pending = 0;
+  }
+
+  // Clear the interrupt flag
+  SI32_TIMER_A_clear_high_overflow_interrupt(SI32_TIMER_0);
+}
+
+// SysTick interrupt handler
+void SysTick_Handler()
+{
+  // Handle virtual timers
+  cmn_virtual_timer_cb();
+
+  // Handle system timer call
+  cmn_systimer_periodic();
 
   tickSeconds++;
   if(tickSeconds == SYSTICKHZ)
   {
-    SecondsTick_Handler();
+    seconds_tick_pending = 1;
     tickSeconds = 0;
   }
+  if(i2c_timeout_timer)
+    i2c_timeout_timer--;
+}
+
+static void gTIMER0_enter_auto_reload_config(void)
+{
+  // ENABLE TIMER0 CLOCK
+  SI32_CLKCTRL_A_enable_apb_to_modules_0(SI32_CLKCTRL_0,
+    SI32_CLKCTRL_A_APBCLKG0_TIMER0CEN_ENABLED_U32);
+
+  // INITIALIZE TIMER  
+  SI32_TIMER_A_initialize (SI32_TIMER_0, 0x00, 0x00, 0x00, 0x00);
+  SI32_TIMER_A_select_single_timer_mode (SI32_TIMER_0);
+  SI32_TIMER_A_select_high_clock_source_apb_clock (SI32_TIMER_0);
+  SI32_TIMER_A_select_high_auto_reload_mode (SI32_TIMER_0);
+
+  // Set overflow frequency to SYSTICKHZ
+  SI32_TIMER_A_write_capture (SI32_TIMER_0, (unsigned) -(cmsis_get_cpu_frequency()/SYSTICKHZ));
+  SI32_TIMER_A_write_count (SI32_TIMER_0, (unsigned) -(cmsis_get_cpu_frequency()/SYSTICKHZ));  
+
+  // Run Timer
+  SI32_TIMER_A_start_high_timer(SI32_TIMER_0);
+
+  // ENABLE INTERRUPTS
+  NVIC_ClearPendingIRQ(TIMER0H_IRQn);
+  NVIC_EnableIRQ(TIMER0H_IRQn);
+  SI32_TIMER_A_enable_high_overflow_interrupt(SI32_TIMER_0);
 }
 
 // ****************************************************************************
@@ -602,7 +660,8 @@ void pios_init( void )
   SI32_PBSTD_A_disable_pullup_resistors( SI32_PBSTD_1 );
 
   //PB0.1 is external input 2
-  SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_0, 0x00000002);
+  //PB0.0 is accel INT1
+  SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_0, 0x00000003);
   SI32_PBSTD_A_disable_pullup_resistors( SI32_PBSTD_0 );
 
   // Enable Crossbar1 signals & set properties
@@ -674,7 +733,7 @@ void pios_init( void )
   // SI32_PBHD_A_enable_n_channel_drivers(SI32_PBHD_4, 0x003F);
   // SI32_PBHD_A_enable_p_channel_drivers(SI32_PBHD_4, 0x003F);
   // SI32_PBHD_A_enable_pin_current_limit(SI32_PBHD_4, 0x003F);
-
+#ifndef CHARGER_MOSFETS_PRESENT
   //Enable blue LED's if we are on or just in a PM9 temporary sleep...
   if(rram_read_bit(RRAM_BIT_POWEROFF) == POWEROFF_MODE_ACTIVE)
   {
@@ -686,6 +745,7 @@ void pios_init( void )
     SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x02 );
     SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x08 );
   }
+#endif
 }
 
 
@@ -1110,10 +1170,6 @@ static SI32_I2C_A_Type* const i2cs[] = { SI32_I2C_0, SI32_I2C_1 };
 #define  I2C_WRITE          0x00           // I2C WRITE command
 #define  I2C_READ           0x01           // I2C READ command
 
-#define I2C_TIMEOUT_US 100000
-
-static volatile timer_data_type i2c_start_time = 0;
-
 u32 platform_i2c_setup( unsigned id, u32 speed )
 {
   SI32_I2C_A_set_scaler_value( i2cs[ id ], ( cmsis_get_cpu_frequency() / speed ) );
@@ -1141,15 +1197,20 @@ void platform_i2c_send_start( unsigned id )
   if( SI32_I2C_A_is_rx_interrupt_pending( i2cs[ id ] ) )
     SI32_I2C_A_clear_rx_interrupt ( i2cs[ id ] );
 
-  i2c_start_time = platform_timer_read( PLATFORM_TIMER_SYS_ID );
+  i2c_timeout_timer = I2C_TIMEOUT_SYSTICKS;
 
   while( SI32_I2C_A_is_start_interrupt_pending( i2cs[ id ] ) == 0 &&
-         platform_timer_get_diff_crt( PLATFORM_TIMER_SYS_ID, i2c_start_time ) < I2C_TIMEOUT_US );
+         i2c_timeout_timer );
 
-  if( platform_timer_get_diff_crt( PLATFORM_TIMER_SYS_ID, i2c_start_time ) > I2C_TIMEOUT_US )
-      return;
+  if( i2c_timeout_timer == 0 )
+  {
 #if defined( DEBUG_I2C )
-  printf("CONTROL = %lx\n",  i2cs[ id ]->CONTROL.u32 );
+    printf("BEG TIMEOUT\n");
+#endif
+    return;
+  }
+#if defined( DEBUG_I2C )
+  printf("BEG CONTROL = %lx\n",  i2cs[ id ]->CONTROL.U32 );
 #endif
 }
 
@@ -1158,7 +1219,7 @@ void platform_i2c_send_stop( unsigned id )
   if ( SI32_I2C_A_is_busy( i2cs[ id ] ) )
   {
 #if defined( DEBUG_I2C )
-    printf("CONTROL = %lx\n",  i2cs[ id ]->CONTROL.u32 );
+    printf("END CONTROL = %lx\n",  i2cs[ id ]->CONTROL.U32 );
 #endif
 
     if( SI32_I2C_A_is_tx_interrupt_pending( i2cs[ id ] ) )
@@ -1169,23 +1230,22 @@ void platform_i2c_send_stop( unsigned id )
 
     SI32_I2C_A_set_stop( i2cs[ id ] );
 #if defined( DEBUG_I2C )
-    printf("CONTROL = %lx\n",  i2cs[ id ]->CONTROL.u32 );
+    printf("END CONTROL = %lx\n",  i2cs[ id ]->CONTROL.U32 );
 #endif
 
-
-    i2c_start_time = platform_timer_read( PLATFORM_TIMER_SYS_ID );
+    i2c_timeout_timer = I2C_TIMEOUT_SYSTICKS;
 
     while( SI32_I2C_A_is_stop_interrupt_pending( i2cs[ id ] ) == 0 &&
-           platform_timer_get_diff_crt( PLATFORM_TIMER_SYS_ID, i2c_start_time ) < I2C_TIMEOUT_US );
+      i2c_timeout_timer );
 
-    if( platform_timer_get_diff_crt( PLATFORM_TIMER_SYS_ID, i2c_start_time ) > I2C_TIMEOUT_US )
+    if( i2c_timeout_timer == 0 )
       return;
 
     SI32_I2C_A_clear_stop( i2cs[ id ] );
     SI32_I2C_A_send_nack ( i2cs[ id ] );
     SI32_I2C_A_clear_stop_interrupt( i2cs[ id ] );
 #if defined( DEBUG_I2C )
-    printf("CONTROL = %lx\n",  i2cs[ id ]->CONTROL.u32 );
+    printf("END CONTROL = %lx\n",  i2cs[ id ]->CONTROL.U32 );
 #endif
   }
   else
@@ -1206,36 +1266,44 @@ int platform_i2c_send_address( unsigned id, u16 address, int direction )
   if ( SI32_I2C_A_is_busy( i2cs[ id ] ) )
   {
 #if defined( DEBUG_I2C )
-    printf("CONTROL = %lx\n",  i2cs[ id ]->CONTROL.u32 );
+    printf("A CONTROL = %lx\n",  i2cs[ id ]->CONTROL.U32 );
 #endif
-    i2c_start_time = platform_timer_read( PLATFORM_TIMER_SYS_ID );
 
     while( SI32_I2C_A_is_start_interrupt_pending( i2cs[ id ] ) == 0 &&
-           platform_timer_get_diff_crt( PLATFORM_TIMER_SYS_ID, i2c_start_time ) < I2C_TIMEOUT_US );
-
-    if( platform_timer_get_diff_crt( PLATFORM_TIMER_SYS_ID, i2c_start_time ) > I2C_TIMEOUT_US )
+      i2c_timeout_timer );
+    if( i2c_timeout_timer == 0 )
+    {
+#if defined( DEBUG_I2C )
+      printf("I2C TIMEOUT\n");
+#endif
       return 0;
+    }
 
     //SI32_I2C_A_set_slave_address_7_bit( i2cs[ id ] );
-    SI32_I2C_A_set_byte_count( i2cs[ id ] , 1);
+    SI32_I2C_A_clear_start( i2cs[ id ] );
+
     SI32_I2C_A_write_data( i2cs[ id ] , ( address << 1 ) | (direction == PLATFORM_I2C_DIRECTION_TRANSMITTER ?  I2C_WRITE : I2C_READ) );
+    SI32_I2C_A_set_byte_count( i2cs[ id ] , 1);
     SI32_I2C_A_arm_tx( i2cs[ id ] );
 
-    SI32_I2C_A_clear_start( i2cs[ id ] );
-    SI32_I2C_A_clear_start_interrupt( i2cs[ id ] );
+    SI32_I2C_A_clear_tx_interrupt( i2cs[ id ] ); //JEFF TESTING!!
     SI32_I2C_A_clear_ack_interrupt( i2cs[ id ] );
+    SI32_I2C_A_clear_start_interrupt( i2cs[ id ] );
 
-
-    i2c_start_time = platform_timer_read( PLATFORM_TIMER_SYS_ID );
+    i2c_timeout_timer = I2C_TIMEOUT_SYSTICKS;
 
     while( SI32_I2C_A_is_tx_interrupt_pending( i2cs[ id ] ) == 0 &&
-           platform_timer_get_diff_crt( PLATFORM_TIMER_SYS_ID, i2c_start_time ) < I2C_TIMEOUT_US );
+      i2c_timeout_timer );
 
-    if( platform_timer_get_diff_crt( PLATFORM_TIMER_SYS_ID, i2c_start_time ) > I2C_TIMEOUT_US )
+    if( i2c_timeout_timer == 0 )
+    {
+#if defined( DEBUG_I2C )
+      printf("I2C TIMEOUT2\n");
+#endif
       return 0;
+    }
 
     acktmp = ( u8 )SI32_I2C_A_is_ack_received( i2cs[ id ] );
-
 
     SI32_I2C_A_clear_ack_interrupt( i2cs[ id ] );
 
@@ -1244,7 +1312,7 @@ int platform_i2c_send_address( unsigned id, u16 address, int direction )
       SI32_I2C_A_clear_tx_interrupt( i2cs[ id ] );
     }
 #if defined( DEBUG_I2C )
-    printf("CONTROL = %lx\n",  i2cs[ id ]->CONTROL.u32 );
+    printf("A CONTROL = %lx %d\n",  i2cs[ id ]->CONTROL.U32, acktmp );
 #endif
   }
   else
@@ -1262,7 +1330,7 @@ int platform_i2c_send_byte( unsigned id, u8 data )
   if ( SI32_I2C_A_is_busy( i2cs[ id ] ) )
   {
 #if defined( DEBUG_I2C )
-    printf("CONTROL = %lx\n",  i2cs[ id ]->CONTROL.u32 );
+    printf("B CONTROL = %lx\n",  i2cs[ id ]->CONTROL.U32 );
 #endif
     u32 tmpdata = ( u32 )data;
     SI32_I2C_A_set_byte_count( i2cs[ id ] , 1 );
@@ -1270,18 +1338,18 @@ int platform_i2c_send_byte( unsigned id, u8 data )
     SI32_I2C_A_arm_tx( i2cs[ id ] );
     SI32_I2C_A_clear_tx_interrupt( i2cs[ id ] );
 
-    i2c_start_time = platform_timer_read( PLATFORM_TIMER_SYS_ID );
+    i2c_timeout_timer = I2C_TIMEOUT_SYSTICKS;
 
     while( SI32_I2C_A_is_tx_interrupt_pending( i2cs[ id ] ) == 0 &&
-           platform_timer_get_diff_crt( PLATFORM_TIMER_SYS_ID, i2c_start_time ) < I2C_TIMEOUT_US );
+      i2c_timeout_timer );
 
-    if( platform_timer_get_diff_crt( PLATFORM_TIMER_SYS_ID, i2c_start_time ) > I2C_TIMEOUT_US )
+    if( i2c_timeout_timer == 0 )
       return 0;
 
     SI32_I2C_A_clear_ack_interrupt( i2cs[ id ] );
 
 #if defined( DEBUG_I2C )
-    printf("CONTROL = %lx\n",  i2cs[ id ]->CONTROL.u32 );
+    printf("B CONTROL = %lx\n",  i2cs[ id ]->CONTROL.U32 );
 #endif
     if( SI32_I2C_A_is_ack_received(SI32_I2C_0) )
       return 1;
@@ -1303,7 +1371,7 @@ int platform_i2c_recv_byte( unsigned id, int ack )
   if ( SI32_I2C_A_is_busy( i2cs[ id ] ) )
   {
 #if defined( DEBUG_I2C )
-    printf("CONTROL = %lx\n",  i2cs[ id ]->CONTROL.u32 );
+    printf("R CONTROL = %lx\n",  i2cs[ id ]->CONTROL.U32 );
 #endif
 
     SI32_I2C_A_set_byte_count( i2cs[ id ] , 1);
@@ -1314,12 +1382,12 @@ int platform_i2c_recv_byte( unsigned id, int ack )
     else if( SI32_I2C_A_is_tx_interrupt_pending( i2cs[ id ] ) )
       SI32_I2C_A_clear_tx_interrupt ( i2cs[ id ] );
 
-    i2c_start_time = platform_timer_read( PLATFORM_TIMER_SYS_ID );
+    i2c_timeout_timer = I2C_TIMEOUT_SYSTICKS;
 
     while( SI32_I2C_A_is_ack_interrupt_pending( i2cs[ id ] ) == 0 &&
-           platform_timer_get_diff_crt( PLATFORM_TIMER_SYS_ID, i2c_start_time ) < I2C_TIMEOUT_US );
+      i2c_timeout_timer );
 
-    if( platform_timer_get_diff_crt( PLATFORM_TIMER_SYS_ID, i2c_start_time ) > I2C_TIMEOUT_US )
+    if( i2c_timeout_timer == 0 )
       return 0;
 
     if( ack )
@@ -1329,12 +1397,12 @@ int platform_i2c_recv_byte( unsigned id, int ack )
 
     SI32_I2C_A_clear_ack_interrupt( i2cs[ id ] );
 
-    i2c_start_time = platform_timer_read( PLATFORM_TIMER_SYS_ID );
+    i2c_timeout_timer = I2C_TIMEOUT_SYSTICKS;
 
     while( SI32_I2C_A_is_rx_interrupt_pending( i2cs[ id ] ) == 0 &&
-           platform_timer_get_diff_crt( PLATFORM_TIMER_SYS_ID, i2c_start_time ) < I2C_TIMEOUT_US );
+      i2c_timeout_timer );
 
-    if( platform_timer_get_diff_crt( PLATFORM_TIMER_SYS_ID, i2c_start_time ) > I2C_TIMEOUT_US )
+    if( i2c_timeout_timer == 0 )
       return 0;
 
     tmpdata = SI32_I2C_A_read_data( i2cs[ id ] );
@@ -1343,7 +1411,7 @@ int platform_i2c_recv_byte( unsigned id, int ack )
     if( 0xFFFFFF00 & tmpdata )
       printf("GOT MORE THAN ONE BYTE!\n");
 
-    printf("CONTROL = %lx\n",  i2cs[ id ]->CONTROL.u32 );
+    printf("R CONTROL = %lx\n",  i2cs[ id ]->CONTROL.U32 );
 #endif
 
       return ( u8 )tmpdata;
@@ -1513,12 +1581,15 @@ void myPB_enter_off_config()
   //Set I2C pins to analog float...
   SI32_PBSTD_A_set_pins_analog( SI32_PBSTD_0, 0x0000C000);
   SI32_PBSTD_A_write_pins_low( SI32_PBSTD_0, 0xC000 );
+#ifdef BLUETOOTH_POWEREDWHILESLEEPING
   //Set bluetooth pins to analog float...
-  //SI32_PBSTD_A_set_pins_analog( SI32_PBSTD_1, 0x00000080);
-  //SI32_PBSTD_A_write_pins_high( SI32_PBSTD_1, 0x0080 );
-  //SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 0x0080);
+  SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 0x0080);
+  SI32_PBSTD_A_write_pins_high( SI32_PBSTD_1, 0x0080 );
+#endif
+  //Set 5V pin to analog float...
+  SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 0x00000200);
+  SI32_PBSTD_A_write_pins_low( SI32_PBSTD_1, 0x0200 );
   
-
   SI32_PBHD_A_set_pins_push_pull_output( SI32_PBHD_4, 0x00 );
   SI32_PBHD_A_set_pins_low_drive_strength(SI32_PBHD_4, 0x3F);
   SI32_PBHD_A_disable_bias( SI32_PBHD_4 );
@@ -1545,6 +1616,9 @@ void sim3_pmu_pm9( unsigned seconds )
     printf("Unit is powered, no PM9\n");
     wake_reason = WAKE_POWERCONNECTED;
     rram_write_int(RRAM_INT_SLEEPTIME, seconds);
+#ifdef EXTRA_SLEEP_HOOK
+    extras_sleep_hook(PIN_CHECK_INTERVAL);
+#endif
     return;
   }
   if(seconds == TRICK_TO_REBOOT_WITHOUT_DFU_MODE)
@@ -1594,10 +1668,11 @@ void sim3_pmu_pm9( unsigned seconds )
 
   // Enter Sleep Mode
   myPB_enter_off_config();
+#ifndef BLUETOOTH_POWEREDWHILESLEEPING
   VMON0_enter_power_9_mode_from_normal_power_mode();
   LDO0_enter_power_9_mode_from_normal_power_mode();
   VREG0_enter_power_9_mode_from_normal_power_mode();
-  //PMU0_enter_power_9_mode_from_normal_power_mode();
+#endif
   RSTSRC0_enter_power_9_mode_from_normal_power_mode();
 
   //Reset RTC Timer and clear any interrupts
@@ -1903,7 +1978,7 @@ int platform_flash_erase_sector( u32 sector_id )
 
 unsigned platform_get_console_uart( void )
 {
-  return console_uart_id;
+  return CON_UART_ID;
 }
 
 void platform_usb_cdc_send( u8 data )
@@ -1989,10 +2064,10 @@ int platform_usb_cdc_recv( s32 timeout )
 
 // #if defined( SIM3_EXTRA_LIBS_ROM )
 // #undef _EXTRAROM
-// #define _EXTRAROM( name, openf, table ) \
+/* #define _EXTRAROM( name, openf, table ) \
 //   lua_newtable( L ); \
 //   luaL_register( L, NULL, table ); \
-//   lua_setfield( L, -2, #name );
+//   lua_setfield( L, -2, #name ); */
 // #endif
 
 //   return 1;
