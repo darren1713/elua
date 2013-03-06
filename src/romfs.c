@@ -595,6 +595,8 @@ int romfs_walk_fs( u32 *start, u32 *end, void *pdata  )
 #define LAST_SECTOR_END  ( INTERNAL_FLASH_SIZE - INTERNAL_FLASH_START_ADDRESS )
 #define LAST_SECTOR_START ( LAST_SECTOR_END - INTERNAL_FLASH_SECTOR_SIZE )
 
+// TODO: Needs to handle remaining open file if there is one
+
 int wofs_repack(  void )
 {
   FSDATA *pdata = &wofs_fsdata;
@@ -614,14 +616,14 @@ int wofs_repack(  void )
     startf = endf;
   } while( ret == 0 ); // Exit when we find something other than a "regular" file
 
-  // If we get to the end, return
+  // If we get to the end and find no deleted files, end
   if( ret == -1 )
   {
     printf("Can't repack, no deleted files!");
     return 1;
   }
 
-  while( ret != -1 )
+  while( ret != -1 ) // while we haven't hit the end of the FS
   {
     // 2 - Find sector it came from
     snum = platform_flash_find_sector( startf + pdata->pbase, &sstart, &send );
