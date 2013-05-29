@@ -37,6 +37,20 @@ static int wofs_sim_fd;
 // Length of the 'file size' field for both ROMFS/WOFS
 #define ROMFS_SIZE_LEN        4
 
+#ifdef ROMFS_SECURE_FILENAMES_WITH_CHAR
+static int romfs_security_lock = 1;
+
+void romfs_sec_lock()
+{
+  romfs_security_lock = 1;
+}
+
+void romfs_sec_unlock()
+{
+  romfs_security_lock = 0;
+}
+#endif
+
 static int romfs_find_empty_fd()
 {
   int i;
@@ -79,6 +93,12 @@ static u8 romfs_open_file( const char* fname, FD* pfd, FSDATA *pfs, u32 *plast, 
   char fsname[ DM_MAX_FNAME_LENGTH + 1 ];
   u32 fsize;
   int is_deleted;
+
+#ifdef ROMFS_SECURE_FILENAMES_WITH_CHAR
+  if(romfs_security_lock && strstr(fname,ROMFS_SECURE_FILENAMES_WITH_CHAR) != NULL)
+    return FS_FILE_NOT_FOUND;
+#endif
+
   
   // Look for the file
   i = 0;
@@ -386,8 +406,14 @@ static struct dm_dirent* romfs_readdir_r( struct _reent *r, void *d, void *pdata
     off += pent->fsize;
     if( romfsh_is_wofs( pfsdata ) )
       off = ( off + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 );
+//If file security is enabled, don't return a matching filename as valid
+#ifdef ROMFS_SECURE_FILENAMES_WITH_CHAR
+    if( !is_deleted && ( romfs_security_lock == 0 || strstr( pent->fname, ROMFS_SECURE_FILENAMES_WITH_CHAR) == NULL ) )
+      break;
+#else
     if( !is_deleted )
       break;
+#endif    
   }
   *( u32* )d = off;
   return pent;

@@ -10,8 +10,6 @@ FILE * open_param_file(const char * name, const char * prefix, const char * form
     char fname[20];
     sprintf( fname, format, prefix, name );
     FILE * ret = fopen(fname, mode);
-    if(ret == NULL)
-      printf("no file %s\n", fname);
     return ret;
 }
 int32_t set_param( const char * name, const char * prefix, uint8_t type, uint8_t * value, uint32_t length )
@@ -53,7 +51,6 @@ int32_t get_param( const char * name, const char * prefix, uint8_t type, uint8_t
 
     n = fread(value, 1, length, fp);
     fclose(fp);
-    printf("read %i b\n", n);
     return n; // return length of item actually read
 }
 
@@ -87,7 +84,7 @@ int32_t get_param_s32( const char * name, const char * prefix, int32_t *value )
         return ret;
 
     *value = *( int32_t * )b;
-    return 1;
+    return ret;
 }
 
 // store string parameter
