@@ -312,8 +312,6 @@ timer_data_type platform_timer_get_diff_us( unsigned id, timer_data_type start, 
 {
   u32 freq;
   u64 tstart = ( u64 )start, tend = ( u64 )end;
-  u64 tstarttmp = tstart;
-  u64 tendtmp = tend;
     
   freq = platform_timer_op( id, PLATFORM_TIMER_OP_GET_CLOCK, 0 );
   if( tstart > tend )
@@ -433,7 +431,7 @@ u64 cmn_systimer_last_crtsys = 0;
 u8 cmn_systimer_overflow = 0;
 timer_data_type cmn_systimer_get()
 {
-  u64 tempcnt, crtsys, rawcrtsys;
+  u64 tempcnt, crtsys;
   u8 tmptoggle;
   do
   {
