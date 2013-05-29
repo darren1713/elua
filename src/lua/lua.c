@@ -228,7 +228,7 @@ int spin_vm( lua_State *L )
   ((void)L, \
   fgets(b, LUA_MAXINPUT, stdin) != NULL)  /* get line */
 #else
-int repl_prev_char = -1;
+int prev_line_end = -1;
 #include "utils.h"
 
 int slip_readline(lua_State *L, char *b, const char *p)
@@ -239,16 +239,20 @@ int slip_readline(lua_State *L, char *b, const char *p)
 
   while( 1 )
   {
-    if( repl_prev_char != -1 )
-    {
-      c = repl_prev_char;
-      repl_prev_char = -1;
-    }
-    else
-      c = platform_uart_recv( CON_UART_ID, PLATFORM_TIMER_SYS_ID, 0 );
+    c = platform_uart_recv( CON_UART_ID, PLATFORM_TIMER_SYS_ID, 0 );
 
     if( c != -1 )
     {
+      //Check if our last character plus current character are a combination line ending
+      //Skip this character if true, if not, clear last character
+      if( ( prev_line_end + c ) == ( '\r' + '\n' ) )
+      {
+        prev_line_end = -1;
+          continue;
+      }
+      else if( prev_line_end != -1 )
+        prev_line_end = -1;
+  
       if( ( c == 8 ) || ( c == 0x7F ) ) // Backspace
       {
         if( i > 0 )
@@ -268,15 +272,23 @@ int slip_readline(lua_State *L, char *b, const char *p)
       if( c == '\r' || c == '\n' )
       {
         // Handle both '\r\n' and '\n\r' here
-        repl_prev_char = platform_uart_recv( CON_UART_ID, PLATFORM_TIMER_SYS_ID, 10000 ); // consume the next char (\r or \n) if any
-        if( repl_prev_char + c == '\r' + '\n' ) // we must ignore this character
-          repl_prev_char = -1;
+        prev_line_end = c;
         platform_uart_send( CON_UART_ID, '\r' + '\n' - c );
         ptr[ i ++ ] = '\n';
         ptr[ i ] = 0;
         return i + 1;
       }
       ptr[ i ++ ] = c;
+
+      //Watch our buffer and reset if necessary
+      if(i+2 == LUA_MAXINPUT)
+      {
+          platform_uart_send( CON_UART_ID, '^' );
+          platform_uart_send( CON_UART_ID, '\r' );
+          platform_uart_send( CON_UART_ID, '\n' );
+          i = 0;
+          ptr[ i ] = 0;
+      }
     }
     else
     {
