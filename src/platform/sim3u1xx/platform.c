@@ -44,7 +44,7 @@
 // ****************************************************************************
 // Platform initialization
 
-#define PIN_CHECK_INTERVAL 10
+#define PIN_CHECK_INTERVAL 120
 int wake_reason = WAKE_UNKNOWN;
 
 // Watchdog timer
@@ -64,6 +64,18 @@ extern void extras_sleep_hook( int seconds );
 //I2C
 #define I2C_TIMEOUT_SYSTICKS 3
 static volatile int i2c_timeout_timer = I2C_TIMEOUT_SYSTICKS;
+
+#ifdef PCB_V7
+#define PIN_VUSB_BANK SI32_PBSTD_3
+#define PIN_VUSB_PIN ( 1 << 9 )
+#define PIN_HV_BANK SI32_PBSTD_3
+#define PIN_HV_PIN ( 1 << 8 )
+#else
+#define PIN_VUSB_BANK SI32_PBSTD_3
+#define PIN_VUSB_PIN ( 1 << 8 )
+#define PIN_HV_BANK SI32_PBSTD_3
+#define PIN_HV_PIN ( 1 << 7 )
+#endif
 
 int rram_reg[RRAM_SIZE] __attribute__((section(".sret")));
 static int rtc_remaining = 0;
@@ -169,21 +181,25 @@ void mySystemInit(void)
 #if defined( ELUA_BOARD_GSBRD )
 int external_power()
 {
-  //check USB DC 3.8 or HVDC 3.7
-  if( ( SI32_PBSTD_A_read_pins( SI32_PBSTD_3 ) & ( 1 << 7 ) ) ||
-      ( SI32_PBSTD_A_read_pins( SI32_PBSTD_3 ) & ( 1 << 8 ) ) )
+  //check USB DC 3.9 or HVDC 3.8
+  if( ( SI32_PBSTD_A_read_pins( PIN_HV_BANK ) & ( PIN_HV_PIN ) ) ||
+      ( SI32_PBSTD_A_read_pins( PIN_VUSB_BANK ) & ( PIN_VUSB_PIN ) ) )
     return 1;
   else
     return 0;
 }
 int external_buttons()
 {
+#ifdef PCB_V7
+  return 0;
+#else
   //check inputs 1 and 2
   if( /*( SI32_PBSTD_A_read_pins( SI32_PBSTD_3 ) & ( 1 << 6 ) ) ||*/
       ( SI32_PBSTD_A_read_pins( SI32_PBSTD_0 ) & ( 1 << 1 ) ) )
     return 1;
   else
     return 0;
+#endif
 }
 #endif
 static int pmu_wake_status = -1;
@@ -246,13 +262,6 @@ int platform_init()
   rtc_remaining = (SI32_RTC_A_read_alarm0(SI32_RTC_0)-SI32_RTC_A_read_setcap(SI32_RTC_0))/16384;
   rtc_init();
 
-#if defined( ELUA_BOARD_GSBRD )
-    platform_pio_op( 0, ( ( u32 ) 1 << 10 ), PLATFORM_IO_PIN_DIR_OUTPUT );
-    platform_pio_op( 0, ( ( u32 ) 1 << 10 ), PLATFORM_IO_PIN_SET );
-    platform_pio_op( 3, ( ( u32 ) 1 << 11 ), PLATFORM_IO_PIN_DIR_OUTPUT );
-    platform_pio_op( 3, ( ( u32 ) 1 << 11 ), PLATFORM_IO_PIN_SET );
-#endif
-
 #if defined( BUILD_USB_CDC )
 
   usb_init();
@@ -292,7 +301,7 @@ int platform_init()
 
 #ifdef EXTRA_SLEEP_HOOK
       //pass negative time to notify early wakeup
-      extras_sleep_hook(rtc_remaining * -1);
+      //extras_sleep_hook(rtc_remaining * -1);
 #endif
 
       //Don't auto-sleep for some period of seconds
@@ -373,6 +382,7 @@ int platform_init()
   while(SI32_WDTIMER_A_is_threshold_update_pending(SI32_WDTIMER_0));
   SI32_WDTIMER_A_set_reset_threshold (SI32_WDTIMER_0, RESET_THRESHOLD);
 
+#if 1 //Option to disable Watchdog Timer
   // Enable Watchdog Timer
   SI32_WDTIMER_A_start_counter(SI32_WDTIMER_0);
 
@@ -381,6 +391,7 @@ int platform_init()
   SI32_WDTIMER_A_enable_early_warning_interrupt(SI32_WDTIMER_0);
   SI32_RSTSRC_A_enable_watchdog_timer_reset_source(SI32_RSTSRC_0);
   NVIC_EnableIRQ(WDTIMER0_IRQn);
+#endif
 
 
   return PLATFORM_OK;
@@ -471,17 +482,25 @@ void SecondsTick_Handler()
   if(rram_read_int(RRAM_INT_SLEEPTIME) > 0)
   {
     //Don't count down timer if buttons are depressed
-    if(!external_buttons() && rram_read_int(RRAM_INT_SLEEPTIME) != SLEEP_FOREVER)
-      rram_write_int(RRAM_INT_SLEEPTIME, rram_read_int(RRAM_INT_SLEEPTIME)-1);
+    if(rram_read_int(RRAM_INT_SLEEPTIME) != SLEEP_FOREVER)
+    {
+      if(rram_read_int(RRAM_INT_SLEEPTIME) != 1 || ( !external_buttons() && ok_to_sleep() == OKTOSLEEP ) )
+        rram_write_int(RRAM_INT_SLEEPTIME, rram_read_int(RRAM_INT_SLEEPTIME)-1);
+    }
 
     if(rram_read_int(RRAM_INT_SLEEPTIME) == 0)
     {
       //Our timer has expired and we are still powered, start TX script
       //Do a software reboot UNTIL we get the memory leaks sorted out...
       //sim3_pmu_reboot();
+#ifdef REBOOT_AT_END_OF_SLEEP
       sim3_pmu_pm9(TRICK_TO_REBOOT_WITHOUT_DFU_MODE);
+#endif
       //Normally we would run the startup script, but fix memory leaks first...
-      printf("startup %i\n", load_lua_function("autorun"));
+      //printf("startup %i\n", load_lua_function("autorun"));
+      printf("wakeup\n");
+      cmn_int_handler( INT_BOOT, 0 );
+      //printf("wakeup %i\n", load_lua_string("wakeup();\n"));
     }
     if((external_power() == 0 && !external_buttons()) || rram_read_bit(RRAM_BIT_SLEEP_WHEN_POWERED) == SLEEP_WHEN_POWERED_ACTIVE)
     {
@@ -491,7 +510,8 @@ void SecondsTick_Handler()
       else
         sim3_pmu_pm9( rram_read_int(RRAM_INT_SLEEPTIME) );
     }
-    else if(rram_read_int(RRAM_INT_SLEEPTIME) != SLEEP_FOREVER && ((rram_read_int(RRAM_INT_SLEEPTIME) % 10) == 0))
+    else if(rram_read_int(RRAM_INT_SLEEPTIME) != SLEEP_FOREVER && 
+      ( ( ( rram_read_int(RRAM_INT_SLEEPTIME) % 10 ) == 0 ) || rram_read_int(RRAM_INT_SLEEPTIME) < 5 ) )
       printf("powered %i\n", rram_read_int(RRAM_INT_SLEEPTIME));
   }
   if(firstSecond)
@@ -511,11 +531,10 @@ void SecondsTick_Handler()
 
 static u8 seconds_tick_pending = 0;
 void TIMER0H_IRQHandler(void)
-{
- 
+{ 
 #if defined( BUILD_USB_CDC )
   //Check if USB is powered. It will not actually TX/RX unless enumerated though
-  if( ( SI32_PBSTD_A_read_pins( SI32_PBSTD_3 ) & ( 1 << 8 ) ) )
+  if( ( SI32_PBSTD_A_read_pins( PIN_VUSB_BANK ) & PIN_VUSB_PIN ) )
     console_cdc_active = 1;
   else
     console_cdc_active = 0;
@@ -630,7 +649,9 @@ void pios_init( void )
   // PB1 Setup
   SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_1, 0x03A1);
   SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_1, 0xFC1C);
+#ifndef PCB_V7
   SI32_PBSTD_A_write_pins_low(SI32_PBSTD_1, 0x0200 ); //Set 5V regulator off
+#endif
   SI32_PBSTD_A_write_pins_high(SI32_PBSTD_1, 0x0100 ); //Set USB high power mode
 
   // Enable Crossbar0 signals & set properties
@@ -650,14 +671,32 @@ void pios_init( void )
   SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_2, 0x7FFF);
 
   // PB3 Setup
-  SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_3, 0x00FF);
+  SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_3, 0xFFFF);
+
+  SI32_PBSTD_A_disable_pullup_resistors( SI32_PBSTD_3 );
+
+  SI32_PBSTD_A_disable_pullup_resistors( SI32_PBSTD_2 );
+  SI32_PBSTD_A_disable_pullup_resistors( SI32_PBSTD_1 );
+
+#ifdef PCB_V7
+  //PB3.8 is high voltage dc detection
+  //PB3.9 is usb voltage detection
+  SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_3, 0x00000300);
+  //PB3.11 5V on/off
+  SI32_PBSTD_A_write_pins_high(SI32_PBSTD_3, ( u32 ) 1 << 11 ); //Set 5V regulator off
+  SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_3, ( u32 ) 1 << 11);
+#else
   //PB3.6 is external input 1
   //PB3.7 is high voltage dc detection
   //PB3.8 is usb voltage detection
   SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_3, 0x000001C0);
-  SI32_PBSTD_A_disable_pullup_resistors( SI32_PBSTD_3 );
-
-  SI32_PBSTD_A_disable_pullup_resistors( SI32_PBSTD_1 );
+  //PB3.11 is RS232 Force Off
+  SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_3, ( u32 ) 1 << 11);
+  SI32_PBSTD_A_write_pins_high(SI32_PBSTD_3, ( u32 ) 1 << 11 );
+  //PB0.10 is RS232 VCC
+  SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_0, ( u32 ) 1 << 10);
+  SI32_PBSTD_A_write_pins_high(SI32_PBSTD_0, ( u32 ) 1 << 10 );
+#endif
 
   //PB0.1 is external input 2
   //PB0.0 is accel INT1
@@ -667,7 +706,92 @@ void pios_init( void )
   // Enable Crossbar1 signals & set properties
   SI32_PBCFG_A_enable_crossbar_1(SI32_PBCFG_0);
 
+
+  // Setup PBHD4
+  SI32_PBCFG_A_unlock_ports(SI32_PBCFG_0);
+  SI32_PBHD_A_write_pblock(SI32_PBHD_4, 0x00);
+
+  SI32_PBHD_A_select_pin0_safe_state(SI32_PBHD_4, 0x0);
+  SI32_PBHD_A_select_pin1_safe_state(SI32_PBHD_4, 0x0);
+  SI32_PBHD_A_select_pin2_safe_state(SI32_PBHD_4, 0x0);
+  SI32_PBHD_A_select_pin3_safe_state(SI32_PBHD_4, 0x0);
+  SI32_PBHD_A_select_pin4_safe_state(SI32_PBHD_4, 0x0);
+  SI32_PBHD_A_select_pin5_safe_state(SI32_PBHD_4, 0x0);
+
+  SI32_PBHD_A_enable_bias(SI32_PBHD_4);
+  SI32_PBHD_A_select_normal_power_port_mode(SI32_PBHD_4);
+  SI32_PBHD_A_enable_drivers(SI32_PBHD_4);
+
+  //Setup PB4.0/4.1 to outputs, no pullups, and low for MOSFET outputs
+  //Setup PB4.3 LED0/1
+  //Setup PB4.4/4.5 GPS
+  //Setup PB4.2 to HIGH to turn on mosfets for bat charger!
+  SI32_PBHD_A_set_pins_push_pull_output( SI32_PBHD_4, 0x003F );
+  SI32_PBHD_A_disable_pullup_resistors( SI32_PBHD_4 );
+  SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x3F );
+
+  SI32_PBHD_A_set_pins_low_drive_strength(SI32_PBHD_4, 0x3F);
+
+  //SI32_PBHD_A_select_nchannel_current_limit(SI32_PBHD_4, 0xA);
+  SI32_PBHD_A_select_pchannel_current_limit(SI32_PBHD_4, 0xF);
+  SI32_PBHD_A_enable_pin_current_limit( SI32_PBHD_4, 0x3F );
+
+  SI32_PBHD_A_select_slew_rate(SI32_PBHD_4, SI32_PBHD_A_SLEW_FASTEST);
+
+#ifdef PCB_V7
+#ifdef PCB_V7_CHARGER_NPN
+  //PB4.2 charger disconnect needs to be set high to enable NPN
+  SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x04 );
 #else
+  //PB4.2 charger disconnect needs to be set low to enable MOSFET
+  SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x04 );
+#endif
+#endif
+
+#ifdef PCB_V7
+  // PB4.4 high to power RS232 and I2C
+  SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x10 );
+  // PB4.4 high to power RS232 and I2C
+  SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x10 );
+#endif
+
+  // SI32_PBHD_A_select_pchannel_current_limit(SI32_PBHD_4, 0);
+  // SI32_PBHD_A_enable_pin_current_limit( SI32_PBHD_4, 0x3F );
+
+  // SI32_PBHD_A_write_pblock(SI32_PBHD_4, 0x0000);
+  // SI32_PBHD_A_enable_drivers(SI32_PBHD_4);
+  // SI32_PBHD_A_select_pchannel_current_limit(SI32_PBHD_4, 15);
+  // SI32_PBHD_A_select_nchannel_current_limit(SI32_PBHD_4, 15);
+  // SI32_PBHD_A_set_pins_push_pull_output(SI32_PBHD_4, 0x003F);
+  // SI32_PBHD_A_set_pins_high_drive_strength(SI32_PBHD_4, 0x003F);
+  // SI32_PBHD_A_enable_n_channel_drivers(SI32_PBHD_4, 0x003F);
+  // SI32_PBHD_A_enable_p_channel_drivers(SI32_PBHD_4, 0x003F);
+  // SI32_PBHD_A_enable_pin_current_limit(SI32_PBHD_4, 0x003F);
+  //Enable blue LED's if we are on or just in a PM9 temporary sleep...
+  if(rram_read_bit(RRAM_BIT_POWEROFF) == POWEROFF_MODE_ACTIVE)
+  {
+#ifdef PCB_V7
+    SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x08 );
+#else
+  #ifndef USE_EXTERNAL_MOSFETS
+      SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x02 );
+  #endif
+      SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x08 );
+#endif
+  }
+  else 
+  {
+#ifdef PCB_V7
+    SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x08 );
+#else
+  #ifndef USE_EXTERNAL_MOSFETS
+      SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x02 );
+  #endif
+      SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x08 );
+#endif
+  }
+
+#else //#if defined( ELUA_BOARD_GSBRD )
   // Set up prinf pin
   //SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_1, 0x00000008);
 
@@ -688,63 +812,6 @@ void pios_init( void )
 
   // BRING OUT UART
   SI32_PBCFG_A_enable_xbar0h_peripherals(SI32_PBCFG_0, SI32_PBCFG_A_XBAR0H_UART0EN);
-#endif
-
-  // Setup PBHD4
-  SI32_PBCFG_A_unlock_ports(SI32_PBCFG_0);
-  SI32_PBHD_A_write_pblock(SI32_PBHD_4, 0x00);
-
-  SI32_PBHD_A_select_pin0_safe_state(SI32_PBHD_4, 0x0);
-  SI32_PBHD_A_select_pin1_safe_state(SI32_PBHD_4, 0x0);
-  SI32_PBHD_A_select_pin2_safe_state(SI32_PBHD_4, 0x0);
-  SI32_PBHD_A_select_pin3_safe_state(SI32_PBHD_4, 0x0);
-  SI32_PBHD_A_select_pin4_safe_state(SI32_PBHD_4, 0x0);
-  SI32_PBHD_A_select_pin5_safe_state(SI32_PBHD_4, 0x0);
-
-  SI32_PBHD_A_enable_bias(SI32_PBHD_4);
-  SI32_PBHD_A_select_normal_power_port_mode(SI32_PBHD_4);
-  SI32_PBHD_A_enable_drivers(SI32_PBHD_4);
-
-  //Setup PB4.0/4.1 to outputs, no pullups, and low for MOSFET outputs
-  //Setup PB4.3 LED0/1
-  //Setup PB4.4/4.5 GPS
-  //Setup PB4.2 to LOW to turn on mosfets for bat charger!
-  SI32_PBHD_A_set_pins_push_pull_output( SI32_PBHD_4, 0x003F );
-  SI32_PBHD_A_disable_pullup_resistors( SI32_PBHD_4 );
-  SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x3F );
-
-  SI32_PBHD_A_set_pins_low_drive_strength(SI32_PBHD_4, 0x3F);
-
-  //SI32_PBHD_A_select_nchannel_current_limit(SI32_PBHD_4, 0xA);
-  SI32_PBHD_A_select_pchannel_current_limit(SI32_PBHD_4, 0xF);
-  SI32_PBHD_A_enable_pin_current_limit( SI32_PBHD_4, 0x3F );
-
-  SI32_PBHD_A_select_slew_rate(SI32_PBHD_4, SI32_PBHD_A_SLEW_FASTEST);
-
-  // SI32_PBHD_A_select_pchannel_current_limit(SI32_PBHD_4, 0);
-  // SI32_PBHD_A_enable_pin_current_limit( SI32_PBHD_4, 0x3F );
-
-  // SI32_PBHD_A_write_pblock(SI32_PBHD_4, 0x0000);
-  // SI32_PBHD_A_enable_drivers(SI32_PBHD_4);
-  // SI32_PBHD_A_select_pchannel_current_limit(SI32_PBHD_4, 15);
-  // SI32_PBHD_A_select_nchannel_current_limit(SI32_PBHD_4, 15);
-  // SI32_PBHD_A_set_pins_push_pull_output(SI32_PBHD_4, 0x003F);
-  // SI32_PBHD_A_set_pins_high_drive_strength(SI32_PBHD_4, 0x003F);
-  // SI32_PBHD_A_enable_n_channel_drivers(SI32_PBHD_4, 0x003F);
-  // SI32_PBHD_A_enable_p_channel_drivers(SI32_PBHD_4, 0x003F);
-  // SI32_PBHD_A_enable_pin_current_limit(SI32_PBHD_4, 0x003F);
-#ifndef CHARGER_MOSFETS_PRESENT
-  //Enable blue LED's if we are on or just in a PM9 temporary sleep...
-  if(rram_read_bit(RRAM_BIT_POWEROFF) == POWEROFF_MODE_ACTIVE)
-  {
-    SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x02 );
-    SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x08 );
-  }
-  else 
-  {
-    SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x02 );
-    SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x08 );
-  }
 #endif
 }
 
@@ -819,6 +886,15 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
         retval = ( SI32_PBSTD_A_read_pins(port_std[ port ]) & pinmask ) ? 1 : 0;
       else
         retval = ( SI32_PBHD_A_read_pins( SI32_PBHD_4 ) & pinmask ) ? 1 : 0;
+      break;
+    case PLATFORM_IO_PIN_PULLDOWN:
+      SI32_PBSTD_A_set_pins_analog(port_std[ port ], pinmask);
+      break;
+    case PLATFORM_IO_PIN_PULLUP:
+      SI32_PBSTD_A_enable_pullup_resistors( port_std[ port ] );
+      break;
+    case PLATFORM_IO_PIN_NOPULL:
+      SI32_PBSTD_A_disable_pullup_resistors( port_std[ port ] );
       break;
 
     default:
@@ -1578,6 +1654,12 @@ void myPB_enter_off_config()
     SI32_PBSTD_A_disable_pullup_resistors( port_std[ i ] );
     SI32_PBSTD_A_write_pins_low( port_std[ i ], 0xFFFF );
   }
+
+  //JEFF TEST
+  //SI32_PBCFG_A_write_xbar1(SI32_PBCFG_0,0x00000000);
+  //SI32_PBCFG_A_write_xbar0h(SI32_PBCFG_0,0x00000000);
+  //SI32_PBCFG_A_write_xbar0l(SI32_PBCFG_0,0x00000000);
+
   //Set I2C pins to analog float...
   SI32_PBSTD_A_set_pins_analog( SI32_PBSTD_0, 0x0000C000);
   SI32_PBSTD_A_write_pins_low( SI32_PBSTD_0, 0xC000 );
@@ -1598,10 +1680,18 @@ void myPB_enter_off_config()
   SI32_PBHD_A_disable_pullup_resistors( SI32_PBHD_4 );
   SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x3F );
 
-#ifdef CHARGER_MOSFETS_PRESENT
-  //Set the disconnects mosfets to float!
-  SI32_PBHD_A_set_pins_push_pull_output( SI32_PBHD_4, 0x04 );
+#ifdef PCB_V7
+#ifdef PCB_V7_CHARGER_NPN
+  //PB4.2 is set low above which disables the NPN so do nothing
+#else
+  //PB4.2 Set the disconnect mosfets to float!
   SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x04 );
+  SI32_PBHD_A_set_pins_analog( SI32_PBHD_4, 0x04 );
+#endif
+
+  //JEFF TESTING with R21 shorted and 150uA to VCC
+  SI32_PBSTD_A_write_pins_high( SI32_PBSTD_3, 0x0800 );
+  SI32_PBSTD_A_set_pins_digital_input( SI32_PBSTD_3, 0x00000800);
 #endif
 }
 
@@ -1616,9 +1706,6 @@ void sim3_pmu_pm9( unsigned seconds )
     printf("Unit is powered, no PM9\n");
     wake_reason = WAKE_POWERCONNECTED;
     rram_write_int(RRAM_INT_SLEEPTIME, seconds);
-#ifdef EXTRA_SLEEP_HOOK
-    extras_sleep_hook(PIN_CHECK_INTERVAL);
-#endif
     return;
   }
   if(seconds == TRICK_TO_REBOOT_WITHOUT_DFU_MODE)
@@ -1627,6 +1714,10 @@ void sim3_pmu_pm9( unsigned seconds )
   // GET CURRENT TIMER VALUE INTO SETCAP
   //SI32_RTC_A_start_timer_capture(SI32_RTC_0);
   //while(SI32_RTC_A_is_timer_capture_in_progress(SI32_RTC_0));
+
+#ifdef EXTRA_SLEEP_HOOK
+    extras_sleep_hook(PIN_CHECK_INTERVAL);
+#endif
 
   // SET ALARM FOR now+s
   // RTC running at 16.384Khz so there are 16384 cycles/sec)
@@ -1638,17 +1729,11 @@ void sim3_pmu_pm9( unsigned seconds )
   }
   else if( seconds > PIN_CHECK_INTERVAL )
   {
-#ifdef EXTRA_SLEEP_HOOK
-    extras_sleep_hook(PIN_CHECK_INTERVAL);
-#endif
     rram_write_int(RRAM_INT_SLEEPTIME, seconds - PIN_CHECK_INTERVAL);
     SI32_RTC_A_write_alarm0(SI32_RTC_0, /*SI32_RTC_A_read_setcap(SI32_RTC_0) +*/ (16384 * PIN_CHECK_INTERVAL));
   }
   else
   {
-#ifdef EXTRA_SLEEP_HOOK
-    extras_sleep_hook(seconds);
-#endif
     rram_write_int(RRAM_INT_SLEEPTIME, 0);
     SI32_RTC_A_write_alarm0(SI32_RTC_0, /*SI32_RTC_A_read_setcap(SI32_RTC_0) +*/ (16384 * seconds));
   }
@@ -1688,7 +1773,13 @@ void sim3_pmu_pm9( unsigned seconds )
   SI32_PMU_A_enable_rtc0_alarm_wake_event(SI32_PMU_0);
 
   //Enable WAKE setup
+#ifdef PCB_V7  
+  //PB2.1
+  SI32_PMU_A_set_pin_wake_events( SI32_PMU_0, (1 << 4), (1 << 4) );
+#else
+  //PB3.6
   SI32_PMU_A_set_pin_wake_events( SI32_PMU_0, (1 << 10), (1 << 10) );
+#endif
   SI32_RSTSRC_0->RESETEN_SET = SI32_RSTSRC_A_RESETEN_WAKEREN_MASK | 0x0000003; //replace incorrect SI32_PMU_A_enable_pin_wake_reset
   SI32_PMU_A_enable_pin_wake_event( SI32_PMU_0 );
   SI32_PMU_A_enable_pin_wake( SI32_PMU_0 );
@@ -2080,5 +2171,52 @@ int platform_usb_cdc_recv( s32 timeout )
 // {
 //   return 0;
 // }
+
+// Some extra Lua functions...need to find a home in a better place...
+
+int load_lua_string (const char *s) {
+  lua_State *L = lua_getstate();
+
+  if(L == NULL)
+    return 0;
+
+  if (luaL_loadstring(L, s) || lua_pcall(L, 0, 0, 0))
+    return 0;
+
+  return 1;
+}
+
+int load_lua_file (char *filename) {
+  lua_State *L = lua_getstate();
+
+  if(L == NULL)
+    return 0;
+
+  if (luaL_loadfile(L, filename) || lua_pcall(L, 0, 0, 0))
+    return 0;
+
+  return 1;
+}
+
+int load_lua_function (char *func) {
+  lua_State *L = lua_getstate();
+
+  if(L == NULL)
+    return 0;
+
+  lua_getglobal( L, func );
+
+  if (! LUA_ISCALLABLE(L, -1))
+  {
+    printf("No function %s\n", func);
+    return 0;
+  }
+
+//  if (lua_pcall(L, 0, 0, 0))
+  lua_call(L, 0, 0);
+  //  return 0;
+  lua_settop ( L, 0 );
+  return 1;
+}
 
 // #endif // #ifdef ENABLE_PMU

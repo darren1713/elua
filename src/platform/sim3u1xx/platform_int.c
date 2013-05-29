@@ -218,21 +218,25 @@ static int callback_get_flag( elua_int_resnum resnum, int clear )
 
 static SI32_PBSTD_A_Type* const port_std[] = { SI32_PBSTD_0, SI32_PBSTD_1, SI32_PBSTD_2, SI32_PBSTD_3 };
 
-#define MATCH_PORTNUM1 3
-#define MATCH_PINNUM1  6
+//#define MATCH_PORTNUM1 3
+//#define MATCH_PINNUM1  6
 
-#define MATCH_PORTNUM2 0
-#define MATCH_PINNUM2  1
+//#define MATCH_PORTNUM2 0
+//#define MATCH_PINNUM2  1
 
-#define MATCH_PORTS 3
 struct match_port
 {
   u8 port;
   u8 pin;
 } ;
 
-struct match_port match_config[MATCH_PORTS];
-
+#ifdef PCB_V7
+  #define MATCH_PORTS 6
+  static struct match_port match_config[MATCH_PORTS] = { { 1, 14 }, { 1, 15 }, { 0, 0 } , { 2, 2 } , { 2, 3 } , { 2, 4 } };
+#else
+  #define MATCH_PORTS 3
+  static struct match_port match_config[MATCH_PORTS] = { { 3, 6 }, { 0, 1 }, { 0, 0 } };
+#endif
 void PMATCH_IRQHandler(void)
 {
   int i;
@@ -296,12 +300,12 @@ void PMATCH_IRQHandler(void)
 
 void platform_int_init()
 {
-  match_config[0].port = 3;
+/*  match_config[0].port = 3;
   match_config[0].pin = 6;
   match_config[1].port = 0;
   match_config[1].pin = 1;
   match_config[2].port = 0;
-  match_config[2].pin = 0;
+  match_config[2].pin = 0;*/
   int i;
   for(i=0;i<MATCH_PORTS;i++)
   {

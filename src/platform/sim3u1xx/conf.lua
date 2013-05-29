@@ -18,6 +18,7 @@ local fwlib_files = utils.get_files( sf( "src/platform/%s/FreakUSB/usb", platfor
 fwlib_files = fwlib_files .. " " .. utils.get_files( sf( "src/platform/%s/si32Hal/SI32_Modules", platform ), ".*RTC.*%.c$" )
 fwlib_files = fwlib_files .. " " .. utils.get_files( sf( "src/platform/%s/si32Hal/SI32_Modules", platform ), ".*VREG.*%.c$" )
 fwlib_files = fwlib_files .. " " .. utils.get_files( sf( "src/platform/%s/si32Hal/SI32_Modules", platform ), ".*VMON.*%.c$" )
+fwlib_files = fwlib_files .. " " .. utils.get_files( sf( "src/platform/%s/si32Hal/SI32_Modules", platform ), ".*AES.*%.c$" )
 fwlib_files = fwlib_files .. " " .. utils.get_files( sf( "src/platform/%s/si32Hal/sim3u1xx", platform ), ".*%.c$" )
 fwlib_files = fwlib_files .. " " .. utils.get_files( sf( "src/platform/%s/FreakUSB/hw/sim3u1xx", platform ), ".*%.c$", 1 )
 fwlib_files = fwlib_files .. " " .. utils.get_files( sf( "src/platform/%s/FreakUSB/class/CDC", platform ), ".*%.c$" )
