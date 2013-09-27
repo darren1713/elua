@@ -18,6 +18,9 @@ extern void* elua_sbrk( ptrdiff_t incr );
 #define malloc_getpagesize        256
 #define REALLOC_ZERO_BYTES_FREES
 
+extern void memory_error( void );
+#define CORRUPTION_ERROR_ACTION(m) memory_error()
+#define USAGE_ERROR_ACTION(m,p) memory_error()
 
 /*
   This is a version (aka dlmalloc) of malloc/free/realloc written by

@@ -82,6 +82,7 @@ static int rtc_remaining = 0;
 static u8 sleep_delay = 0;
 
 void sim3_pmu_reboot( void );
+void sim3_pmu_reboot_nodfu( void );
 
 extern int load_lua_function (char *func);
 
@@ -90,6 +91,9 @@ static void pios_init();
 static void clk_init();
 static void rtc_init();
 static void gTIMER0_enter_auto_reload_config(void);
+static void gTIMER1_enter_auto_reload_config(void);
+
+static SI32_PBSTD_A_Type* const port_std[] = { SI32_PBSTD_0, SI32_PBSTD_1, SI32_PBSTD_2, SI32_PBSTD_3 };
 
 void hard_fault_handler_c(unsigned int * hardfault_args)
 {
@@ -130,7 +134,7 @@ void hard_fault_handler_c(unsigned int * hardfault_args)
   printf ("\n");
   printf ("\n");
 
-  while (1) { ;; }
+  sim3_pmu_reboot_nodfu();
 }
 
 /**
@@ -191,7 +195,13 @@ int external_power()
 int external_buttons()
 {
 #ifdef PCB_V7
-  return 0;
+  //check inputs 1 and 2
+  if( ( SI32_PBSTD_A_read_pins( SI32_PBSTD_2 ) & ( 1 << 2 ) ) ||
+      ( SI32_PBSTD_A_read_pins( SI32_PBSTD_2 ) & ( 1 << 3 ) ) ||
+      ( SI32_PBSTD_A_read_pins( SI32_PBSTD_2 ) & ( 1 << 4 ) ) )
+    return 1;
+  else
+    return 0;
 #else
   //check inputs 1 and 2
   if( /*( SI32_PBSTD_A_read_pins( SI32_PBSTD_3 ) & ( 1 << 6 ) ) ||*/
@@ -359,6 +369,10 @@ int platform_init()
       case USB0_IRQn:
       case USART0_IRQn:
       case USART1_IRQn:
+        NVIC_SetPriority(i, (1 << __NVIC_PRIO_BITS) - 4);
+        break;
+      case TIMER1L_IRQn:
+      case TIMER1H_IRQn:
         NVIC_SetPriority(i, (1 << __NVIC_PRIO_BITS) - 3);
         break;
       case TIMER0L_IRQn:
@@ -373,6 +387,8 @@ int platform_init()
 
   // Enable Timer 0
   gTIMER0_enter_auto_reload_config();
+  // Enable Timer 1
+  gTIMER1_enter_auto_reload_config();
 
   // Setup Watchdog Timer
   SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
@@ -476,6 +492,7 @@ u32 cmsis_get_cpu_frequency()
 }
 static u8 firstSecond = 1;
 static u8 tickSeconds = 0;
+
 void SecondsTick_Handler()
 {
   //Check if we are supposed to be sleeping
@@ -494,7 +511,7 @@ void SecondsTick_Handler()
       //Do a software reboot UNTIL we get the memory leaks sorted out...
       //sim3_pmu_reboot();
 #ifdef REBOOT_AT_END_OF_SLEEP
-      sim3_pmu_pm9(TRICK_TO_REBOOT_WITHOUT_DFU_MODE);
+      sim3_pmu_reboot_nodfu();
 #endif
       //Normally we would run the startup script, but fix memory leaks first...
       //printf("startup %i\n", load_lua_function("autorun"));
@@ -557,6 +574,131 @@ void TIMER0H_IRQHandler(void)
   SI32_TIMER_A_clear_high_overflow_interrupt(SI32_TIMER_0);
 }
 
+//NOTE! These must be sized by a factor of 2 to calculate properly
+//First byte is size of the array
+
+const u8 LED_FADEUP[] = { 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
+const u8 LED_FADEDOWN[] = { 16, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+const u8 LED_OFF[] = { 1, 15 };
+const u8 LED_ON[] = { 1, 0 };
+const u8 LED_FASTFLASH[] = { 8, 0, 15, 15, 15, 15, 15, 15, 15 };
+const u8 LED_MEDIUMFLASH[] = { 16, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15 };
+const u8 LED_SLOWFLASH[] = { 32, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
+
+#define LEDTICKHZ 1250
+u8 led_pointer_tick = 0;
+u8 led_tick = 0;
+
+u8 led_ticks = 0;
+
+u8 led_ticks_led1 = 0;
+u8 led_ticks_led2 = 0;
+u8 led_ticks_led3 = 0;
+u8 led_ticks_led4 = 0;
+u8 led_ticks_led5 = 0;
+
+const u8 * led_mode_led1 = LED_FADEDOWN;
+const u8 * led_mode_led2 = LED_FADEUP;
+const u8 * led_mode_led3 = LED_FASTFLASH;
+const u8 * led_mode_led4 = LED_SLOWFLASH;
+const u8 * led_mode_led5 = LED_MEDIUMFLASH;
+
+#define LED_REPEATS_FOREVER 255
+u8 led_repeats_led1 = 10;
+u8 led_repeats_led2 = 10;
+u8 led_repeats_led3 = 10;
+u8 led_repeats_led4 = 10;
+u8 led_repeats_led5 = 10;
+
+//Pending variables here...wait for new "frame"
+const u8 * led_pending_mode_led1 = NULL;
+const u8 * led_pending_mode_led2 = NULL;
+const u8 * led_pending_mode_led3 = NULL;
+const u8 * led_pending_mode_led4 = NULL;
+const u8 * led_pending_mode_led5 = NULL;
+
+u8 led_pending_repeats_led1 = 0;
+u8 led_pending_repeats_led2 = 0;
+u8 led_pending_repeats_led3 = 0;
+u8 led_pending_repeats_led4 = 0;
+u8 led_pending_repeats_led5 = 0;
+
+void TIMER1H_IRQHandler(void)
+{ 
+  led_ticks=((led_ticks+1) & 0x0F);
+  if(!led_ticks)
+  {
+    //turn LED off
+    SI32_PBSTD_A_write_pins_low( port_std[ 2 ], 
+        ( ( u32 ) 1 << 5 ) |
+        ( ( u32 ) 1 << 6 ) |
+        ( ( u32 ) 1 << 7 ) |
+        ( ( u32 ) 1 << 8 ) |
+        ( ( u32 ) 1 << 9 )
+         );
+    if(led_pointer_tick == 3)
+    {
+      led_pointer_tick = 0;
+
+      if(led_repeats_led1 > 0)
+      {
+        if((led_repeats_led1 != LED_REPEATS_FOREVER) && ((led_tick % led_mode_led1[0]) == 0))
+          led_repeats_led1--;
+        if(led_repeats_led1 > 0)
+          led_ticks_led1 = led_mode_led1[(led_tick % led_mode_led1[0])+1];
+      }
+      if(led_repeats_led2 > 0)
+      {
+        if((led_repeats_led2 != LED_REPEATS_FOREVER) && ((led_tick % led_mode_led2[0]) == 0))
+          led_repeats_led2--;
+        if(led_repeats_led2 > 0)
+          led_ticks_led2 = led_mode_led2[(led_tick % led_mode_led2[0])+1];
+      }
+      if(led_repeats_led3 > 0)
+      {
+        if((led_repeats_led3 != LED_REPEATS_FOREVER) && ((led_tick % led_mode_led3[0]) == 0))
+          led_repeats_led3--;
+        if(led_repeats_led3 > 0)
+          led_ticks_led3 = led_mode_led3[(led_tick % led_mode_led3[0])+1];
+      }
+      if(led_repeats_led4 > 0)
+      {
+        if((led_repeats_led4 != LED_REPEATS_FOREVER) && ((led_tick % led_mode_led4[0]) == 0))
+          led_repeats_led4--;
+        if(led_repeats_led4 > 0)
+          led_ticks_led4 = led_mode_led4[(led_tick % led_mode_led4[0])+1];
+      }
+      if(led_repeats_led5 > 0)
+      {
+        if((led_repeats_led5 != LED_REPEATS_FOREVER) && ((led_tick % led_mode_led5[0]) == 0))
+          led_repeats_led5--;
+        if(led_repeats_led5 > 0)
+          led_ticks_led5 = led_mode_led5[(led_tick % led_mode_led5[0])+1];
+      }
+      led_tick++;
+    }
+    led_pointer_tick++;
+    if(!led_pointer_tick)
+    {
+      if(led_pending_mode_led1)
+      //load next values here
+    }
+  }
+  if(led_ticks > led_ticks_led1)
+    SI32_PBSTD_A_write_pins_high( port_std[ 2 ], ( ( u32 ) 1 << 5 ) );
+  if(led_ticks > led_ticks_led2)
+    SI32_PBSTD_A_write_pins_high( port_std[ 2 ], ( ( u32 ) 1 << 6 ) );
+  if(led_ticks > led_ticks_led3)
+    SI32_PBSTD_A_write_pins_high( port_std[ 2 ], ( ( u32 ) 1 << 7 ) );
+  if(led_ticks > led_ticks_led4)
+    SI32_PBSTD_A_write_pins_high( port_std[ 2 ], ( ( u32 ) 1 << 8 ) );
+  if(led_ticks > led_ticks_led5)
+    SI32_PBSTD_A_write_pins_high( port_std[ 2 ], ( ( u32 ) 1 << 9 ) );
+ 
+  // Clear the interrupt flag
+  SI32_TIMER_A_clear_high_overflow_interrupt(SI32_TIMER_1);
+}
+
 // SysTick interrupt handler
 void SysTick_Handler()
 {
@@ -601,10 +743,34 @@ static void gTIMER0_enter_auto_reload_config(void)
   SI32_TIMER_A_enable_high_overflow_interrupt(SI32_TIMER_0);
 }
 
+static void gTIMER1_enter_auto_reload_config(void)
+{
+  // ENABLE TIMER1 CLOCK
+  SI32_CLKCTRL_A_enable_apb_to_modules_0(SI32_CLKCTRL_0,
+    SI32_CLKCTRL_A_APBCLKG0_TIMER1CEN_ENABLED_U32);
+
+  // INITIALIZE TIMER  
+  SI32_TIMER_A_initialize (SI32_TIMER_1, 0x00, 0x00, 0x00, 0x00);
+  SI32_TIMER_A_select_single_timer_mode (SI32_TIMER_1);
+  SI32_TIMER_A_select_high_clock_source_apb_clock (SI32_TIMER_1);
+  SI32_TIMER_A_select_high_auto_reload_mode (SI32_TIMER_1);
+
+  // Set overflow frequency to SYSTICKHZ
+  SI32_TIMER_A_write_capture (SI32_TIMER_1, (unsigned) -(cmsis_get_cpu_frequency()/LEDTICKHZ));
+  SI32_TIMER_A_write_count (SI32_TIMER_1, (unsigned) -(cmsis_get_cpu_frequency()/LEDTICKHZ));  
+
+  // Run Timer
+  SI32_TIMER_A_start_high_timer(SI32_TIMER_1);
+
+  // ENABLE INTERRUPTS
+  NVIC_ClearPendingIRQ(TIMER1H_IRQn);
+  NVIC_EnableIRQ(TIMER1H_IRQn);
+  SI32_TIMER_A_enable_high_overflow_interrupt(SI32_TIMER_1);
+}
+
 // ****************************************************************************
 // PIO section
 
-static SI32_PBSTD_A_Type* const port_std[] = { SI32_PBSTD_0, SI32_PBSTD_1, SI32_PBSTD_2, SI32_PBSTD_3 };
 
 void pios_init( void )
 {
@@ -654,6 +820,11 @@ void pios_init( void )
 #endif
   SI32_PBSTD_A_write_pins_high(SI32_PBSTD_1, 0x0100 ); //Set USB high power mode
 
+#ifdef PCB_V7
+  SI32_PBSTD_A_write_pins_low(SI32_PBSTD_2, 0x03E0 ); //Set external LEDS 0-4 off
+  SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_2, 0x03E0); //Set external LEDS 0-4 as outputs
+#endif
+
   // Enable Crossbar0 signals & set properties
   SI32_PBCFG_A_enable_xbar0h_peripherals(SI32_PBCFG_0,
                                          SI32_PBCFG_A_XBAR0H_UART0EN |
@@ -669,6 +840,7 @@ void pios_init( void )
 
   // PB2 Setup
   SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_2, 0x7FFF);
+
 
   // PB3 Setup
   SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_3, 0xFFFF);
@@ -1576,6 +1748,16 @@ void sim3_pmu_reboot( void )
   SI32_RSTSRC_A_generate_software_reset( SI32_RSTSRC_0 );
 }
 
+void sim3_pmu_reboot_nodfu( void )
+{
+  sim3_pmu_pm9(TRICK_TO_REBOOT_WITHOUT_DFU_MODE);
+}
+
+void memory_error( void )
+{
+  sim3_pmu_reboot_nodfu();
+}
+
 void myPMU_enter_sleep(void)
 {
   // Configure for Sleep
@@ -2174,6 +2356,7 @@ int platform_usb_cdc_recv( s32 timeout )
 
 // Some extra Lua functions...need to find a home in a better place...
 
+/*
 int load_lua_string (const char *s) {
   lua_State *L = lua_getstate();
 
@@ -2217,6 +2400,6 @@ int load_lua_function (char *func) {
   //  return 0;
   lua_settop ( L, 0 );
   return 1;
-}
+}*/
 
 // #endif // #ifdef ENABLE_PMU

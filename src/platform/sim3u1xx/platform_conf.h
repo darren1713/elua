@@ -24,7 +24,7 @@
 #define BUILD_C_INT_HANDLERS
 #define BUILD_LUA_INT_HANDLERS
 //Disable USB CDC to see if it fixes any lockups 5/25/13
-//#define BUILD_USB_CDC
+#define BUILD_USB_CDC
 
 #define ENABLE_PMU
 
@@ -274,9 +274,9 @@ void sim3_pmu_pm9( unsigned seconds );
 #else
 #define LUA_ISCALLABLE( state, idx ) lua_isfunction( state, idx )
 #endif
-int load_lua_string (const char *s);
+/*int load_lua_string (const char *s);
 int load_lua_file (char *filename);
-int load_lua_function (char *func);
+int load_lua_function (char *func);*/
 
 typedef enum {
     WAKE_UNKNOWN = 0x00,
@@ -293,13 +293,21 @@ extern int wake_reason;
 extern unsigned console_cdc_active;
 
 
-//#define PCB_V7
+#define PCB_V7
 //#define PCB_V7_CHARGER_NPN
 
 //define BLUETOOTH_POWEREDWHILESLEEPING
 #define REBOOT_AT_END_OF_SLEEP
 //define DEBUG_I2C
 //define USE_EXTERNAL_MOSFETS
+
+extern const u8 LED_FADEUP[];
+extern const u8 LED_FADEDOWN[];
+extern const u8 LED_OFF[];
+extern const u8 LED_ON[];
+extern const u8 LED_FASTFLASH[];
+extern const u8 LED_MEDIUMFLASH[];
+extern const u8 LED_SLOWFLASH[];
 
 #undef SHELL_WELCOMEMSG
 #define SHELL_WELCOMEMSG "\nGSatMicro %s\n"

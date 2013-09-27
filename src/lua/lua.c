@@ -17,6 +17,7 @@
 
 #include "lauxlib.h"
 #include "lualib.h"
+#include "lvm.h"
 
 #ifndef LUA_RPC
 #include "platform_conf.h"
@@ -180,12 +181,55 @@ static int incomplete (lua_State *L, int status) {
 
 int spin_vm( lua_State *L )
 {
-  char *buf = "local function a () end a()";
+#if 0
+  //char *buf = "local function a () end a()";
+  char *buf = "";
   int n = lua_gettop(L);
   luaL_loadbuffer(L, buf, strlen(buf), "=stdin");
   lua_pcall (L, 0, 0, 0);
   lua_settop(L, n);
+#else
+  lua_lock(L);
+  luaD_callhook( L, LUA_HOOKCOUNT, -1 );
+  lua_unlock(L);
+#endif
   return 0;
+}
+
+#define LUA_COMMAND_STACK_MAX 8
+volatile int lua_command_stack[LUA_COMMAND_STACK_MAX];
+volatile int lua_command_top = 0;
+volatile int lua_command_bottom = 0;
+
+//Push commands onto the stack to be processed when the cons
+int lua_command_push( char * data )
+{
+  if((lua_command_top + 1) % LUA_COMMAND_STACK_MAX == lua_command_bottom )
+  {
+    //Going to overrun ring buffer
+    return -1;
+  }
+  else if(strlen(data) < (LUA_MAXINPUT + 2) )
+  {
+    //char * store = malloc( strlen(data)+1 );
+    //strncpy(store, data, LUA_MAXINPUT);
+    lua_command_stack[lua_command_top] = (int)data;
+    lua_command_top = (lua_command_top + 1) % LUA_COMMAND_STACK_MAX;
+    return 1;
+  }
+  return -1;
+}
+
+char * lua_command_pop( )
+{
+  if( lua_command_top == lua_command_bottom )
+    return NULL;
+  else
+  {
+    char * ret = (char *)lua_command_stack[lua_command_bottom];
+    lua_command_bottom = (lua_command_bottom + 1) % LUA_COMMAND_STACK_MAX;
+    return(ret);
+  }
 }
 
 #if defined( LUA_RPC )
@@ -292,7 +336,20 @@ int slip_readline(lua_State *L, char *b, const char *p)
     }
     else
     {
-     spin_vm(L);
+      char * data;
+      if( (data = lua_command_pop() ) == NULL)
+        spin_vm(L);
+      else
+      {
+        strncpy(ptr, data, LUA_MAXINPUT);
+        //free(data);
+        //Make sure last character is a zero in case of bad string
+        ptr[LUA_MAXINPUT-1] = 0;
+        i = 0;
+        prev_line_end = -1;
+        if(strlen(ptr) > 0)
+          return(strlen(ptr) + 1);
+      }
     }
   }
 }
