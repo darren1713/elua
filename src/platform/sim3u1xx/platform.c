@@ -211,6 +211,32 @@ int external_buttons()
     return 0;
 #endif
 }
+int external_io()
+{
+#ifdef PCB_V7
+  if(rram_read_bit(RRAM_BIT_WAKE_ON_INPUT1) == WAKE_ON_INPUT1_ACTIVE)
+  {
+    int val = SI32_PBSTD_A_read_pins( SI32_PBSTD_1 ) & ( 1 << 14 );
+    if(rram_read_bit(RRAM_BIT_WAKE_ON_INPUT1_POLARITY) == WAKE_ON_INPUT1_POLARITY_POSITIVE)
+    {
+      if(val) return 1; 
+    } else {
+      if(!val) return 1;
+    }
+  }
+  if(rram_read_bit(RRAM_BIT_WAKE_ON_INPUT2) == WAKE_ON_INPUT2_ACTIVE)
+  {
+    int val = SI32_PBSTD_A_read_pins( SI32_PBSTD_1 ) & ( 1 << 15 );
+    if(rram_read_bit(RRAM_BIT_WAKE_ON_INPUT2_POLARITY) == WAKE_ON_INPUT2_POLARITY_POSITIVE)
+    {
+      if(val) return 1; 
+    } else {
+      if(!val) return 1;
+    }
+  }
+#endif
+  return 0;
+}
 #endif
 static int pmu_wake_status = -1;
 static int pmu_status = -1;
@@ -329,7 +355,7 @@ int platform_init()
         rram_write_int(RRAM_INT_SLEEPTIME, SLEEP_FOREVER); //will wakeup in 68 years
       } 
 
-      if(external_buttons() || external_power())
+      if(external_buttons() || external_power() || external_io())
       {
         //Continue on as normal. The timer will count down rram_reg and execute
         //the appropriate script when it reaches zero
@@ -576,59 +602,65 @@ void TIMER0H_IRQHandler(void)
 
 //NOTE! These must be sized by a factor of 2 to calculate properly
 //First byte is size of the array
+#define LED_COUNT 5
+#define LED_MAX_ARRAY 32
 
-const u8 LED_FADEUP[] = { 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
-const u8 LED_FADEDOWN[] = { 16, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
-const u8 LED_OFF[] = { 1, 15 };
-const u8 LED_ON[] = { 1, 0 };
-const u8 LED_FASTFLASH[] = { 8, 0, 15, 15, 15, 15, 15, 15, 15 };
-const u8 LED_MEDIUMFLASH[] = { 16, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15 };
-const u8 LED_SLOWFLASH[] = { 32, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
+static u8 CLED_FADEUP[] = { LED_MAX_ARRAY/2, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
+static u8 CLED_FADEDOWN[] = { LED_MAX_ARRAY/2, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+static u8 CLED_OFF[] = { 1, 15 };
+static u8 CLED_ON[] = { 1, 0 };
+static u8 CLED_FASTFLASH[] = { LED_MAX_ARRAY/4, 0, 15, 15, 15, 15, 15, 15, 15 };
+static u8 CLED_MEDIUMFLASH[] = { LED_MAX_ARRAY/2, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15 };
+static u8 CLED_SLOWFLASH[] = { LED_MAX_ARRAY, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
+static u8 CLED_FLASH1[] = { LED_MAX_ARRAY, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
+static u8 CLED_FLASH2[] = { LED_MAX_ARRAY, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
+static u8 CLED_FLASH3[] = { LED_MAX_ARRAY, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
+static u8 CLED_FLASH4[] = { LED_MAX_ARRAY, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
+static u8 CLED_FLASH5[] = { LED_MAX_ARRAY, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
+
+static u8 * led_cled_ptr[] = {
+  CLED_FADEUP,
+  CLED_FADEDOWN,
+  CLED_OFF,
+  CLED_ON,
+  CLED_FASTFLASH,
+  CLED_MEDIUMFLASH,
+  CLED_SLOWFLASH,
+  CLED_FLASH1,
+  CLED_FLASH2,
+  CLED_FLASH3,
+  CLED_FLASH4,
+  CLED_FLASH5
+};
 
 #define LEDTICKHZ 1250
 u8 led_pointer_tick = 0;
 u8 led_tick = 0;
+u8 led_repeat_tick = 0;
 
 u8 led_ticks = 0;
 
-u8 led_ticks_led1 = 0;
-u8 led_ticks_led2 = 0;
-u8 led_ticks_led3 = 0;
-u8 led_ticks_led4 = 0;
-u8 led_ticks_led5 = 0;
+u8 led_ticks_ptr[LED_COUNT] = { 0, 0, 0, 0, 0 };
 
-const u8 * led_mode_led1 = LED_FADEDOWN;
-const u8 * led_mode_led2 = LED_FADEUP;
-const u8 * led_mode_led3 = LED_FASTFLASH;
-const u8 * led_mode_led4 = LED_SLOWFLASH;
-const u8 * led_mode_led5 = LED_MEDIUMFLASH;
 
 #define LED_REPEATS_FOREVER 255
-u8 led_repeats_led1 = 10;
-u8 led_repeats_led2 = 10;
-u8 led_repeats_led3 = 10;
-u8 led_repeats_led4 = 10;
-u8 led_repeats_led5 = 10;
+
+//u8 * led_mode_ptr[] = { CLED_FADEDOWN, CLED_FADEUP, CLED_FASTFLASH, CLED_SLOWFLASH, CLED_MEDIUMFLASH };
+//u8 led_repeats_ptr[LED_COUNT] = { 10, 10, 10, 10, 10 };
+
+u8 * led_mode_ptr[] = { CLED_OFF, CLED_OFF, CLED_OFF, CLED_OFF, CLED_OFF };
+u8 led_repeats_ptr[LED_COUNT] = { 10, 10, 10, 10, 10 };
 
 //Pending variables here...wait for new "frame"
-const u8 * led_pending_mode_led1 = NULL;
-const u8 * led_pending_mode_led2 = NULL;
-const u8 * led_pending_mode_led3 = NULL;
-const u8 * led_pending_mode_led4 = NULL;
-const u8 * led_pending_mode_led5 = NULL;
-
-u8 led_pending_repeats_led1 = 0;
-u8 led_pending_repeats_led2 = 0;
-u8 led_pending_repeats_led3 = 0;
-u8 led_pending_repeats_led4 = 0;
-u8 led_pending_repeats_led5 = 0;
+u8 * led_pending_mode_ptr[LED_COUNT] = { NULL, NULL, NULL, NULL, NULL };
+u8 led_pending_repeats_ptr[LED_COUNT] = { 0, 0, 0, 0, 0 };
 
 void TIMER1H_IRQHandler(void)
 { 
   led_ticks=((led_ticks+1) & 0x0F);
   if(!led_ticks)
   {
-    //turn LED off
+    //turn LED's off. 5 LEDS are on P2 and the on board blue LED is on P4.3
     SI32_PBSTD_A_write_pins_low( port_std[ 2 ], 
         ( ( u32 ) 1 << 5 ) |
         ( ( u32 ) 1 << 6 ) |
@@ -636,67 +668,96 @@ void TIMER1H_IRQHandler(void)
         ( ( u32 ) 1 << 8 ) |
         ( ( u32 ) 1 << 9 )
          );
+    SI32_PBHD_A_write_pins_low( SI32_PBHD_4, ( ( u32 ) 1 << 3 ) );
+
     if(led_pointer_tick == 3)
     {
       led_pointer_tick = 0;
 
-      if(led_repeats_led1 > 0)
+      //load next values here
+      if(led_repeat_tick == 0)
       {
-        if((led_repeats_led1 != LED_REPEATS_FOREVER) && ((led_tick % led_mode_led1[0]) == 0))
-          led_repeats_led1--;
-        if(led_repeats_led1 > 0)
-          led_ticks_led1 = led_mode_led1[(led_tick % led_mode_led1[0])+1];
+        led_repeat_tick = 0;
+
+        int lednum;
+        for(lednum=0;lednum<LED_COUNT;lednum++)
+        {
+          if(led_pending_mode_ptr[lednum] != NULL)
+          {
+            led_mode_ptr[lednum] = led_pending_mode_ptr[lednum];
+            led_repeats_ptr[lednum] = led_pending_repeats_ptr[lednum];
+            led_pending_mode_ptr[lednum] = NULL;
+            led_pending_repeats_ptr[lednum] = 0;
+          }
+        }
       }
-      if(led_repeats_led2 > 0)
+
+      int lednum;
+      for(lednum=0;lednum<LED_COUNT;lednum++)
       {
-        if((led_repeats_led2 != LED_REPEATS_FOREVER) && ((led_tick % led_mode_led2[0]) == 0))
-          led_repeats_led2--;
-        if(led_repeats_led2 > 0)
-          led_ticks_led2 = led_mode_led2[(led_tick % led_mode_led2[0])+1];
-      }
-      if(led_repeats_led3 > 0)
-      {
-        if((led_repeats_led3 != LED_REPEATS_FOREVER) && ((led_tick % led_mode_led3[0]) == 0))
-          led_repeats_led3--;
-        if(led_repeats_led3 > 0)
-          led_ticks_led3 = led_mode_led3[(led_tick % led_mode_led3[0])+1];
-      }
-      if(led_repeats_led4 > 0)
-      {
-        if((led_repeats_led4 != LED_REPEATS_FOREVER) && ((led_tick % led_mode_led4[0]) == 0))
-          led_repeats_led4--;
-        if(led_repeats_led4 > 0)
-          led_ticks_led4 = led_mode_led4[(led_tick % led_mode_led4[0])+1];
-      }
-      if(led_repeats_led5 > 0)
-      {
-        if((led_repeats_led5 != LED_REPEATS_FOREVER) && ((led_tick % led_mode_led5[0]) == 0))
-          led_repeats_led5--;
-        if(led_repeats_led5 > 0)
-          led_ticks_led5 = led_mode_led5[(led_tick % led_mode_led5[0])+1];
+        if(led_repeats_ptr[lednum] > 0)
+        {
+          if((led_repeats_ptr[lednum] != LED_REPEATS_FOREVER) && ((led_tick % led_mode_ptr[lednum][0]) == 0))
+            led_repeats_ptr[lednum]--;
+          if(led_repeats_ptr[lednum] > 0)
+            led_ticks_ptr[lednum] = led_mode_ptr[lednum][(led_tick % led_mode_ptr[lednum][0])+1];
+        }
       }
       led_tick++;
+      led_repeat_tick = (led_repeat_tick+1) % LED_MAX_ARRAY;
     }
     led_pointer_tick++;
-    if(!led_pointer_tick)
-    {
-      if(led_pending_mode_led1)
-      //load next values here
-    }
   }
-  if(led_ticks > led_ticks_led1)
+
+  if(led_ticks > led_ticks_ptr[0])
     SI32_PBSTD_A_write_pins_high( port_std[ 2 ], ( ( u32 ) 1 << 5 ) );
-  if(led_ticks > led_ticks_led2)
+  if(led_ticks > led_ticks_ptr[1]) //Power led. Tie external and onboard power LED's togethere
+  {
     SI32_PBSTD_A_write_pins_high( port_std[ 2 ], ( ( u32 ) 1 << 6 ) );
-  if(led_ticks > led_ticks_led3)
+    SI32_PBHD_A_write_pins_high( SI32_PBHD_4, ( ( u32 ) 1 << 3 ) );
+  }
+  if(led_ticks > led_ticks_ptr[2])
     SI32_PBSTD_A_write_pins_high( port_std[ 2 ], ( ( u32 ) 1 << 7 ) );
-  if(led_ticks > led_ticks_led4)
+  if(led_ticks > led_ticks_ptr[3])
     SI32_PBSTD_A_write_pins_high( port_std[ 2 ], ( ( u32 ) 1 << 8 ) );
-  if(led_ticks > led_ticks_led5)
+  if(led_ticks > led_ticks_ptr[4])
     SI32_PBSTD_A_write_pins_high( port_std[ 2 ], ( ( u32 ) 1 << 9 ) );
  
   // Clear the interrupt flag
   SI32_TIMER_A_clear_high_overflow_interrupt(SI32_TIMER_1);
+}
+
+void led_set_mode(int led, int mode, int cycles)
+{
+  if(led > LED_COUNT)
+    return;
+  if(cycles > 255)
+    cycles = 255;
+  led_pending_mode_ptr[led] = led_cled_ptr[mode];
+  led_pending_repeats_ptr[led] = cycles;
+}
+
+int led_get_mode(int led)
+{
+  if(led > LED_COUNT)
+    return -1;
+
+  int i;
+  if(led_pending_mode_ptr[led] != NULL)
+  {
+    for(i=0;i<sizeof(led_cled_ptr);i++)
+    {
+      if(led_pending_mode_ptr[led] == led_cled_ptr[i])
+        return i;
+    }
+  } else {
+    for(i=0;i<sizeof(led_cled_ptr);i++)
+    {
+      if(led_mode_ptr[led] == led_cled_ptr[i])
+        return i;
+    }    
+  }
+  return -1;
 }
 
 // SysTick interrupt handler

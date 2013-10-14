@@ -244,6 +244,20 @@ u32 cmsis_get_cpu_frequency();
   #define SLEEP_WHEN_POWERED_ACTIVE 1
   #define SLEEP_WHEN_POWERED_DISABLED 0
 
+#define RRAM_BIT_WAKE_ON_INPUT1 45
+  #define WAKE_ON_INPUT1_DISABLED 0
+  #define WAKE_ON_INPUT1_ACTIVE 1
+#define RRAM_BIT_WAKE_ON_INPUT1_POLARITY 45
+  #define WAKE_ON_INPUT1_POLARITY_POSITIVE 0
+  #define WAKE_ON_INPUT1_POLARITY_NEGATIVE 1
+
+#define RRAM_BIT_WAKE_ON_INPUT2 45
+  #define WAKE_ON_INPUT2_DISABLED 0
+  #define WAKE_ON_INPUT2_ACTIVE 1
+#define RRAM_BIT_WAKE_ON_INPUT2_POLARITY 45
+  #define WAKE_ON_INPUT2_POLARITY_POSITIVE 0
+  #define WAKE_ON_INPUT2_POLARITY_NEGATIVE 1
+
 #define RRAM_INT_X_Z 4
 #define RRAM_INT_Y_Z 5
 #define RRAM_INT_TIME 6
@@ -301,13 +315,39 @@ extern unsigned console_cdc_active;
 //define DEBUG_I2C
 //define USE_EXTERNAL_MOSFETS
 
-extern const u8 LED_FADEUP[];
-extern const u8 LED_FADEDOWN[];
-extern const u8 LED_OFF[];
-extern const u8 LED_ON[];
-extern const u8 LED_FASTFLASH[];
-extern const u8 LED_MEDIUMFLASH[];
-extern const u8 LED_SLOWFLASH[];
+/*extern const u8 CLED_FADEUP[];
+extern const u8 CLED_FADEDOWN[];
+extern const u8 CLED_OFF[];
+extern const u8 CLED_ON[];
+extern const u8 CLED_FASTFLASH[];
+extern const u8 CLED_MEDIUMFLASH[];
+extern const u8 CLED_SLOWFLASH[];*/
+
+enum {
+  LED_FADEUP,
+  LED_FADEDOWN,
+  LED_OFF,
+  LED_ON,
+  LED_FASTFLASH,
+  LED_MEDIUMFLASH,
+  LED_SLOWFLASH,
+  LED_FLASH1,
+  LED_FLASH2,
+  LED_FLASH3,
+  LED_FLASH4,
+  LED_FLASH5
+} enum_led_state;
+
+enum {
+  LED_COLOR_SAT = 0,
+  LED_COLOR_PWR = 1,
+  LED_COLOR_ACT = 2,
+  LED_COLOR_GPS = 3,
+  LED_COLOR_MSG = 4
+};
+
+void led_set_mode(int led, int mode, int cycles);
+int led_get_mode(int led);
 
 #undef SHELL_WELCOMEMSG
 #define SHELL_WELCOMEMSG "\nGSatMicro %s\n"
