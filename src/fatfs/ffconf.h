@@ -120,7 +120,11 @@
 / Physical Drive Configurations
 /----------------------------------------------------------------------------*/
 
+#ifndef MMCFS_NUM_CARDS
 #define _DRIVES		1
+#else
+#define _DRIVES   MMCFS_NUM_CARDS
+#endif
 /* Number of volumes (logical drives) to be used. */
 
 

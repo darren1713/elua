@@ -124,7 +124,7 @@ int buf_write( unsigned resid, unsigned resnum, t_buf_data *data )
   if( pbuf->logsize == BUF_SIZE_NONE )
     return PLATFORM_ERR;
 
-  if( pbuf->count > BUF_REALSIZE( pbuf ) )
+  if( pbuf->count >= BUF_REALSIZE( pbuf ) )
   {
     fprintf( stderr, "[ERROR] Buffer overflow on resid=%d, resnum=%d!\n", resid, resnum );
     return PLATFORM_ERR; 

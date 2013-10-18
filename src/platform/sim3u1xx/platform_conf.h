@@ -7,12 +7,14 @@
 #include "stacks.h"
 #include "type.h"
 #include "extra_libs.h"
+#include "lauxlib.h"
 
 // *****************************************************************************
 // Define here what components you want for this platform
 
 #define BUILD_XMODEM
 #define BUILD_SHELL
+#define BUILD_ADVANCED_SHELL
 #define BUILD_ROMFS
 #define BUILD_TERM
 #define BUILD_CON_GENERIC
@@ -21,6 +23,7 @@
 
 #define BUILD_C_INT_HANDLERS
 #define BUILD_LUA_INT_HANDLERS
+//Disable USB CDC to see if it fixes any lockups 5/25/13
 #define BUILD_USB_CDC
 
 #define ENABLE_PMU
@@ -35,23 +38,30 @@
 
 extern unsigned platform_get_console_uart( void );
 
+#define EXTERNAL_CONSOLE
 
 #if defined( BUILD_USB_CDC )
-#define CON_UART_ID         ( platform_get_console_uart() )
-#define CON_UART_ID_HW_UART  0
+  #if defined( EXTERNAL_CONSOLE )
+    #define CON_VIRTUAL_ID 255
+    #define CON_UART_ID CON_VIRTUAL_ID
+  #else
+    #define CON_UART_ID         ( platform_get_console_uart() )
+    #define CON_UART_ID_HW_UART  0
+  #endif
 #else
-#if defined( ELUA_BOARD_SIM3U1XXBDK )
-#define CON_UART_ID           2
-#else
-#define CON_UART_ID           0
+  #if defined( EXTERNAL_CONSOLE )
+    #define CON_VIRTUAL_ID 255
+    #define CON_UART_ID CON_VIRTUAL_ID
+  #else
+    #if defined( ELUA_BOARD_SIM3U1XXBDK )
+      #define CON_UART_ID           2
+    #else
+      #define CON_UART_ID           0
+    #endif
+  #endif
 #endif
-#endif
+
 #define CON_UART_SPEED        115200
-#define CONSOLE2_ENABLE
-#ifdef CONSOLE2_ENABLE
-#define CON2_UART_ID          1
-#define CON2_UART_SPEED       57600
-#endif
 #define TERM_LINES            25
 #define TERM_COLS             80
 
@@ -185,7 +195,7 @@ u32 cmsis_get_cpu_frequency();
 #endif // #ifdef ELUA_CPU_SIM3U167
 
 // Interrupt queue size
-#define PLATFORM_INT_QUEUE_LOG_SIZE 5
+#define PLATFORM_INT_QUEUE_LOG_SIZE 10
 
 // Interrupt list
 #define INT_UART_RX          ELUA_INT_FIRST_ID
@@ -198,7 +208,9 @@ u32 cmsis_get_cpu_frequency();
 #define INT_IRIDIUM_TIMEOUT  ( ELUA_INT_FIRST_ID + 7 )
 #define INT_GPS_VALID        ( ELUA_INT_FIRST_ID + 8 )
 #define INT_GPS_TIMEOUT      ( ELUA_INT_FIRST_ID + 9 )
-#define INT_SYSINIT          ( ELUA_INT_FIRST_ID + 10 )
+#define INT_BOOT             ( ELUA_INT_FIRST_ID + 10 )
+#define INT_CONTENTION       ( ELUA_INT_FIRST_ID + 11 )
+#define INT_SYSINIT          ( ELUA_INT_FIRST_ID + 12 )
 #define INT_ELUA_LAST        INT_SYSINIT
 
 #define PLATFORM_CPU_CONSTANTS\
@@ -212,6 +224,8 @@ u32 cmsis_get_cpu_frequency();
     _C( INT_IRIDIUM_TIMEOUT ), \
     _C( INT_GPS_VALID ), \
     _C( INT_GPS_TIMEOUT ), \
+    _C( INT_BOOT ), \
+    _C( INT_CONTENTION ), \
     _C( INT_SYSINIT )
 
 #define RRAM_SIZE 8
@@ -233,6 +247,20 @@ u32 cmsis_get_cpu_frequency();
   #define SLEEP_WHEN_POWERED_ACTIVE 1
   #define SLEEP_WHEN_POWERED_DISABLED 0
 
+#define RRAM_BIT_WAKE_ON_INPUT1 45
+  #define WAKE_ON_INPUT1_DISABLED 0
+  #define WAKE_ON_INPUT1_ACTIVE 1
+#define RRAM_BIT_WAKE_ON_INPUT1_POLARITY 45
+  #define WAKE_ON_INPUT1_POLARITY_POSITIVE 0
+  #define WAKE_ON_INPUT1_POLARITY_NEGATIVE 1
+
+#define RRAM_BIT_WAKE_ON_INPUT2 45
+  #define WAKE_ON_INPUT2_DISABLED 0
+  #define WAKE_ON_INPUT2_ACTIVE 1
+#define RRAM_BIT_WAKE_ON_INPUT2_POLARITY 45
+  #define WAKE_ON_INPUT2_POLARITY_POSITIVE 0
+  #define WAKE_ON_INPUT2_POLARITY_NEGATIVE 1
+
 #define RRAM_INT_X_Z 4
 #define RRAM_INT_Y_Z 5
 #define RRAM_INT_TIME 6
@@ -248,9 +276,24 @@ extern int rram_read_bit(int bit_number);
 extern void rram_write_bit(int bit_number, int value);
 extern void button_down(int port, int pin);
 extern void button_up(int port, int pin);
+typedef enum {
+  OKTOSLEEP = 0,
+  WAITTOSLEEP = 1
+} ok_to_sleep_enum;
+extern int ok_to_sleep();
 #define TRICK_TO_REBOOT_WITHOUT_DFU_MODE 0xFFFFFFFF
 #define SLEEP_FOREVER 0x7FFFFFFF
 void sim3_pmu_pm9( unsigned seconds );
+
+// Support for Compiling with & without rotables
+#ifdef LUA_OPTIMIZE_MEMORY
+#define LUA_ISCALLABLE( state, idx ) ( lua_isfunction( state, idx ) || lua_islightfunction( state, idx ) )
+#else
+#define LUA_ISCALLABLE( state, idx ) lua_isfunction( state, idx )
+#endif
+/*int load_lua_string (const char *s);
+int load_lua_file (char *filename);
+int load_lua_function (char *func);*/
 
 typedef enum {
     WAKE_UNKNOWN = 0x00,
@@ -265,6 +308,69 @@ typedef enum {
 extern int wake_reason;
 
 extern unsigned console_cdc_active;
+
+
+#define PCB_V7
+//#define PCB_V7_CHARGER_NPN
+
+//define BLUETOOTH_POWEREDWHILESLEEPING
+#define REBOOT_AT_END_OF_SLEEP
+//define DEBUG_I2C
+//define USE_EXTERNAL_MOSFETS
+
+/*extern const u8 CLED_FADEUP[];
+extern const u8 CLED_FADEDOWN[];
+extern const u8 CLED_OFF[];
+extern const u8 CLED_ON[];
+extern const u8 CLED_FASTFLASH[];
+extern const u8 CLED_MEDIUMFLASH[];
+extern const u8 CLED_SLOWFLASH[];*/
+
+enum {
+  LED_FADEUP,
+  LED_FADEDOWN,
+  LED_OFF,
+  LED_ON,
+  LED_FASTFLASH,
+  LED_MEDIUMFLASH,
+  LED_SLOWFLASH,
+  LED_FLASH1,
+  LED_FLASH2,
+  LED_FLASH3,
+  LED_FLASH4,
+  LED_FLASH5
+} enum_led_state;
+
+enum {
+  LED_COLOR_SAT = 0,
+  LED_COLOR_PWR = 1,
+  LED_COLOR_ACT = 2,
+  LED_COLOR_GPS = 3,
+  LED_COLOR_MSG = 4
+};
+
+void led_set_mode(int led, int mode, int cycles);
+int led_get_mode(int led);
+
+#undef SHELL_WELCOMEMSG
+#define SHELL_WELCOMEMSG "\nGSatMicro %s\n"
+
+#undef SHELL_PROMPT
+#define SHELL_PROMPT "GSatMicro# "
+
+#undef SHELL_HELP_VER_STRING
+#define SHELL_HELP_VER_STRING "\nThis displays the git revision of the tree used to build or an official version number if applicable.\n"
+
+#undef SHELL_HELP_SUMMARY_STRING
+#define SHELL_HELP_SUMMARY_STRING "show version information"
+
+#undef SHELL_HELP_LINE1_STRING
+#define SHELL_HELP_LINE1_STRING "GSatMicro version %s\n" //, ELUA_STR_VERSION
+
+#undef SHELL_HELP_LINE2_STRING
+#define SHELL_HELP_LINE2_STRING "For more information visit www.gsat.us\n"
+
+#define ROMFS_SECURE_FILENAMES_WITH_CHAR "~" //Enable security for files with a ~ char
 
 #endif // #ifndef __PLATFORM_CONF_H__
 

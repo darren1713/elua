@@ -495,7 +495,12 @@ static void write_variable( Transport *tpt, lua_State *L, int var_index )
       luaL_error( L, "light userdata transmission unsupported" );
       break;
   }
-  lua_assert( lua_gettop( L ) == stack_at_start );
+  //Write this differently to eliminate compiler warning
+  //lua_assert( lua_gettop( L ) == stack_at_start );
+  if(lua_gettop( L ) == stack_at_start)
+    lua_assert(1);
+  else
+    lua_assert(0);
 }
 
 

@@ -5,6 +5,7 @@
 
 #include "type.h"
 #include "devman.h"
+#include "platform_conf.h"
 
 /*******************************************************************************
 The Read-Only "filesystem" resides in a contiguous zone of memory, with the
@@ -83,6 +84,11 @@ typedef struct
 int romfs_init();
 int wofs_format();
 int wofs_repack();
+
+#ifdef ROMFS_SECURE_FILENAMES_WITH_CHAR
+void romfs_sec_lock();
+void romfs_sec_unlock();
+#endif
 
 #endif
 

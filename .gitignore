@@ -19,9 +19,8 @@ inc/git_version.h
 *~
 *.*~
 luac.cross*
-
 elua_lualong_sim3u167.map
-
 GSatMicro/
-
 src/platform/sim3u1xx/FreakUSB
+sdcard.img
+core

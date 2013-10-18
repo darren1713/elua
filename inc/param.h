@@ -7,6 +7,7 @@ enum {
   PARAM_INTEGER,
   PARAM_BOOLEAN,
   PARAM_STRING,
+  PARAM_SECURE,
 };
 
 // Generic set & get functions

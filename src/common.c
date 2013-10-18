@@ -353,7 +353,7 @@ extern char end[];
 
 void* platform_get_first_free_ram( unsigned id )
 {
-  void* mstart[] = MEM_START_ADDRESS;
+  static void* mstart[] = MEM_START_ADDRESS;
   u32 p;
 
   if( id >= sizeof( mstart ) / sizeof( void* ) )
@@ -366,7 +366,7 @@ void* platform_get_first_free_ram( unsigned id )
 
 void* platform_get_last_free_ram( unsigned id )
 {
-  void* mend[] = MEM_END_ADDRESS;
+  static void* mend[] = MEM_END_ADDRESS;
   u32 p;
 
   if( id >= sizeof( mend ) / sizeof( void* ) )
@@ -579,6 +579,24 @@ unsigned int intlog2( unsigned int v )
     r++;
   }
   return r;
+}
+
+char lastchar( const char *s )
+{
+  unsigned len;
+
+  if( !s )
+    return '\0';
+  len = strlen( s );
+  if( len == 0 )
+    return '\0';
+  else
+    return s[ len - 1 ];
+}
+
+char firstchar( const char *s )
+{
+  return s ? s[ 0 ]: '\0';
 }
 
 // 64-bits integer printf support seems to be broken in some versions of Newlib...
