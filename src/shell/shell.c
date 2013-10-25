@@ -45,6 +45,7 @@ SHELL_FUNC( shell_lua );
 SHELL_FUNC( shell_ver );
 SHELL_FUNC( shell_mkdir );
 SHELL_FUNC( shell_wofmt );
+SHELL_FUNC( shell_worepack );
 
 // ----------------------------------------------------------------------------
 // Helpers
@@ -214,6 +215,7 @@ static const SHELL_COMMAND shell_commands[] =
   { "type", shell_cat },
   { "cp", shell_cp },
   { "wofmt", shell_wofmt },
+  { "worepack", shell_worepack },
   { "mkdir", shell_mkdir },
   { "rm", shell_adv_rm },
   { "mv", shell_adv_mv },
