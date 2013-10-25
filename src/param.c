@@ -1,14 +1,14 @@
 #include <stdio.h>   /* Standard input/output definitions */
 #include <string.h>  /* String function definitions */
 #include <stdint.h>
-
+#include "devman.h"
 #include "param.h"
 
 
 FILE * open_param_file(const char * name, const char * prefix, const char * format, const char * mode)
 {
-    char fname[20];
-    sprintf( fname, format, prefix, name );
+    char fname[ DM_MAX_FNAME_LENGTH + 1 ];
+    snprintf( fname, DM_MAX_FNAME_LENGTH + 1, format, prefix, name );
     FILE * ret = fopen(fname, mode);
     return ret;
 }
