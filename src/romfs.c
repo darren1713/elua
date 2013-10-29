@@ -438,6 +438,25 @@ static const char* romfs_getaddr_r( struct _reent *r, int fd, void *pdata )
     return NULL;
 }
 
+static int romfs_unlink_r( struct _reent *r, const char *path, void *pdata )
+{
+  FSDATA *pfsdata = ( FSDATA* )pdata;
+  FD tempfs;
+  int exists;
+  u32 firstfree, nameaddr;
+  
+  // Does the file exist?
+  exists = romfs_open_file( path, &tempfs, pfsdata, &firstfree, &nameaddr ) == FS_FILE_OK;
+  if( exists && romfsh_is_wofs( pfsdata ) )
+  {
+    u8 tempb[] = { WOFS_FILE_DELETED, 0xFF, 0xFF, 0xFF };
+    pfsdata->writef( tempb, tempfs.baseaddr - ROMFS_SIZE_LEN - WOFS_DEL_FIELD_SIZE, WOFS_DEL_FIELD_SIZE, pfsdata );
+    return 0;
+  }
+  else
+    return -1;
+}
+
 // ****************************************************************************
 // Our ROMFS device descriptor structure
 // These functions apply to both ROMFS and WOFS
@@ -454,7 +473,7 @@ static const DM_DEVICE romfs_device =
   romfs_closedir_r,     // closedir
   romfs_getaddr_r,      // getaddr
   NULL,                 // mkdir
-  NULL,                 // unlink
+  romfs_unlink_r,       // unlink
   NULL,                 // rmdir
   NULL                  // rename
 };
