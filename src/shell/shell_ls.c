@@ -23,7 +23,8 @@ typedef struct
 
 const char shell_help_ls[] = "[<path>] [-R]\n"
   "  [<path>]: path to list.\n"
-  "  [-R]: recursive\n";
+  "  [-R]: recursive\n"
+  "  [-c]: compute checksums\n";
 const char shell_help_summary_ls[] = "lists files and directories";
 
 // 'ls' and 'dir' handler

@@ -453,6 +453,25 @@ static const char* romfs_getaddr_r( struct _reent *r, int fd, void *pdata )
     return NULL;
 }
 
+static int romfs_unlink_r( struct _reent *r, const char *path, void *pdata )
+{
+  FSDATA *pfsdata = ( FSDATA* )pdata;
+  FD tempfs;
+  int exists;
+  u32 firstfree, nameaddr;
+  
+  // Does the file exist?
+  exists = romfs_open_file( path, &tempfs, pfsdata, &firstfree, &nameaddr ) == FS_FILE_OK;
+  if( exists && romfsh_is_wofs( pfsdata ) )
+  {
+    u8 tempb[] = { WOFS_FILE_DELETED, 0xFF, 0xFF, 0xFF };
+    pfsdata->writef( tempb, tempfs.baseaddr - ROMFS_SIZE_LEN - WOFS_DEL_FIELD_SIZE, WOFS_DEL_FIELD_SIZE, pfsdata );
+    return 0;
+  }
+  else
+    return -1;
+}
+
 // ****************************************************************************
 // Our ROMFS device descriptor structure
 // These functions apply to both ROMFS and WOFS
@@ -469,7 +488,7 @@ static const DM_DEVICE romfs_device =
   romfs_closedir_r,     // closedir
   romfs_getaddr_r,      // getaddr
   NULL,                 // mkdir
-  NULL,                 // unlink
+  romfs_unlink_r,       // unlink
   NULL,                 // rmdir
   NULL                  // rename
 };
@@ -623,7 +642,7 @@ int romfs_walk_fs( u32 *start, u32 *end, void *pdata  )
 #define LAST_SECTOR_START ( LAST_SECTOR_END - INTERNAL_FLASH_SECTOR_SIZE )
 
 // TODO: Needs to handle remaining open file if there is one
-
+// Returns 1 if OK, 0 for error
 int wofs_repack(  void )
 {
   FSDATA *pdata = &wofs_fsdata;
@@ -752,6 +771,7 @@ int wofs_repack(  void )
   // At the end fs_read_ptr: next spot in old FS
   // write_ptr should be just into next sector if we have any more work
   }
+  return 1;
 }
 
 #endif // #ifdef BUILD_WOFS
