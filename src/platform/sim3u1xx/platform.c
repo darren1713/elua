@@ -918,6 +918,8 @@ void pios_init( void )
   //PB3.11 5V on/off
   SI32_PBSTD_A_write_pins_high(SI32_PBSTD_3, ( u32 ) 1 << 11 ); //Set 5V regulator off
   SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_3, ( u32 ) 1 << 11);
+  // PB2.1 is wakeup
+  SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_2, 0x00000002);
 #else
   //PB3.6 is external input 1
   //PB3.7 is high voltage dc detection
