@@ -66,13 +66,9 @@ extern void extras_sleep_hook( int seconds );
 static volatile int i2c_timeout_timer = I2C_TIMEOUT_SYSTICKS;
 
 #ifdef PCB_V7
-#define PIN_VUSB_BANK SI32_PBSTD_3
-#define PIN_VUSB_PIN ( 1 << 9 )
 #define PIN_HV_BANK SI32_PBSTD_3
 #define PIN_HV_PIN ( 1 << 8 )
 #else
-#define PIN_VUSB_BANK SI32_PBSTD_3
-#define PIN_VUSB_PIN ( 1 << 8 )
 #define PIN_HV_BANK SI32_PBSTD_3
 #define PIN_HV_PIN ( 1 << 7 )
 #endif
@@ -187,7 +183,7 @@ int external_power()
 {
   //check USB DC 3.9 or HVDC 3.8
   if( ( SI32_PBSTD_A_read_pins( PIN_HV_BANK ) & ( PIN_HV_PIN ) ) ||
-      ( SI32_PBSTD_A_read_pins( PIN_VUSB_BANK ) & ( PIN_VUSB_PIN ) ) )
+      ( SI32_VREG_A_is_vbus_valid( SI32_VREG_0 ) ) )
     return 1;
   else
     return 0;
@@ -577,7 +573,7 @@ void TIMER0H_IRQHandler(void)
 { 
 #if defined( BUILD_USB_CDC )
   //Check if USB is powered. It will not actually TX/RX unless enumerated though
-  if( ( SI32_PBSTD_A_read_pins( PIN_VUSB_BANK ) & PIN_VUSB_PIN ) )
+  if( SI32_VREG_A_is_vbus_valid( SI32_VREG_0 ) )
     console_cdc_active = 1;
   else
     console_cdc_active = 0;
