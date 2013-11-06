@@ -642,6 +642,8 @@ int romfs_walk_fs( u32 *start, u32 *end, void *pdata  )
 #define LAST_SECTOR_START ( LAST_SECTOR_END - INTERNAL_FLASH_SECTOR_SIZE )
 
 // TODO: Needs to handle remaining open file if there is one
+// TODO: Needs to erase intervening sectors when deleted files span more than 2 sectors
+// FIXME: Filesystem gets corrupted when last file is the deleted one
 // Returns 1 if OK, 0 for error
 int wofs_repack(  void )
 {
@@ -654,12 +656,13 @@ int wofs_repack(  void )
   int ret;
 
   // 1 - Find first of any deleted files
+  endf = 0;
   startf = 0; // starting offset at beginning of fs
   do
   {
+    startf = endf;
     ret = romfs_walk_fs( &startf, &endf, pdata );
     printf("S: %d E: %d F: %d\n", startf, endf, ret);
-    startf = endf;
   } while( ret == 0 ); // Exit when we find something other than a "regular" file
 
   // If we get to the end and find no deleted files, end
