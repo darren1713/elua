@@ -690,7 +690,7 @@ int wofs_repack(  void )
     if( fs_read_ptr == 0 ) // First run
     {
       fs_read_ptr = sstart; // Beginning of first deleted file's sector
-      tmp = startf - sstart;
+      tmp = endf + 1 - sstart;
     }
     else // Secondary runs, finish or continue file
     {
@@ -700,6 +700,7 @@ int wofs_repack(  void )
 
     printf("CP F: %d, T: %d, L: %d\n", fs_read_ptr, write_ptr, tmp);
     pdata->writef( ( u32* )(fs_read_ptr + ( u32 )pdata->pbase), write_ptr, tmp, pdata );
+    tmp = ( tmp + 1 + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 );
     write_ptr += tmp;
     fs_read_ptr += tmp;
 
