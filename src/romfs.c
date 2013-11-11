@@ -647,7 +647,7 @@ int romfs_walk_fs( u32 *start, u32 *end, void *pdata  )
 int wofs_repack(  void )
 {
   FSDATA *pdata = &wofs_fsdata;
-  u32 startf, endf;
+  u32 startf, endf, last_endf;
   u32 sstart, send, snum;
   u32 write_ptr;
   u32 fs_read_ptr = 0;
@@ -660,6 +660,7 @@ int wofs_repack(  void )
   do
   {
     startf = ( endf + 1 + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 );
+    last_endf = endf; // Cache previous file's end for when we find an empty file
     ret = romfs_walk_fs( &startf, &endf, pdata );
     printf("S: %d E: %d F: %d\n", startf, endf, ret);
   } while( ret == 0 ); // Exit when we find something other than a "regular" file
@@ -690,7 +691,7 @@ int wofs_repack(  void )
     if( fs_read_ptr == 0 ) // First run
     {
       fs_read_ptr = sstart; // Beginning of first deleted file's sector
-      tmp = endf + 1 - sstart;
+      tmp = last_endf - sstart;
     }
     else // Secondary runs, finish or continue file
     {
@@ -700,7 +701,7 @@ int wofs_repack(  void )
 
     printf("CP F: %d, T: %d, L: %d\n", fs_read_ptr, write_ptr, tmp);
     pdata->writef( ( u32* )(fs_read_ptr + ( u32 )pdata->pbase), write_ptr, tmp, pdata );
-    tmp = ( tmp + 1 + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 );
+    //tmp = ( tmp + 1 + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 );
     write_ptr += tmp;
     fs_read_ptr += tmp;
 
@@ -715,9 +716,10 @@ int wofs_repack(  void )
       {
         fs_read_ptr = startf;
         tmp = fsmin( endf + 1 - fs_read_ptr, ( LAST_SECTOR_START - ( u32 )pdata->pbase ) + ( send + 1 - sstart ) - write_ptr );
+        write_ptr = ( write_ptr + 1 + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 );
         printf("CP F: %d, T: %d, L: %d, L2 %d\n", fs_read_ptr, write_ptr, endf - fs_read_ptr, ( LAST_SECTOR_START - ( u32 )pdata->pbase ) + ( send + 1 - sstart ) - write_ptr );
         pdata->writef( ( u32* )(fs_read_ptr + ( u32 )pdata->pbase), write_ptr, tmp, pdata);
-        tmp = ( tmp + 1 + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 );
+        //tmp = ( tmp + 1 + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 );
         fs_read_ptr += tmp; // Advance so that read ptr is correct when we exit this loop
         write_ptr  += tmp;
       }
@@ -736,6 +738,7 @@ int wofs_repack(  void )
     pdata->writef( ( u32* )(tmp + ( u32 )pdata->pbase), sstart, write_ptr - ( LAST_SECTOR_START - ( u32 )pdata->pbase ), pdata);
     write_ptr = sstart + write_ptr - ( LAST_SECTOR_START - ( u32 )pdata->pbase ); // Now points into origin sector
 
+
     // 5 - erase spare sector
     printf("Erasing: %d\n", LAST_SECTOR_NUM);
     if( platform_flash_erase_sector( LAST_SECTOR_NUM ) == PLATFORM_ERR )
@@ -746,11 +749,12 @@ int wofs_repack(  void )
 
     // 6 - Fill "source" sector from FS, if space remains
     // Start filling in unfinished files
-    if( fs_read_ptr <= endf )
+    if( fs_read_ptr < endf && ret == 0 )
     {
       tmp = fsmin( endf + 1 - fs_read_ptr, send + 1 - fs_read_ptr);
+      printf("CP F: %d, T: %d, L: %d, EF: %d\n", fs_read_ptr, write_ptr, tmp, endf);
       pdata->writef( ( u32* )fs_read_ptr, write_ptr, tmp, pdata);
-      tmp = ( tmp + 1 + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 );
+      //tmp = ( tmp + 1 + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 );
       fs_read_ptr += tmp;
       write_ptr += tmp;
     }
@@ -767,14 +771,15 @@ int wofs_repack(  void )
         fs_read_ptr = startf;
         printf("Ef: %d, rptr: %d, se: %d end:%d\n", endf, fs_read_ptr, send, ( LAST_SECTOR_START - ( u32 )pdata->pbase ) + ( send - sstart ) - write_ptr);
         tmp = fsmin( endf + 1 - fs_read_ptr, ( LAST_SECTOR_START - ( u32 )pdata->pbase ) + ( send - sstart ) - write_ptr);
+        write_ptr = ( write_ptr + 1 + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 );
         printf("CP F: %d, T: %d, L: %d\n", fs_read_ptr, write_ptr, tmp);
         pdata->writef( ( u32* )(fs_read_ptr + ( u32 )pdata->pbase), write_ptr, tmp, pdata );
-        tmp = ( tmp + 1 + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 );
+        //tmp = ( tmp + 1 + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 );
         fs_read_ptr += tmp;
         write_ptr  += tmp;
       }
     }
-    startf = ( endf + 1 + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 );
+    //startf = ( endf + 1 + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 );
   // At the end fs_read_ptr: next spot in old FS
   // write_ptr should be just into next sector if we have any more work
   }
