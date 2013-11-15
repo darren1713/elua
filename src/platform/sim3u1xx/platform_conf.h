@@ -18,7 +18,7 @@
 #define BUILD_ROMFS
 #define BUILD_TERM
 #define BUILD_CON_GENERIC
-//#define BUILD_ADC
+#define BUILD_ADC
 #define BUILD_RPC
 
 #define BUILD_C_INT_HANDLERS
@@ -132,7 +132,7 @@ LUALIB_API int ( luaopen_pmu )( lua_State *L );
 #define NUM_UART              4
 #define NUM_PWM               0
 #define NUM_I2C               2
-#define NUM_ADC               0
+#define NUM_ADC               2
 #define NUM_CAN               0
 #define NUM_TIMER             1
 
@@ -142,13 +142,13 @@ LUALIB_API int ( luaopen_pmu )( lua_State *L );
 #define CON_BUF_SIZE          BUF_SIZE_128
 
 // ADC Configuration Params
-// #define ADC_BIT_RESOLUTION    12
-// #define BUF_ENABLE_ADC
-// #define ADC_BUF_SIZE          BUF_SIZE_2
+#define ADC_BIT_RESOLUTION    10
+#define BUF_ENABLE_ADC
+#define ADC_BUF_SIZE          BUF_SIZE_2
 
 // These should be adjusted to support multiple ADC devices
-// #define ADC_TIMER_FIRST_ID    0
-// #define ADC_NUM_TIMERS        4
+#define ADC_TIMER_FIRST_ID    0
+#define ADC_NUM_TIMERS        0
 
 // RPC
 #define RPC_UART_ID           CON_UART_ID
