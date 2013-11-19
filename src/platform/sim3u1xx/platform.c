@@ -903,7 +903,10 @@ void pios_init( void )
   SI32_PBCFG_A_enable_crossbar_0(SI32_PBCFG_0);
 
   // PB2 Setup
-  SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_2, 0x7FFF);
+  SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_2, 0xFFFF);
+
+  // Analog Pins (2.14 & 2.15)
+  SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_2, 0xC000);
 
 
   // PB3 Setup
@@ -1482,7 +1485,7 @@ timer_data_type platform_timer_read_sys()
 #define SI32_ADC      SI32_SARADC_1
 #define SI32_ADC_IRQ  SARADC1_IRQn
 
-const static u32 adc_ctls[] = { SI32_SARADC_A_SQ3210_TS0MUX_ADCN14_VALUE, SI32_SARADC_A_SQ3210_TS1MUX_ADCN19_VALUE };
+const static u32 adc_ctls[] = { 4, 3 };
 
 int platform_adc_check_timer_id( unsigned id, unsigned timer_id )
 {
@@ -1502,7 +1505,8 @@ void platform_adc_stop( unsigned id )
   if( d->ch_active == 0 )
   {
     // MAP_ADCSequenceDisable( ADC_BASE, d->seq_id );
-    SI32_SARADC_A_disable_module( SI32_ADC );
+    SI32_SARADC_A_disable_autoscan( SI32_ADC );
+
     printf("Stoppit!\n");
     d->running = 0;
   }
@@ -1515,14 +1519,12 @@ void SARADC1_IRQHandler( void )
   elua_adc_dev_state *d = adc_get_dev_state( 0 );
   elua_adc_ch_state *s;
 
-  if ((SI32_SARADC_A_is_scan_done_interrupt_pending( SI32_ADC ) && 
-       SI32_SARADC_A_is_scan_done_interrupt_enabled( SI32_ADC ) ) )
+  if ( SI32_SARADC_A_is_scan_done_interrupt_pending( SI32_ADC ) )
   {
     SI32_SARADC_A_clear_single_conversion_complete_interrupt( SI32_ADC );
     SI32_SARADC_A_clear_scan_done_interrupt( SI32_ADC );
     SI32_SARADC_A_disable_autoscan( SI32_ADC );
     SI32_SARADC_A_disable_accumulator( SI32_ADC );
-    //printf("Scan\n");
 
     d->seq_ctr = 0;
     
@@ -1563,11 +1565,16 @@ void SARADC1_IRQHandler( void )
     
     if ( d->clocked == 0 && d->running == 1 )
     {
+      SI32_SARADC_A_enable_autoscan(SI32_ADC);
+
+      // a 1-to-0 transition on ACCMD bit will enable the accumulator for the next conversion
+      SI32_SARADC_A_enable_accumulator(SI32_ADC);
+      SI32_SARADC_A_clear_accumulator(SI32_ADC);
+      //platform_adc_start_sequence();
       SI32_SARADC_A_start_conversion( SI32_ADC );
     }
   }
-  else if ((SI32_SARADC_A_is_single_conversion_complete_interrupt_pending(SI32_ADC) && 
-            SI32_SARADC_A_is_single_conversion_complete_interrupt_enabled(SI32_ADC)))
+  else if ( SI32_SARADC_A_is_single_conversion_complete_interrupt_pending( SI32_ADC ) )
   {
     SI32_SARADC_A_clear_single_conversion_complete_interrupt( SI32_ADC );
     SI32_SARADC_A_enable_burst_mode( SI32_ADC );
@@ -1579,10 +1586,10 @@ void SARADC1_IRQHandler( void )
 static void adcs_init()
 {
   unsigned id;
-  elua_adc_dev_state *d = adc_get_dev_state( 0 );
-  
+  //elua_adc_dev_state *d = adc_get_dev_state( 0 );
+
   // set SAR clock to operate at 10 MHZ
-  SI32_SARADC_A_select_sar_clock_divider( SI32_ADC, 3 );
+  SI32_SARADC_A_select_sar_clock_divider( SI32_ADC, 64 );
 
   SI32_SARADC_A_select_output_packing_mode_lower_halfword_only( SI32_ADC );
   
@@ -1610,11 +1617,7 @@ static void adcs_init()
 
   // Perform sequencer setup
   platform_adc_set_clock( 0, 0 );
-  NVIC_ClearPendingIRQ(SI32_ADC_IRQ);
-  NVIC_EnableIRQ(SI32_ADC_IRQ);
 
-  SI32_SARADC_A_enable_single_conversion_complete_interrupt(SI32_ADC);
-  SI32_SARADC_A_enable_scan_done_interrupt(SI32_ADC);
 }
 
 u32 platform_adc_set_clock( unsigned id, u32 frequency )
@@ -1663,12 +1666,12 @@ int platform_adc_update_sequence( )
     d->seq_ctr++;
   }
   // Set sequence end
-  SI32_SARADC_A_select_timeslot_channel( SI32_ADC, d->seq_ctr, SI32_SARADC_A_SQ3210_TS2MUX_END_VALUE );
+  SI32_SARADC_A_select_timeslot_channel( SI32_ADC, d->seq_ctr, 31 );
   d->seq_ctr = 0;
   
 
- // // ENABLE MODULE
- SI32_SARADC_A_enable_module(SI32_ADC);
+  // // ENABLE MODULE
+  SI32_SARADC_A_enable_module(SI32_ADC);
       
   return PLATFORM_OK;
 }
@@ -1693,6 +1696,12 @@ int platform_adc_start_sequence()
     SI32_SARADC_A_clear_accumulator(SI32_ADC);
 
     d->running = 1;
+
+    NVIC_ClearPendingIRQ(SI32_ADC_IRQ);
+    NVIC_EnableIRQ(SI32_ADC_IRQ);
+
+    SI32_SARADC_A_enable_single_conversion_complete_interrupt(SI32_ADC);
+    SI32_SARADC_A_enable_scan_done_interrupt(SI32_ADC);
 
     if( d->clocked == 1 )
     {
