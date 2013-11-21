@@ -1636,17 +1636,17 @@ u32 platform_adc_set_clock( unsigned id, u32 frequency )
 {
   elua_adc_dev_state *d = adc_get_dev_state( 0 );
     
-  if ( frequency > 0 )
-  {
-    //d->clocked = 1;
-    // Not yet implemented
-  }
-  else
-  {
+  // if ( frequency > 0 )
+  // {
+  //   //d->clocked = 1;
+  //   // not yet implemented
+  // }
+  // else
+  // {
     d->clocked = 0;
     // Conversion will run back-to-back until required samples are acquired
     SI32_SARADC_A_select_start_of_conversion_source( SI32_ADC, SI32_SARADC_A_CONTROL_SCSEL_ADCNT0_VALUE );
-  }
+  // }
     
   return frequency;
 }
