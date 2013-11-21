@@ -1507,7 +1507,6 @@ void platform_adc_stop( unsigned id )
   // If there are no more active channels, stop the sequencer
   if( d->ch_active == 0 )
   {
-    // MAP_ADCSequenceDisable( ADC_BASE, d->seq_id );
     //SI32_SARADC_A_disable_autoscan( SI32_ADC );
 
     //printf("Stoppit!\n");
@@ -1636,19 +1635,11 @@ static void adcs_init()
 u32 platform_adc_set_clock( unsigned id, u32 frequency )
 {
   elua_adc_dev_state *d = adc_get_dev_state( 0 );
-  
-  // Make sure sequencer is disabled before making changes
-  // MAP_ADCSequenceDisable( ADC_BASE, d->seq_id );
-  
+    
   if ( frequency > 0 )
   {
-    d->clocked = 1;
-    // Set sequence id to be triggered repeatedly, with priority id
-    // MAP_ADCSequenceConfigure( ADC_BASE, d->seq_id, ADC_TRIGGER_TIMER, d->seq_id );
-
-    // Set up timer trigger
-    // MAP_TimerLoadSet( timer_base[ d->timer_id ], TIMER_A, MAP_SysCtlClockGet() / frequency );
-    // frequency = MAP_SysCtlClockGet() / MAP_TimerLoadGet( timer_base[ d->timer_id ], TIMER_A );
+    //d->clocked = 1;
+    // Not yet implemented
   }
   else
   {
@@ -1712,8 +1703,7 @@ int platform_adc_start_sequence()
 
     if( d->clocked == 1 )
     {
-      //MAP_TimerControlTrigger(timer_base[d->timer_id], TIMER_A, true);
-      //MAP_TimerEnable(timer_base[d->timer_id], TIMER_A);
+      // not yet implemented
     }
     else
     {
