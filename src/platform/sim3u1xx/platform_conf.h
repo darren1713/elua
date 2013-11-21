@@ -142,7 +142,7 @@ LUALIB_API int ( luaopen_pmu )( lua_State *L );
 #define CON_BUF_SIZE          BUF_SIZE_128
 
 // ADC Configuration Params
-#define ADC_BIT_RESOLUTION    10
+#define ADC_BIT_RESOLUTION    12
 #define BUF_ENABLE_ADC
 #define ADC_BUF_SIZE          BUF_SIZE_2
 

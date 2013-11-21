@@ -905,7 +905,10 @@ void pios_init( void )
   // PB2 Setup
   SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_2, 0xFFFF);
 
+  SI32_PBSTD_A_disable_pullup_resistors( SI32_PBSTD_2 );
+
   // Analog Pins (2.14 & 2.15)
+  SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_2, 0xC000);
   SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_2, 0xC000);
 
 
@@ -914,7 +917,7 @@ void pios_init( void )
 
   SI32_PBSTD_A_disable_pullup_resistors( SI32_PBSTD_3 );
 
-  SI32_PBSTD_A_disable_pullup_resistors( SI32_PBSTD_2 );
+
   SI32_PBSTD_A_disable_pullup_resistors( SI32_PBSTD_1 );
 
 #ifdef PCB_V7
@@ -1505,9 +1508,9 @@ void platform_adc_stop( unsigned id )
   if( d->ch_active == 0 )
   {
     // MAP_ADCSequenceDisable( ADC_BASE, d->seq_id );
-    SI32_SARADC_A_disable_autoscan( SI32_ADC );
+    //SI32_SARADC_A_disable_autoscan( SI32_ADC );
 
-    printf("Stoppit!\n");
+    //printf("Stoppit!\n");
     d->running = 0;
   }
 }
@@ -1531,10 +1534,10 @@ void SARADC1_IRQHandler( void )
     // Update smoothing and/or write to buffer if needed
     while( d->seq_ctr < d->seq_len )
     {
-      printf( "Ctr: %d ", d->seq_ctr );
+      //printf( "Ctr: %d ", d->seq_ctr );
       s = d->ch_state[ d->seq_ctr ];
-      d->sample_buf[ d->seq_ctr ] = ( u16 )SI32_SARADC_A_read_data( SI32_ADC );
-      printf("Value: %d\n", d->sample_buf[ d->seq_ctr ] );
+      d->sample_buf[ d->seq_ctr ] = ( u16 )( SI32_SARADC_A_read_data( SI32_ADC ) / 16 );
+      //printf("Value: %d\n", d->sample_buf[ d->seq_ctr ] );
       s->value_fresh = 1; // Mark sample as fresh
       
       // Fill in smoothing buffer until warmed up
@@ -1565,12 +1568,12 @@ void SARADC1_IRQHandler( void )
     
     if ( d->clocked == 0 && d->running == 1 )
     {
+      SI32_SARADC_A_enable_burst_mode(SI32_ADC);
       SI32_SARADC_A_enable_autoscan(SI32_ADC);
 
       // a 1-to-0 transition on ACCMD bit will enable the accumulator for the next conversion
       SI32_SARADC_A_enable_accumulator(SI32_ADC);
       SI32_SARADC_A_clear_accumulator(SI32_ADC);
-      //platform_adc_start_sequence();
       SI32_SARADC_A_start_conversion( SI32_ADC );
     }
   }
@@ -1579,7 +1582,7 @@ void SARADC1_IRQHandler( void )
     SI32_SARADC_A_clear_single_conversion_complete_interrupt( SI32_ADC );
     SI32_SARADC_A_enable_burst_mode( SI32_ADC );
     SI32_SARADC_A_start_conversion( SI32_ADC );
-    printf("Single\n");
+    //printf("Single\n");
   }
 }
 
@@ -1589,7 +1592,7 @@ static void adcs_init()
   //elua_adc_dev_state *d = adc_get_dev_state( 0 );
 
   // set SAR clock to operate at 10 MHZ
-  SI32_SARADC_A_select_sar_clock_divider( SI32_ADC, 64 );
+  SI32_SARADC_A_select_sar_clock_divider( SI32_ADC, 2047 );
 
   SI32_SARADC_A_select_output_packing_mode_lower_halfword_only( SI32_ADC );
   
@@ -1605,18 +1608,28 @@ static void adcs_init()
   SI32_SARADC_A_select_vref_internal( SI32_ADC );
 
   // Set up characteristic group 0
-  SI32_SARADC_A_enter_10bit_mode(SI32_ADC, 0);
+  SI32_SARADC_A_enter_12bit_mode(SI32_ADC, 0);
+
+  SI32_SARADC_A_select_delayed_track_mode( SI32_ADC );
 
   SI32_SARADC_A_select_burst_mode_repeat_count(SI32_ADC, 0,
-                                              SI32_SARADC_A_BURST_MODE_REPEAT_COUNT_SAMPLE_ONCE);
+                                              SI32_SARADC_A_BURST_MODE_REPEAT_COUNT_SAMPLE_16_TIMES);
 
-  SI32_SARADC_A_select_channel_character_group_gain_half(SI32_ADC, 0);
+  SI32_SARADC_A_select_channel_character_group_gain_half( SI32_ADC, 0 );
+  //SI32_SARADC_A_select_channel_character_group_gain_one( SI32_ADC, 0 );
+
 
   for( id = 0; id < NUM_ADC; id ++ )
     adc_init_ch_state( id );
 
   // Perform sequencer setup
   platform_adc_set_clock( 0, 0 );
+
+  NVIC_ClearPendingIRQ(SI32_ADC_IRQ);
+  NVIC_EnableIRQ(SI32_ADC_IRQ);
+
+  SI32_SARADC_A_enable_single_conversion_complete_interrupt(SI32_ADC);
+  SI32_SARADC_A_enable_scan_done_interrupt(SI32_ADC);
 
 }
 
@@ -1656,7 +1669,7 @@ int platform_adc_update_sequence( )
   
   // NOTE: seq ctr should have an incrementer that will wrap appropriately..
   d->seq_ctr = 0; 
-  while( d->seq_ctr < d->seq_len-1 )
+  while( d->seq_ctr < d->seq_len )
   {
 
     SI32_SARADC_A_select_timeslot_channel( SI32_ADC, d->seq_ctr, 
@@ -1671,7 +1684,7 @@ int platform_adc_update_sequence( )
   
 
   // // ENABLE MODULE
-  SI32_SARADC_A_enable_module(SI32_ADC);
+  //SI32_SARADC_A_enable_module(SI32_ADC);
       
   return PLATFORM_OK;
 }
@@ -1696,12 +1709,6 @@ int platform_adc_start_sequence()
     SI32_SARADC_A_clear_accumulator(SI32_ADC);
 
     d->running = 1;
-
-    NVIC_ClearPendingIRQ(SI32_ADC_IRQ);
-    NVIC_EnableIRQ(SI32_ADC_IRQ);
-
-    SI32_SARADC_A_enable_single_conversion_complete_interrupt(SI32_ADC);
-    SI32_SARADC_A_enable_scan_done_interrupt(SI32_ADC);
 
     if( d->clocked == 1 )
     {
