@@ -355,11 +355,17 @@ void platform_int_init()
 
 const elua_int_descriptor elua_int_table[ INT_ELUA_LAST ] =
 {
-  { int_uart_rx_set_status, int_uart_rx_get_status, int_uart_rx_get_flag },
-  { int_uart_buf_full_set_status, int_uart_buf_full_get_status, int_uart_buf_full_get_flag },
-  { int_uart_buf_match_set_status, int_uart_buf_match_get_status, int_uart_buf_match_get_flag },
-  { int_systick_set_status, int_systick_get_status, int_systick_get_flag },
-  { callback_set_status, callback_get_status, callback_get_flag },
-  { callback_set_status, callback_get_status, callback_get_flag },
-  { callback_set_status, callback_get_status, callback_get_flag }
+  { int_uart_rx_set_status, int_uart_rx_get_status, int_uart_rx_get_flag }, // INT_UART_RX
+  { int_uart_buf_full_set_status, int_uart_buf_full_get_status, int_uart_buf_full_get_flag }, // INT_UART_BUF_FULL
+  { int_uart_buf_match_set_status, int_uart_buf_match_get_status, int_uart_buf_match_get_flag }, // INT_UART_BUF_MATCH
+  { int_systick_set_status, int_systick_get_status, int_systick_get_flag }, // INT_SYSTICK
+  { callback_set_status, callback_get_status, callback_get_flag }, // INT_IRIDIUM_SIGNAL
+  { callback_set_status, callback_get_status, callback_get_flag }, // INT_IRIDIUM_TX_OK
+  { callback_set_status, callback_get_status, callback_get_flag }, // INT_IRIDIUM_TX_FAIL
+  { callback_set_status, callback_get_status, callback_get_flag }, // INT_IRIDIUM_TIMEOUT
+  { callback_set_status, callback_get_status, callback_get_flag }, // INT_GPS_VALID
+  { callback_set_status, callback_get_status, callback_get_flag }, // INT_GPS_TIMEOUT
+  { callback_set_status, callback_get_status, callback_get_flag }, // INT_BOOT
+  { callback_set_status, callback_get_status, callback_get_flag }, // INT_CONTENTION
+  { callback_set_status, callback_get_status, callback_get_flag } // INT_SYSINIT
 };
