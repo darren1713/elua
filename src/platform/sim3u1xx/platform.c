@@ -35,6 +35,7 @@
 #include <SI32_RSTSRC_A_Type.h>
 #include <SI32_VREG_A_Type.h>
 #include <SI32_PMU_A_Type.h>
+#include <SI32_SARADC_A_Type.h>
 #include "myPB.h"
 #include <gVMON0.h>
 #include <gLDO0.h>
@@ -86,6 +87,7 @@ extern int load_lua_function (char *func);
 static void pios_init();
 static void clk_init();
 static void rtc_init();
+static void adcs_init();
 static void gTIMER0_enter_auto_reload_config(void);
 static void gTIMER1_enter_auto_reload_config(void);
 
@@ -294,6 +296,11 @@ int platform_init()
   rtc_remaining = (SI32_RTC_A_read_alarm0(SI32_RTC_0)-SI32_RTC_A_read_setcap(SI32_RTC_0))/16384;
   rtc_init();
 
+#ifdef BUILD_ADC
+  // Setup ADCs
+  adcs_init();
+#endif
+
 #if defined( BUILD_USB_CDC )
 
   usb_init();
@@ -451,7 +458,7 @@ void clk_init( void )
                                          SI32_CLKCTRL_A_APBCLKG0_UART1 |
                                          SI32_CLKCTRL_A_APBCLKG0_SPI0 |
                                          SI32_CLKCTRL_A_APBCLKG0_I2C0 |
-                                         SI32_CLKCTRL_A_APBCLKG0_SARADC0 |
+                                         SI32_CLKCTRL_A_APBCLKG0_SARADC1 |
                                          SI32_CLKCTRL_A_APBCLKG0_AES0 |
                                          SI32_CLKCTRL_A_APBCLKG0_CRC0 |
                                          SI32_CLKCTRL_A_APBCLKG0_LPTIMER0 |
@@ -896,7 +903,13 @@ void pios_init( void )
   SI32_PBCFG_A_enable_crossbar_0(SI32_PBCFG_0);
 
   // PB2 Setup
-  SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_2, 0x7FFF);
+  SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_2, 0xFFFF);
+
+  SI32_PBSTD_A_disable_pullup_resistors( SI32_PBSTD_2 );
+
+  // Analog Pins (2.14 & 2.15)
+  SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_2, 0xC000);
+  SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_2, 0xC000);
 
 
   // PB3 Setup
@@ -904,7 +917,7 @@ void pios_init( void )
 
   SI32_PBSTD_A_disable_pullup_resistors( SI32_PBSTD_3 );
 
-  SI32_PBSTD_A_disable_pullup_resistors( SI32_PBSTD_2 );
+
   SI32_PBSTD_A_disable_pullup_resistors( SI32_PBSTD_1 );
 
 #ifdef PCB_V7
@@ -1464,6 +1477,244 @@ timer_data_type platform_timer_read_sys()
 {
   return cmn_systimer_get();
 }
+
+// *****************************************************************************
+// ADC specific functions and variables
+
+#ifdef BUILD_ADC
+// PB1.14: ADC1.4
+// PB1.15: ADC1.3
+
+#define SI32_ADC      SI32_SARADC_1
+#define SI32_ADC_IRQ  SARADC1_IRQn
+
+const static u32 adc_ctls[] = { 4, 3 };
+
+int platform_adc_check_timer_id( unsigned id, unsigned timer_id )
+{
+  //return ( ( timer_id >= ADC_TIMER_FIRST_ID ) && ( timer_id < ( ADC_TIMER_FIRST_ID + ADC_NUM_TIMERS ) ) );
+  return 0;
+}
+
+void platform_adc_stop( unsigned id )
+{
+  elua_adc_ch_state *s = adc_get_ch_state( id );
+  elua_adc_dev_state *d = adc_get_dev_state( 0 );
+  
+  s->op_pending = 0;
+  INACTIVATE_CHANNEL(d, id);
+  
+  // If there are no more active channels, stop the sequencer
+  if( d->ch_active == 0 )
+  {
+    //SI32_SARADC_A_disable_autoscan( SI32_ADC );
+
+    //printf("Stoppit!\n");
+    d->running = 0;
+  }
+}
+
+// Handle ADC interrupts
+void SARADC1_IRQHandler( void )
+{
+  //u32 tmpbuff[ NUM_ADC ];
+  elua_adc_dev_state *d = adc_get_dev_state( 0 );
+  elua_adc_ch_state *s;
+
+  if ( SI32_SARADC_A_is_scan_done_interrupt_pending( SI32_ADC ) )
+  {
+    SI32_SARADC_A_clear_single_conversion_complete_interrupt( SI32_ADC );
+    SI32_SARADC_A_clear_scan_done_interrupt( SI32_ADC );
+    SI32_SARADC_A_disable_autoscan( SI32_ADC );
+    SI32_SARADC_A_disable_accumulator( SI32_ADC );
+
+    d->seq_ctr = 0;
+    
+    // Update smoothing and/or write to buffer if needed
+    while( d->seq_ctr < d->seq_len )
+    {
+      //printf( "Ctr: %d ", d->seq_ctr );
+      s = d->ch_state[ d->seq_ctr ];
+      d->sample_buf[ d->seq_ctr ] = ( u16 )( SI32_SARADC_A_read_data( SI32_ADC ) / 16 );
+      //printf("Value: %d\n", d->sample_buf[ d->seq_ctr ] );
+      s->value_fresh = 1; // Mark sample as fresh
+      
+      // Fill in smoothing buffer until warmed up
+      if ( s->logsmoothlen > 0 && s->smooth_ready == 0)
+        adc_smooth_data( s->id );
+
+#if defined( BUF_ENABLE_ADC )
+      else if ( s->reqsamples > 1 )
+      {
+        buf_write( BUF_ID_ADC, s->id, ( t_buf_data* )s->value_ptr );
+        s->value_fresh = 0;
+      }
+#endif
+
+      // If we have the number of requested samples, stop sampling
+      if ( adc_samples_available( s->id ) >= s->reqsamples && s->freerunning == 0 )
+        platform_adc_stop( s->id );
+      
+      d->seq_ctr++;
+    }
+    d->seq_ctr = 0;
+    
+    // Only attempt to refresh sequence order if still running
+    // This allows us to "cache" an old sequence if all channels
+    // finish at the same time
+    if ( d->running == 1 )
+      adc_update_dev_sequence( 0 );
+    
+    if ( d->clocked == 0 && d->running == 1 )
+    {
+      SI32_SARADC_A_enable_burst_mode(SI32_ADC);
+      SI32_SARADC_A_enable_autoscan(SI32_ADC);
+
+      // a 1-to-0 transition on ACCMD bit will enable the accumulator for the next conversion
+      SI32_SARADC_A_enable_accumulator(SI32_ADC);
+      SI32_SARADC_A_clear_accumulator(SI32_ADC);
+      SI32_SARADC_A_start_conversion( SI32_ADC );
+    }
+  }
+  else if ( SI32_SARADC_A_is_single_conversion_complete_interrupt_pending( SI32_ADC ) )
+  {
+    SI32_SARADC_A_clear_single_conversion_complete_interrupt( SI32_ADC );
+    SI32_SARADC_A_enable_burst_mode( SI32_ADC );
+    SI32_SARADC_A_start_conversion( SI32_ADC );
+    //printf("Single\n");
+  }
+}
+
+static void adcs_init()
+{
+  unsigned id;
+  //elua_adc_dev_state *d = adc_get_dev_state( 0 );
+
+  // set SAR clock to operate at 10 MHZ
+  SI32_SARADC_A_select_sar_clock_divider( SI32_ADC, 2047 );
+
+  SI32_SARADC_A_select_output_packing_mode_lower_halfword_only( SI32_ADC );
+  
+  SI32_SARADC_A_select_start_of_conversion_source( SI32_ADC, SI32_SARADC_A_CONTROL_SCSEL_ADCNT0_VALUE );
+
+  SI32_SARADC_A_select_burst_mode_clock_apb_clock( SI32_ADC );
+
+  // adc will run through one scan of all enabled time sequences once
+  SI32_SARADC_A_select_autoscan_mode_once( SI32_ADC );
+
+  SI32_SARADC_A_enable_common_mode_buffer( SI32_ADC );
+
+  SI32_SARADC_A_select_vref_internal( SI32_ADC );
+
+  // Set up characteristic group 0
+  SI32_SARADC_A_enter_12bit_mode(SI32_ADC, 0);
+
+  SI32_SARADC_A_select_delayed_track_mode( SI32_ADC );
+
+  SI32_SARADC_A_select_burst_mode_repeat_count(SI32_ADC, 0,
+                                              SI32_SARADC_A_BURST_MODE_REPEAT_COUNT_SAMPLE_16_TIMES);
+
+  SI32_SARADC_A_select_channel_character_group_gain_half( SI32_ADC, 0 );
+  //SI32_SARADC_A_select_channel_character_group_gain_one( SI32_ADC, 0 );
+
+
+  for( id = 0; id < NUM_ADC; id ++ )
+    adc_init_ch_state( id );
+
+  // Perform sequencer setup
+  platform_adc_set_clock( 0, 0 );
+
+  NVIC_ClearPendingIRQ(SI32_ADC_IRQ);
+  NVIC_EnableIRQ(SI32_ADC_IRQ);
+
+  SI32_SARADC_A_enable_single_conversion_complete_interrupt(SI32_ADC);
+  SI32_SARADC_A_enable_scan_done_interrupt(SI32_ADC);
+
+}
+
+u32 platform_adc_set_clock( unsigned id, u32 frequency )
+{
+  elua_adc_dev_state *d = adc_get_dev_state( 0 );
+    
+  // if ( frequency > 0 )
+  // {
+  //   //d->clocked = 1;
+  //   // not yet implemented
+  // }
+  // else
+  // {
+    d->clocked = 0;
+    // Conversion will run back-to-back until required samples are acquired
+    SI32_SARADC_A_select_start_of_conversion_source( SI32_ADC, SI32_SARADC_A_CONTROL_SCSEL_ADCNT0_VALUE );
+  // }
+    
+  return frequency;
+}
+
+
+int platform_adc_update_sequence( )
+{  
+  elua_adc_dev_state *d = adc_get_dev_state( 0 );
+  
+  //SI32_SARADC_A_disable_module(SI32_ADC);
+  
+  // NOTE: seq ctr should have an incrementer that will wrap appropriately..
+  d->seq_ctr = 0; 
+  while( d->seq_ctr < d->seq_len )
+  {
+
+    SI32_SARADC_A_select_timeslot_channel( SI32_ADC, d->seq_ctr, 
+                                           adc_ctls[ d->ch_state[ d->seq_ctr ]->id ] );
+
+    SI32_SARADC_A_select_timeslot_channel_character_group( SI32_ADC, d->seq_ctr, 0 );
+    d->seq_ctr++;
+  }
+  // Set sequence end
+  SI32_SARADC_A_select_timeslot_channel( SI32_ADC, d->seq_ctr, 31 );
+  d->seq_ctr = 0;
+  
+
+  // // ENABLE MODULE
+  //SI32_SARADC_A_enable_module(SI32_ADC);
+      
+  return PLATFORM_OK;
+}
+
+
+int platform_adc_start_sequence()
+{ 
+  elua_adc_dev_state *d = adc_get_dev_state( 0 );
+  
+  if( d->running != 1 )
+  {
+    adc_update_dev_sequence( 0 );
+
+    SI32_SARADC_A_enable_burst_mode(SI32_ADC);
+
+    // a 0-to-1 transition on the SCANEN bit is required to arm the scan.
+    // the scan will not start until a conversion start occurs.
+    SI32_SARADC_A_enable_autoscan(SI32_ADC);
+
+    // a 1-to-0 transition on ACCMD bit will enable the accumulator for the next conversion
+    SI32_SARADC_A_enable_accumulator(SI32_ADC);
+    SI32_SARADC_A_clear_accumulator(SI32_ADC);
+
+    d->running = 1;
+
+    if( d->clocked == 1 )
+    {
+      // not yet implemented
+    }
+    else
+    {
+      SI32_SARADC_A_start_conversion( SI32_ADC );
+    }
+  }
+  
+  return PLATFORM_OK;
+}
+
+#endif // ifdef BUILD_ADC
 
 // ****************************************************************************
 // I2C support

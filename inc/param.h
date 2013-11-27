@@ -1,3 +1,6 @@
+#ifndef __PARAM_H__
+#define __PARAM_H__
+
 #include <stdint.h>
 
 #define SETTING_FORMAT "/wo/._%s%s"
@@ -23,3 +26,5 @@ int32_t get_param_s32( const char * name, const char * prefix, int32_t *value );
 int32_t set_param_string( const char * name, const char * prefix, uint8_t * value ); // returns bytes written for type (not including header)
 int32_t get_param_string_len( const char * name, const char * prefix ); // returns byte length, <0 = error
 int32_t get_param_string( const char * name, const char * prefix, uint8_t *value, uint32_t max_len ); // returns bytes read, <0 = error
+
+#endif
