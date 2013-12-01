@@ -308,7 +308,7 @@ extern int wake_reason;
 extern unsigned console_cdc_active;
 
 
-#define PCB_V7
+//#define PCB_V7 !!! this is defined in conf.lua now
 //#define PCB_V7_CHARGER_NPN
 
 //define BLUETOOTH_POWEREDWHILESLEEPING
