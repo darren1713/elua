@@ -879,7 +879,7 @@ void pios_init( void )
   // PB1 Setup
   SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_1, 0x03A1);
   SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_1, 0xFC1C);
-  
+
   // Analog Pins (1.14 & 1.15)
   SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_1, 0xC000);
   SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_1, 0xC000);
@@ -1591,7 +1591,7 @@ static void adcs_init()
   //elua_adc_dev_state *d = adc_get_dev_state( 0 );
 
   // set SAR clock to operate at 10 MHZ
-  SI32_SARADC_A_select_sar_clock_divider( SI32_ADC, 2047 );
+  SI32_SARADC_A_select_sar_clock_divider( SI32_ADC, 15 );
 
   SI32_SARADC_A_select_output_packing_mode_lower_halfword_only( SI32_ADC );
   
