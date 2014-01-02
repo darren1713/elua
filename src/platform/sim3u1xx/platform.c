@@ -879,6 +879,11 @@ void pios_init( void )
   // PB1 Setup
   SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_1, 0x03A1);
   SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_1, 0xFC1C);
+
+  // Analog Pins (1.14 & 1.15)
+  SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_1, 0xC000);
+  SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_1, 0xC000);
+
 #ifndef PCB_V7
   SI32_PBSTD_A_write_pins_low(SI32_PBSTD_1, 0x0200 ); //Set 5V regulator off
 #endif
@@ -906,11 +911,6 @@ void pios_init( void )
   SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_2, 0xFFFF);
 
   SI32_PBSTD_A_disable_pullup_resistors( SI32_PBSTD_2 );
-
-  // Analog Pins (2.14 & 2.15)
-  SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_2, 0xC000);
-  SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_2, 0xC000);
-
 
   // PB3 Setup
   SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_3, 0xFFFF);
@@ -1508,7 +1508,7 @@ void platform_adc_stop( unsigned id )
   if( d->ch_active == 0 )
   {
     //SI32_SARADC_A_disable_autoscan( SI32_ADC );
-
+    SI32_SARADC_A_disable_module(SI32_ADC);
     //printf("Stoppit!\n");
     d->running = 0;
   }
@@ -1591,7 +1591,7 @@ static void adcs_init()
   //elua_adc_dev_state *d = adc_get_dev_state( 0 );
 
   // set SAR clock to operate at 10 MHZ
-  SI32_SARADC_A_select_sar_clock_divider( SI32_ADC, 2047 );
+  SI32_SARADC_A_select_sar_clock_divider( SI32_ADC, 15 );
 
   SI32_SARADC_A_select_output_packing_mode_lower_halfword_only( SI32_ADC );
   
@@ -1656,7 +1656,7 @@ int platform_adc_update_sequence( )
 {  
   elua_adc_dev_state *d = adc_get_dev_state( 0 );
   
-  //SI32_SARADC_A_disable_module(SI32_ADC);
+  SI32_SARADC_A_disable_module(SI32_ADC);
   
   // NOTE: seq ctr should have an incrementer that will wrap appropriately..
   d->seq_ctr = 0; 
@@ -1675,7 +1675,7 @@ int platform_adc_update_sequence( )
   
 
   // // ENABLE MODULE
-  //SI32_SARADC_A_enable_module(SI32_ADC);
+  SI32_SARADC_A_enable_module(SI32_ADC);
       
   return PLATFORM_OK;
 }
