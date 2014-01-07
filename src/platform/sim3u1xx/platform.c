@@ -556,9 +556,9 @@ void SecondsTick_Handler()
       else
         sim3_pmu_pm9( rram_read_int(RRAM_INT_SLEEPTIME) );
     }
-    else if(rram_read_int(RRAM_INT_SLEEPTIME) != SLEEP_FOREVER && 
-      ( ( ( rram_read_int(RRAM_INT_SLEEPTIME) % 10 ) == 0 ) || rram_read_int(RRAM_INT_SLEEPTIME) < 5 ) )
-      printf("powered %i\n", rram_read_int(RRAM_INT_SLEEPTIME));
+    //else if(rram_read_int(RRAM_INT_SLEEPTIME) != SLEEP_FOREVER && 
+    //  ( ( ( rram_read_int(RRAM_INT_SLEEPTIME) % 300 ) == 0 ) || rram_read_int(RRAM_INT_SLEEPTIME) < 5 ) )
+    //  printf("powered %i\n", rram_read_int(RRAM_INT_SLEEPTIME));
   }
   if(firstSecond)
   {
