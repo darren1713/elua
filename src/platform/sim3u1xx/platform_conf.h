@@ -8,6 +8,7 @@
 #include "type.h"
 #include "extra_libs.h"
 #include "lauxlib.h"
+#include "buf.h"
 
 // *****************************************************************************
 // Define here what components you want for this platform
@@ -192,7 +193,7 @@ u32 cmsis_get_cpu_frequency();
 #endif // #ifdef ELUA_CPU_SIM3U167
 
 // Interrupt queue size
-#define PLATFORM_INT_QUEUE_LOG_SIZE 10
+#define PLATFORM_INT_QUEUE_LOG_SIZE BUF_SIZE_32
 
 // Interrupt list
 #define INT_UART_RX          ELUA_INT_FIRST_ID
