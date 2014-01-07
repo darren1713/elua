@@ -608,20 +608,20 @@ void TIMER0H_IRQHandler(void)
 #define LED_COUNT 5
 #define LED_MAX_ARRAY 32
 
-static u8 CLED_FADEUP[] = { LED_MAX_ARRAY/2, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
-static u8 CLED_FADEDOWN[] = { LED_MAX_ARRAY/2, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
-static u8 CLED_OFF[] = { 1, 15 };
-static u8 CLED_ON[] = { 1, 0 };
-static u8 CLED_FASTFLASH[] = { LED_MAX_ARRAY/4, 0, 15, 15, 15, 15, 15, 15, 15 };
-static u8 CLED_MEDIUMFLASH[] = { LED_MAX_ARRAY/2, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15 };
-static u8 CLED_SLOWFLASH[] = { LED_MAX_ARRAY, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
-static u8 CLED_FLASH1[] = { LED_MAX_ARRAY, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
-static u8 CLED_FLASH2[] = { LED_MAX_ARRAY, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
-static u8 CLED_FLASH3[] = { LED_MAX_ARRAY, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
-static u8 CLED_FLASH4[] = { LED_MAX_ARRAY, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
-static u8 CLED_FLASH5[] = { LED_MAX_ARRAY, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
+static u8 const CLED_FADEUP[] = { LED_MAX_ARRAY/2, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
+static u8 const CLED_FADEDOWN[] = { LED_MAX_ARRAY/2, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+static u8 const CLED_OFF[] = { 1, 15 };
+static u8 const CLED_ON[] = { 1, 0 };
+static u8 const CLED_FASTFLASH[] = { LED_MAX_ARRAY/4, 0, 15, 15, 15, 15, 15, 15, 15 };
+static u8 const CLED_MEDIUMFLASH[] = { LED_MAX_ARRAY/2, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15 };
+static u8 const CLED_SLOWFLASH[] = { LED_MAX_ARRAY, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
+static u8 const CLED_FLASH1[] = { LED_MAX_ARRAY, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
+static u8 const CLED_FLASH2[] = { LED_MAX_ARRAY, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
+static u8 const CLED_FLASH3[] = { LED_MAX_ARRAY, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
+static u8 const CLED_FLASH4[] = { LED_MAX_ARRAY, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
+static u8 const CLED_FLASH5[] = { LED_MAX_ARRAY, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
 
-static u8 * led_cled_ptr[] = {
+static u8 const * led_cled_ptr[] = {
   CLED_FADEUP,
   CLED_FADEDOWN,
   CLED_OFF,
@@ -651,7 +651,7 @@ u8 led_ticks_ptr[LED_COUNT] = { 0, 0, 0, 0, 0 };
 //u8 * led_mode_ptr[] = { CLED_FADEDOWN, CLED_FADEUP, CLED_FASTFLASH, CLED_SLOWFLASH, CLED_MEDIUMFLASH };
 //u8 led_repeats_ptr[LED_COUNT] = { 10, 10, 10, 10, 10 };
 
-u8 * led_mode_ptr[] = { CLED_OFF, CLED_OFF, CLED_OFF, CLED_OFF, CLED_OFF };
+u8 * led_mode_ptr[] = { (u8 *)CLED_OFF, (u8 *)CLED_OFF, (u8 *)CLED_OFF, (u8 *)CLED_OFF, (u8 *)CLED_OFF };
 u8 led_repeats_ptr[LED_COUNT] = { 10, 10, 10, 10, 10 };
 
 //Pending variables here...wait for new "frame"
@@ -736,7 +736,7 @@ void led_set_mode(int led, int mode, int cycles)
     return;
   if(cycles > 255)
     cycles = 255;
-  led_pending_mode_ptr[led] = led_cled_ptr[mode];
+  led_pending_mode_ptr[led] = (u8 *)led_cled_ptr[mode];
   led_pending_repeats_ptr[led] = cycles;
 }
 
