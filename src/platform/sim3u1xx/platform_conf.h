@@ -133,7 +133,7 @@ LUALIB_API int ( luaopen_pmu )( lua_State *L );
 #define NUM_UART              4
 #define NUM_PWM               0
 #define NUM_I2C               2
-#define NUM_ADC               2
+#define NUM_ADC               3
 #define NUM_CAN               0
 #define NUM_TIMER             1
 

@@ -1484,11 +1484,12 @@ timer_data_type platform_timer_read_sys()
 #ifdef BUILD_ADC
 // PB1.14: ADC1.4
 // PB1.15: ADC1.3
+// VREGIN / 4: ADC1.17
 
 #define SI32_ADC      SI32_SARADC_1
 #define SI32_ADC_IRQ  SARADC1_IRQn
 
-const static u32 adc_ctls[] = { 4, 3 };
+const static u32 adc_ctls[] = { 4, 3, 17 };
 
 int platform_adc_check_timer_id( unsigned id, unsigned timer_id )
 {
@@ -1630,6 +1631,8 @@ static void adcs_init()
   SI32_SARADC_A_enable_single_conversion_complete_interrupt(SI32_ADC);
   SI32_SARADC_A_enable_scan_done_interrupt(SI32_ADC);
 
+  // Enable VREGIN ADC source
+  SI32_VREG_A_enable_vreg_sense(SI32_VREG_0);
 }
 
 u32 platform_adc_set_clock( unsigned id, u32 frequency )
