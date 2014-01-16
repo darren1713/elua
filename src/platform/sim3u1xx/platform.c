@@ -670,6 +670,7 @@ void TIMER1H_IRQHandler(void)
   if(!led_ticks)
   {
 #if defined( PCB_V8 )
+    //turn LED's off. 6 LEDS are on P0
     SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ],
         ( ( u32 ) 1 << 4 ) |
         ( ( u32 ) 1 << 5 ) |
@@ -896,7 +897,7 @@ void pios_init( void )
   // PB0 Setup
   SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_0, 0x0603);
   SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_0, 0x1114);
-  SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_0, 0x0603);
+  SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_0, 0x3FF3);
 
   // PB1 Setup
   SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_1, 0x03A1);
@@ -917,21 +918,17 @@ void pios_init( void )
 #endif
 
 #if defined( PCB_V8 )
-  SI32_PBSTD_A_write_pins_low(SI32_PBSTD_0, 0x03E0 ); //Set external LEDS 0-4 off
-  SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_0, 0x03E0); //Set external LEDS 0-4 as outputs
+  SI32_PBSTD_A_write_pins_high(SI32_PBSTD_0, 0x3F0 ); //Set external LEDS 0-4 off
+  SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_0, 0x3F0); //Set external LEDS 0-4 as outputs
 #endif
 
   // Enable Crossbar0 signals & set properties
+  SI32_PBCFG_A_enable_xbar0l_peripherals(SI32_PBCFG_0,
+                                         SI32_PBCFG_A_XBAR0L_USART0EN |
+                                         SI32_PBCFG_A_XBAR0L_I2C0EN);
   SI32_PBCFG_A_enable_xbar0h_peripherals(SI32_PBCFG_0,
                                          SI32_PBCFG_A_XBAR0H_UART0EN |
                                          SI32_PBCFG_A_XBAR0H_UART1EN);
-  SI32_PBCFG_A_enable_xbar0l_peripherals(SI32_PBCFG_0,
-                                         SI32_PBCFG_A_XBAR0L_USART0EN |
-                                         SI32_PBCFG_A_XBAR0L_SPI0EN |
-                                         SI32_PBCFG_A_XBAR0L_SPI0NSSEN |
-                                         SI32_PBCFG_A_XBAR0L_USART1EN |
-                                         SI32_PBCFG_A_XBAR0L_USART1FCEN |
-                                         SI32_PBCFG_A_XBAR0L_I2C0EN);
   SI32_PBCFG_A_enable_crossbar_0(SI32_PBCFG_0);
 
   // PB2 Setup
@@ -1047,7 +1044,11 @@ void pios_init( void )
   if(rram_read_bit(RRAM_BIT_POWEROFF) == POWEROFF_MODE_ACTIVE)
   {
 #if defined(  PCB_V7 ) || defined( PCB_V8 )
+  #if defined( PCB_V8 )
+    SI32_PBSTD_A_write_pins_low( SI32_PBSTD_0, 0x10 );
+  #else
     SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x08 );
+  #endif
 #else
   #ifndef USE_EXTERNAL_MOSFETS
       SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x02 );
@@ -1058,7 +1059,11 @@ void pios_init( void )
   else 
   {
 #if defined( PCB_V7 ) || defined( PCB_V8 )
+  #if defined( PCB_V8 )
+    SI32_PBSTD_A_write_pins_high( SI32_PBSTD_0, 0x10 );
+  #else
     SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x08 );
+  #endif
 #else
   #ifndef USE_EXTERNAL_MOSFETS
       SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x02 );
