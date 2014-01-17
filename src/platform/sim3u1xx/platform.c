@@ -2232,6 +2232,7 @@ void myPB_enter_off_config()
 void sim3_pmu_pm9( unsigned seconds )
 {
   //u8 i;
+  led_set_mode(LED_COLOR_PWR, LED_FADEDOWN, 10);
 
   if(seconds != TRICK_TO_REBOOT_WITHOUT_DFU_MODE && external_power() && rram_read_bit(RRAM_BIT_SLEEP_WHEN_POWERED) == SLEEP_WHEN_POWERED_DISABLED)
   {
