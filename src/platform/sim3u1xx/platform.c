@@ -913,8 +913,8 @@ void pios_init( void )
 
   // PB0 Setup
   SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_0, 0x0603);
-  SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_0, 0x1114);
-  SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_0, 0x3FF3);
+  SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_0, 0x1514);
+  SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_0, 0x03F3);
 
   // PB1 Setup
   SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_1, 0x03A1);
@@ -942,6 +942,8 @@ void pios_init( void )
   // Enable Crossbar0 signals & set properties
   SI32_PBCFG_A_enable_xbar0l_peripherals(SI32_PBCFG_0,
                                          SI32_PBCFG_A_XBAR0L_USART0EN |
+                                         SI32_PBCFG_A_XBAR0L_USART1EN |
+                                         SI32_PBCFG_A_XBAR0L_USART1FCEN |
                                          SI32_PBCFG_A_XBAR0L_I2C0EN);
   SI32_PBCFG_A_enable_xbar0h_peripherals(SI32_PBCFG_0,
                                          SI32_PBCFG_A_XBAR0H_UART0EN |
