@@ -343,7 +343,7 @@ enum {
 enum {
   LED_COLOR_SAT = 0,
   LED_COLOR_PWR = 1,
-  LED_COLOR_ACT = 2,
+  LED_COLOR_ALRM = 2,
   LED_COLOR_GPS = 3,
   LED_COLOR_MSG = 4
 };
