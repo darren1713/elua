@@ -753,6 +753,23 @@ void TIMER1H_IRQHandler(void)
   SI32_TIMER_A_clear_high_overflow_interrupt(SI32_TIMER_1);
 }
 
+void led_cache_mode(int led, int mode )
+{
+  u8 rram_led_byte = rram_read_byte(4);
+  if( led == LED_COLOR_GPS )
+  {
+    rram_led_byte &= ~0xF;
+    rram_led_byte |= (mode & 0xF);
+  }
+  if( led == LED_COLOR_SAT )
+  {
+    rram_led_byte &= ~0xF0;
+    rram_led_byte |= ( ( mode << 4 ) & 0xF0);
+  }
+  rram_write_byte(4, rram_led_byte);
+  //printf("CACHING_LED: 0x%x, %d, %d\n", rram_led_byte, led, mode);
+}
+
 void led_set_mode(int led, int mode, int cycles)
 {
   if(led > LED_COUNT)
