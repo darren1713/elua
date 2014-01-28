@@ -95,6 +95,8 @@ static SI32_PBSTD_A_Type* const port_std[] = { SI32_PBSTD_0, SI32_PBSTD_1, SI32_
 
 void hard_fault_handler_c(unsigned int * hardfault_args)
 {
+  FILE *fp;
+
   unsigned int stacked_r0;
   unsigned int stacked_r1;
   unsigned int stacked_r2;
@@ -131,6 +133,25 @@ void hard_fault_handler_c(unsigned int * hardfault_args)
   printf ("\n");
   printf ("\n");
   printf ("\n");
+
+  // Write out hard fault data to file
+  fp = fopen("/wo/._hardfault", "w");
+  fprintf (fp, "[Last hard fault]\n");
+  fprintf (fp, "R0 = %x\n", stacked_r0);
+  fprintf (fp, "R1 = %x\n", stacked_r1);
+  fprintf (fp, "R2 = %x\n", stacked_r2);
+  fprintf (fp, "R3 = %x\n", stacked_r3);
+  fprintf (fp, "R12 = %x\n", stacked_r12);
+  fprintf (fp, "LR = %x\n", stacked_lr);
+  fprintf (fp, "PC = %x\n", stacked_pc);
+  fprintf (fp, "PSR = %x\n", stacked_psr);
+  fprintf (fp, "BFAR = %x\n", (*((volatile unsigned  *)(0xE000ED38))));
+  fprintf (fp, "CFSR = %x\n", (*((volatile unsigned  *)(0xE000ED28))));
+  fprintf (fp, "HFSR = %x\n", (*((volatile unsigned  *)(0xE000ED2C))));
+  fprintf (fp, "DFSR = %x\n", (*((volatile unsigned  *)(0xE000ED30))));
+  fprintf (fp, "AFSR = %x\n", (*((volatile unsigned  *)(0xE000ED3C))));
+  printf ("\n");
+  fclose( fp );
 
   sim3_pmu_reboot_nodfu();
 }
@@ -438,13 +459,11 @@ int platform_init()
   NVIC_EnableIRQ(WDTIMER0_IRQn);
 #endif
 
-
   return PLATFORM_OK;
 }
 
 void clk_init( void )
 {
-
   //SI32_CLKCTRL_A_select_ahb_divider(SI32_CLKCTRL_0, SI32_CLKCTRL_A_CONTROL_AHBDIV_DIV8_VALUE);
 
   // Set system clock to AHB divider frequency
