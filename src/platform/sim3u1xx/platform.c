@@ -751,18 +751,17 @@ void TIMER1H_IRQHandler(void)
 
   if(led_ticks > led_ticks_ptr[0])
     SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 5 ) );
-  if(led_ticks > led_ticks_ptr[1]) //Power led. Tie external and onboard power LED's togethere
+  if(led_ticks > led_ticks_ptr[1]) 
+    SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 6 ) );
+  if(led_ticks > led_ticks_ptr[2]) //Power led. Tie external and onboard power LED's togethere
   {
   #if defined( PCB_V8 )
-    SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 6 ) );
     SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 4 ) );
   #else
-    SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 6 ) );
     SI32_PBHD_A_write_pins_high( SI32_PBHD_4, ( ( u32 ) 1 << 3 ) );
   #endif
-  }
-  if(led_ticks > led_ticks_ptr[2])
     SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 7 ) );
+  }
   if(led_ticks > led_ticks_ptr[3])
     SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 8 ) );
   if(led_ticks > led_ticks_ptr[4])
