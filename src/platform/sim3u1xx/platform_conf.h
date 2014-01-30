@@ -340,6 +340,7 @@ enum {
   LED_FLASH5
 } enum_led_state;
 
+#if defined ( MEMBRANE_V1 )
 enum {
   LED_COLOR_GPS = 0, // was sat
   LED_COLOR_MSG = 1, // was pwr
@@ -347,6 +348,15 @@ enum {
   LED_COLOR_SAT = 3, // was gps
   LED_COLOR_ALRM = 4 // was msg
 };
+#else
+enum {
+  LED_COLOR_SAT = 0,
+  LED_COLOR_PWR = 1,
+  LED_COLOR_ALRM = 2,
+  LED_COLOR_GPS = 3,
+  LED_COLOR_MSG = 4
+};
+#endif
 
 void led_set_mode(int led, int mode, int cycles);
 int led_get_mode(int led);
