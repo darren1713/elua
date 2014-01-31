@@ -209,7 +209,8 @@ u32 cmsis_get_cpu_frequency();
 #define INT_BOOT             ( ELUA_INT_FIRST_ID + 10 )
 #define INT_CONTENTION       ( ELUA_INT_FIRST_ID + 11 )
 #define INT_SYSINIT          ( ELUA_INT_FIRST_ID + 12 )
-#define INT_ELUA_LAST        INT_SYSINIT
+#define INT_UART_BUF_HALF_FULL ( ELUA_INT_FIRST_ID + 13 )
+#define INT_ELUA_LAST        INT_UART_BUF_HALF_FULL
 
 #define PLATFORM_CPU_CONSTANTS\
     _C( INT_UART_RX ),        \

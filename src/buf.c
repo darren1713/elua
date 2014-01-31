@@ -140,6 +140,12 @@ int buf_write( unsigned resid, unsigned resnum, t_buf_data *data )
     cmn_int_handler( INT_UART_BUF_FULL, resnum );
 #endif
 
+#if defined( INT_UART_BUF_HALF_FULL )
+  if( ( pbuf->count == BUF_REALSIZE( pbuf ) / 2 ) && 
+      ( resid == BUF_ID_UART ) )
+    cmn_int_handler( INT_UART_BUF_HALF_FULL, resnum );
+#endif
+
 #if defined( INT_UART_BUF_MATCH )
   if( /*( ( *data == '\n' ) ) &&*/
       ( resid == BUF_ID_UART ) )
