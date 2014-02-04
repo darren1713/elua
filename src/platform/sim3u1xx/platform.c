@@ -1619,7 +1619,7 @@ void SARADC1_IRQHandler( void )
     {
       //printf( "Ctr: %d ", d->seq_ctr );
       s = d->ch_state[ d->seq_ctr ];
-      d->sample_buf[ d->seq_ctr ] = ( u16 )( SI32_SARADC_A_read_data( SI32_ADC ) / 16 );
+      d->sample_buf[ s->id ] = ( u16 )( SI32_SARADC_A_read_data( SI32_ADC ) / 16 );
       //printf("Value: %d\n", d->sample_buf[ d->seq_ctr ] );
       s->value_fresh = 1; // Mark sample as fresh
       
