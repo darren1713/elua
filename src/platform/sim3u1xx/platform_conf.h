@@ -361,6 +361,7 @@ enum {
 
 void led_set_mode(int led, int mode, int cycles);
 int led_get_mode(int led);
+void led_set_mask( u8 mask );
 void led_cache_mode(int led, int mode );
 
 #undef SHELL_WELCOMEMSG

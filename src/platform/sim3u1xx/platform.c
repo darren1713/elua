@@ -677,6 +677,8 @@ u8 led_repeats_ptr[LED_COUNT] = { 10, 10, 10, 10, 10 };
 u8 * led_pending_mode_ptr[LED_COUNT] = { NULL, NULL, NULL, NULL, NULL };
 u8 led_pending_repeats_ptr[LED_COUNT] = { 0, 0, 0, 0, 0 };
 
+u8 led_mask;
+
 #if defined( PCB_V8 )
 #define LED_PORT 0
 #else
@@ -749,9 +751,9 @@ void TIMER1H_IRQHandler(void)
     led_pointer_tick++;
   }
 
-  if(led_ticks > led_ticks_ptr[0])
+  if(led_ticks > led_ticks_ptr[0] && (led_mask & 1 ) )
     SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 5 ) );
-  if(led_ticks > led_ticks_ptr[1]) 
+  if(led_ticks > led_ticks_ptr[1] && (led_mask & 1<<1 ) ) 
     SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 6 ) );
   #if !defined( MEMBRANE_V1)
   #if defined( PCB_V8 )
@@ -760,7 +762,7 @@ void TIMER1H_IRQHandler(void)
     SI32_PBHD_A_write_pins_high( SI32_PBHD_4, ( ( u32 ) 1 << 3 ) );
   #endif
   #endif
-  if(led_ticks > led_ticks_ptr[2])
+  if(led_ticks > led_ticks_ptr[2] && (led_mask & 1<<2 ) )
   {
   #if defined( MEMBRANE_V1)
   #if defined( PCB_V8 )
@@ -771,9 +773,9 @@ void TIMER1H_IRQHandler(void)
   #endif
     SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 7 ) );
   }
-  if(led_ticks > led_ticks_ptr[3])
+  if(led_ticks > led_ticks_ptr[3] && (led_mask & 1<<3 ) )
     SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 8 ) );
-  if(led_ticks > led_ticks_ptr[4])
+  if(led_ticks > led_ticks_ptr[4] && (led_mask & 1<<4 ) )
     SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 9 ) );
  
   // Clear the interrupt flag
@@ -795,6 +797,11 @@ void led_cache_mode(int led, int mode )
   }
   rram_write_byte(4, rram_led_byte);
   //printf("CACHING_LED: 0x%x, %d, %d\n", rram_led_byte, led, mode);
+}
+
+void led_set_mask( u8 mask )
+{
+  led_mask = mask;
 }
 
 void led_set_mode(int led, int mode, int cycles)
