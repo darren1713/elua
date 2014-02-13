@@ -8,6 +8,7 @@
 #include "type.h"
 #include "extra_libs.h"
 #include "lauxlib.h"
+#include "buf.h"
 
 // *****************************************************************************
 // Define here what components you want for this platform
@@ -18,7 +19,7 @@
 #define BUILD_ROMFS
 #define BUILD_TERM
 #define BUILD_CON_GENERIC
-//#define BUILD_ADC
+#define BUILD_ADC
 #define BUILD_RPC
 
 #define BUILD_C_INT_HANDLERS
@@ -136,7 +137,7 @@ LUALIB_API int ( luaopen_pmu )( lua_State *L );
 #define NUM_UART              4
 #define NUM_PWM               0
 #define NUM_I2C               2
-#define NUM_ADC               0
+#define NUM_ADC               3
 #define NUM_CAN               0
 #define NUM_TIMER             1
 
@@ -146,13 +147,13 @@ LUALIB_API int ( luaopen_pmu )( lua_State *L );
 #define CON_BUF_SIZE          BUF_SIZE_128
 
 // ADC Configuration Params
-// #define ADC_BIT_RESOLUTION    12
-// #define BUF_ENABLE_ADC
-// #define ADC_BUF_SIZE          BUF_SIZE_2
+#define ADC_BIT_RESOLUTION    12
+#define BUF_ENABLE_ADC
+#define ADC_BUF_SIZE          BUF_SIZE_2
 
 // These should be adjusted to support multiple ADC devices
-// #define ADC_TIMER_FIRST_ID    0
-// #define ADC_NUM_TIMERS        4
+#define ADC_TIMER_FIRST_ID    0
+#define ADC_NUM_TIMERS        0
 
 // RPC
 #define RPC_UART_ID           CON_UART_ID
@@ -195,7 +196,7 @@ u32 cmsis_get_cpu_frequency();
 #endif // #ifdef ELUA_CPU_SIM3U167
 
 // Interrupt queue size
-#define PLATFORM_INT_QUEUE_LOG_SIZE 10
+#define PLATFORM_INT_QUEUE_LOG_SIZE BUF_SIZE_32
 
 // Interrupt list
 #define INT_UART_RX          ELUA_INT_FIRST_ID
@@ -211,7 +212,8 @@ u32 cmsis_get_cpu_frequency();
 #define INT_BOOT             ( ELUA_INT_FIRST_ID + 10 )
 #define INT_CONTENTION       ( ELUA_INT_FIRST_ID + 11 )
 #define INT_SYSINIT          ( ELUA_INT_FIRST_ID + 12 )
-#define INT_ELUA_LAST        INT_SYSINIT
+#define INT_UART_BUF_HALF_FULL ( ELUA_INT_FIRST_ID + 13 )
+#define INT_ELUA_LAST        INT_UART_BUF_HALF_FULL
 
 #define PLATFORM_CPU_CONSTANTS\
     _C( INT_UART_RX ),        \
@@ -246,20 +248,21 @@ u32 cmsis_get_cpu_frequency();
 #define RRAM_BIT_SLEEP_WHEN_POWERED 44
   #define SLEEP_WHEN_POWERED_ACTIVE 1
   #define SLEEP_WHEN_POWERED_DISABLED 0
-
 #define RRAM_BIT_WAKE_ON_INPUT1 45
   #define WAKE_ON_INPUT1_DISABLED 0
   #define WAKE_ON_INPUT1_ACTIVE 1
-#define RRAM_BIT_WAKE_ON_INPUT1_POLARITY 45
+#define RRAM_BIT_WAKE_ON_INPUT1_POLARITY 46
   #define WAKE_ON_INPUT1_POLARITY_POSITIVE 0
   #define WAKE_ON_INPUT1_POLARITY_NEGATIVE 1
-
-#define RRAM_BIT_WAKE_ON_INPUT2 45
+#define RRAM_BIT_WAKE_ON_INPUT2 47
   #define WAKE_ON_INPUT2_DISABLED 0
   #define WAKE_ON_INPUT2_ACTIVE 1
-#define RRAM_BIT_WAKE_ON_INPUT2_POLARITY 45
+#define RRAM_BIT_WAKE_ON_INPUT2_POLARITY 48
   #define WAKE_ON_INPUT2_POLARITY_POSITIVE 0
   #define WAKE_ON_INPUT2_POLARITY_NEGATIVE 1
+#define RRAM_BIT_SOS_SINGLE 49
+#define SOS_MODE_SINGLE_ACTIVE 1
+#define SOS_MODE_SINGLE_DISABLED 0
 
 #define RRAM_INT_X_Z 4
 #define RRAM_INT_Y_Z 5
@@ -310,7 +313,7 @@ extern int wake_reason;
 extern unsigned console_cdc_active;
 
 
-#define PCB_V7
+//#define PCB_V7 !!! this is defined in conf.lua now
 //#define PCB_V7_CHARGER_NPN
 
 //define BLUETOOTH_POWEREDWHILESLEEPING
@@ -341,16 +344,28 @@ enum {
   LED_FLASH5
 } enum_led_state;
 
+#if defined ( MEMBRANE_V1 )
+enum {
+  LED_COLOR_GPS = 0, // was sat
+  LED_COLOR_MSG = 1, // was pwr
+  LED_COLOR_PWR = 2, // was alrm
+  LED_COLOR_SAT = 3, // was gps
+  LED_COLOR_ALRM = 4 // was msg
+};
+#else
 enum {
   LED_COLOR_SAT = 0,
   LED_COLOR_PWR = 1,
-  LED_COLOR_ACT = 2,
+  LED_COLOR_ALRM = 2,
   LED_COLOR_GPS = 3,
   LED_COLOR_MSG = 4
 };
+#endif
 
 void led_set_mode(int led, int mode, int cycles);
 int led_get_mode(int led);
+void led_set_mask( u8 mask );
+void led_cache_mode(int led, int mode );
 
 #undef SHELL_WELCOMEMSG
 #define SHELL_WELCOMEMSG "\nGSatMicro %s\n"

@@ -13,6 +13,8 @@
 #define _C( x ) { #x, x }
 #include "platform_conf.h"
 
+#ifndef ELUA_CONF_LOCKDOWN
+
 // Lua: w32( address, data )
 static int cpu_w32( lua_State *L )
 {
@@ -82,6 +84,8 @@ static int cpu_r8( lua_State *L )
   lua_pushnumber( L, ( lua_Number )( *( u8* )addr ) );
   return 1;
 }
+
+#endif
 
 // Lua: setparam( "param", value )
 static int cpu_set_param( lua_State *L )
@@ -311,12 +315,14 @@ static int cpu_get_int_flag( lua_State *L )
 #include "lrodefs.h"
 const LUA_REG_TYPE cpu_map[] =
 {
+#ifndef ELUA_CONF_LOCKDOWN
   { LSTRKEY( "w32" ), LFUNCVAL( cpu_w32 ) },
   { LSTRKEY( "r32" ), LFUNCVAL( cpu_r32 ) },
   { LSTRKEY( "w16" ), LFUNCVAL( cpu_w16 ) },
   { LSTRKEY( "r16" ), LFUNCVAL( cpu_r16 ) },
   { LSTRKEY( "w8" ), LFUNCVAL( cpu_w8 ) },
   { LSTRKEY( "r8" ), LFUNCVAL( cpu_r8 ) },
+#endif
   { LSTRKEY( "cli" ), LFUNCVAL( cpu_cli ) },
   { LSTRKEY( "sei" ), LFUNCVAL( cpu_sei ) },
   { LSTRKEY( "clock" ), LFUNCVAL( cpu_clock ) },

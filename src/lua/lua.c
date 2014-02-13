@@ -196,40 +196,79 @@ int spin_vm( lua_State *L )
   return 0;
 }
 
-#define LUA_COMMAND_STACK_MAX 8
-volatile int lua_command_stack[LUA_COMMAND_STACK_MAX];
-volatile int lua_command_top = 0;
-volatile int lua_command_bottom = 0;
+// #define LUA_COMMAND_STACK_MAX 8
+// volatile int lua_command_stack[LUA_COMMAND_STACK_MAX];
+// volatile int lua_command_top = 0;
+// volatile int lua_command_bottom = 0;
 
-//Push commands onto the stack to be processed when the cons
-int lua_command_push( char * data )
+// //Push commands onto the stack to be processed when the cons
+// int lua_command_push( char * data )
+// {
+//   if((lua_command_top + 1) % LUA_COMMAND_STACK_MAX == lua_command_bottom )
+//   {
+//     //Going to overrun ring buffer
+//     return -1;
+//   }
+//   else if(strlen(data) < (LUA_MAXINPUT + 2) )
+//   {
+//     //char * store = malloc( strlen(data)+1 );
+//     //strncpy(store, data, LUA_MAXINPUT);
+//     lua_command_stack[lua_command_top] = (int)data;
+//     lua_command_top = (lua_command_top + 1) % LUA_COMMAND_STACK_MAX;
+//     return 1;
+//   }
+//   return -1;
+// }
+
+// char * lua_command_pop( )
+// {
+//   if( lua_command_top == lua_command_bottom )
+//     return NULL;
+//   else
+//   {
+//     char * ret = (char *)lua_command_stack[lua_command_bottom];
+//     lua_command_bottom = (lua_command_bottom + 1) % LUA_COMMAND_STACK_MAX;
+//     return(ret);
+//   }
+// }
+
+static char * lua_command_buf = NULL;
+
+int lua_command_enqueue( const char * buf )
 {
-  if((lua_command_top + 1) % LUA_COMMAND_STACK_MAX == lua_command_bottom )
-  {
-    //Going to overrun ring buffer
+  u32 lua_command_len = 0;
+
+  if( lua_command_buf != NULL )
     return -1;
-  }
-  else if(strlen(data) < (LUA_MAXINPUT + 2) )
-  {
-    //char * store = malloc( strlen(data)+1 );
-    //strncpy(store, data, LUA_MAXINPUT);
-    lua_command_stack[lua_command_top] = (int)data;
-    lua_command_top = (lua_command_top + 1) % LUA_COMMAND_STACK_MAX;
-    return 1;
-  }
-  return -1;
+
+  lua_command_len = strlen( buf ) + 1;
+  lua_command_buf = ( char * )malloc( sizeof( char ) * lua_command_len );
+
+  if( lua_command_buf == NULL )
+    return -1;
+
+  memcpy( lua_command_buf, buf, lua_command_len - 1 );
+  lua_command_buf[ lua_command_len - 1 ] = 0;
+
+  return 0;
 }
 
-char * lua_command_pop( )
+int lua_command_run( lua_State *L )
 {
-  if( lua_command_top == lua_command_bottom )
-    return NULL;
-  else
+  if( lua_command_buf != NULL )
   {
-    char * ret = (char *)lua_command_stack[lua_command_bottom];
-    lua_command_bottom = (lua_command_bottom + 1) % LUA_COMMAND_STACK_MAX;
-    return(ret);
+    int error = luaL_loadbuffer(L, lua_command_buf, strlen( lua_command_buf ), "=queue") || lua_pcall(L, 0, 0, 0);
+    if( error )
+    {
+      fprintf (stderr, "%s", lua_tostring (L, -1));
+      lua_pop (L, 1);
+    }  
+    free( lua_command_buf );
+    lua_command_buf = NULL;
+
+    return error;
   }
+  return 0;
 }
 
 #if defined( LUA_RPC )
@@ -336,21 +375,25 @@ int slip_readline(lua_State *L, char *b, const char *p)
     }
     else
     {
-      char * data;
-      if( (data = lua_command_pop() ) == NULL)
-        spin_vm(L);
-      else
-      {
-        strncpy(ptr, data, LUA_MAXINPUT);
-        //free(data);
-        //Make sure last character is a zero in case of bad string
-        ptr[LUA_MAXINPUT-1] = 0;
-        i = 0;
-        prev_line_end = -1;
-        if(strlen(ptr) > 0)
-          return(strlen(ptr) + 1);
-      }
+      lua_command_run(L);
+      spin_vm(L);
     }
+    // {
+    //   char * data;
+    //   if( (data = lua_command_pop() ) == NULL)
+    //     spin_vm(L);
+    //   else
+    //   {
+    //     strncpy(ptr, data, LUA_MAXINPUT);
+    //     //free(data);
+    //     //Make sure last character is a zero in case of bad string
+    //     ptr[LUA_MAXINPUT-1] = 0;
+    //     i = 0;
+    //     prev_line_end = -1;
+    //     if(strlen(ptr) > 0)
+    //       return(strlen(ptr) + 1);
+    //   }
+    // }
   }
 }
 #endif
