@@ -653,6 +653,7 @@ int wofs_repack(  void )
   u32 fs_read_ptr = 0;
   u32 tmp;
   int ret;
+  u8 first_run = 1;
 
   // 1 - Find first of any deleted files
   endf = 0;
@@ -675,7 +676,10 @@ int wofs_repack(  void )
   while( ret != -1 ) // while we haven't hit the end of the FS
   {
     // 2 - Find sector it came from
-    snum = platform_flash_find_sector( startf + pdata->pbase, &sstart, &send );
+    if( fs_read_ptr == 0 )
+      snum = platform_flash_find_sector( startf + pdata->pbase, &sstart, &send );
+    else
+      snum = platform_flash_find_sector( fs_read_ptr + pdata->pbase, &sstart, &send );
     // TODO: Look at intervening sectors and erase
     printf("S: %d E:%d PB: %d\n", sstart, send, ( u32 )pdata->pbase );
     sstart -= ( u32 )pdata->pbase;
@@ -692,11 +696,13 @@ int wofs_repack(  void )
     {
       fs_read_ptr = sstart; // Beginning of first deleted file's sector
       tmp = last_endf - sstart;
+      first_run = 1;
     }
     else // Secondary runs, finish or continue file
     {
       printf("Ef: %d, rptr: %d, se: %d\n", endf, fs_read_ptr, send);
-      tmp = fsmin( endf + 1 - fs_read_ptr, send + 1 - fs_read_ptr ); // max out at end of current read sector
+      tmp = fsmin( endf + 1 - fs_read_ptr, 1024 ); // max out at end of current read sector
+      first_run = 0;
     }
 
     printf("CP F: %d, T: %d, L: %d\n", fs_read_ptr, write_ptr, tmp);
@@ -708,6 +714,7 @@ int wofs_repack(  void )
     // Fill out last sector from FS until source sector is exhausted or end of FS
     while( write_ptr < ( LAST_SECTOR_START - ( u32 )pdata->pbase ) + send + 1 - sstart  && ret != -1 )
     {
+      printf("Checking for next file!\n");
       startf = ( endf + 1 + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 ); // Starting is next aligned chunk
       ret = romfs_walk_fs( &startf, &endf, pdata ); // find end of file & type
 
@@ -715,9 +722,9 @@ int wofs_repack(  void )
       if( ret == 0 )
       {
         fs_read_ptr = startf;
-        tmp = fsmin( endf + 1 - fs_read_ptr, ( LAST_SECTOR_START - ( u32 )pdata->pbase ) + ( send + 1 - sstart ) - write_ptr );
         write_ptr = ( write_ptr + 1 + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 );
-        printf("CP F: %d, T: %d, L: %d, L2 %d\n", fs_read_ptr, write_ptr, endf - fs_read_ptr, ( LAST_SECTOR_START - ( u32 )pdata->pbase ) + ( send + 1 - sstart ) - write_ptr );
+        tmp = fsmin( endf + 1 - fs_read_ptr, ( LAST_SECTOR_START - ( u32 )pdata->pbase ) + ( send + 1 - sstart ) - write_ptr );
+        printf("CP F: %d, T: %d, L: %d, L2 %d\n", fs_read_ptr, write_ptr, endf + 1 - fs_read_ptr, ( LAST_SECTOR_START - ( u32 )pdata->pbase ) + ( send + 1 - sstart ) - write_ptr );
         pdata->writef( ( u32* )(fs_read_ptr + ( u32 )pdata->pbase), write_ptr, tmp, pdata);
         //tmp = ( tmp + 1 + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 );
         fs_read_ptr += tmp; // Advance so that read ptr is correct when we exit this loop
@@ -749,9 +756,9 @@ int wofs_repack(  void )
 
     // 6 - Fill "source" sector from FS, if space remains
     // Start filling in unfinished files
-    if( fs_read_ptr < endf && ret == 0 )
+    if( fs_read_ptr < endf && write_ptr < send && ret == 0 )
     {
-      tmp = fsmin( endf + 1 - fs_read_ptr, send + 1 - fs_read_ptr);
+      tmp = fsmin( endf + 1 - fs_read_ptr, send + 1 - write_ptr);
       printf("CP F: %d, T: %d, L: %d, EF: %d\n", fs_read_ptr, write_ptr, tmp, endf);
       pdata->writef( ( u32* )fs_read_ptr, write_ptr, tmp, pdata);
       //tmp = ( tmp + 1 + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 );
