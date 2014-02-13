@@ -10,6 +10,7 @@
 #include "common.h"
 #include "type.h"
 #include "platform_conf.h"
+#include "md5.h"
 
 #ifdef BUILD_ADVANCED_SHELL
 
@@ -26,6 +27,26 @@ const char shell_help_ls[] = "[<path>] [-R]\n"
   "  [-R]: recursive\n"
   "  [-c]: compute checksums\n";
 const char shell_help_summary_ls[] = "lists files and directories";
+
+md5_digest(const char* dir, const char* fname)
+{
+  char *path = (char *)alloca( sizeof( char* )*( strlen(dir) + strlen(fname) + 2 ) );
+  char buffer[64];
+  unsigned char digest[16];
+  int length;
+  MD5 md5;
+  int i;
+  printf(" ");
+  sprintf(path, "%s/%s",dir, fname );
+  FILE *fp = fopen(path, "r");
+  MD5Open(&md5);
+  while ((length = fread(buffer, 1, sizeof(buffer), fp)) > 0)
+    MD5Digest(&md5, buffer, length);
+  MD5Close(&md5, digest);
+  for(i = 0; i < 16; i++ )
+    printf("%02x", digest[i]);
+  fclose(fp);
+}
 
 // 'ls' and 'dir' handler
 // Syntax: ls [dir] [-R]
@@ -46,12 +67,14 @@ static int shellh_ls_walkdir_cb( const char *path, const struct dm_dirent *pent,
     case CMN_FS_INFO_INSIDE_READDIR:
       printf( "  %-30s", pent->fname );
       if( DM_DIRENT_IS_DIR( pent ) )
-        printf( "<DIR>\n" );
+        printf( "<DIR>" );
       else
       {
-        printf( "%u bytes\n", ( unsigned )pent->fsize );
+        printf( "%u bytes", ( unsigned )pent->fsize );
         ps->dir_total += pent->fsize;
+        md5_digest(path, pent->fname);
       }
+      printf("\n");
       break;
 
     case CMN_FS_INFO_AFTER_CLOSEDIR:
