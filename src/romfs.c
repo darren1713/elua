@@ -653,7 +653,6 @@ int wofs_repack(  void )
   u32 fs_read_ptr = 0;
   u32 tmp;
   int ret;
-  u8 first_run = 1;
 
   // 1 - Find first of any deleted files
   endf = 0;
@@ -695,14 +694,12 @@ int wofs_repack(  void )
     if( fs_read_ptr == 0 ) // First run
     {
       fs_read_ptr = sstart; // Beginning of first deleted file's sector
-      tmp = last_endf - sstart;
-      first_run = 1;
+      tmp = last_endf + 1 - sstart;
     }
     else // Secondary runs, finish or continue file
     {
       printf("Ef: %d, rptr: %d, se: %d\n", endf, fs_read_ptr, send);
       tmp = fsmin( endf + 1 - fs_read_ptr, 1024 ); // max out at end of current read sector
-      first_run = 0;
     }
 
     printf("CP F: %d, T: %d, L: %d\n", fs_read_ptr, write_ptr, tmp);
@@ -722,7 +719,8 @@ int wofs_repack(  void )
       if( ret == 0 )
       {
         fs_read_ptr = startf;
-        write_ptr = ( write_ptr + 1 + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 );
+
+        write_ptr = ( write_ptr + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 );
         tmp = fsmin( endf + 1 - fs_read_ptr, ( LAST_SECTOR_START - ( u32 )pdata->pbase ) + ( send + 1 - sstart ) - write_ptr );
         printf("CP F: %d, T: %d, L: %d, L2 %d\n", fs_read_ptr, write_ptr, endf + 1 - fs_read_ptr, ( LAST_SECTOR_START - ( u32 )pdata->pbase ) + ( send + 1 - sstart ) - write_ptr );
         pdata->writef( ( u32* )(fs_read_ptr + ( u32 )pdata->pbase), write_ptr, tmp, pdata);
@@ -776,9 +774,9 @@ int wofs_repack(  void )
       if( ret == 0 )
       {
         fs_read_ptr = startf;
+        write_ptr = ( write_ptr + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 );
         printf("Ef: %d, rptr: %d, se: %d end:%d\n", endf, fs_read_ptr, send, ( LAST_SECTOR_START - ( u32 )pdata->pbase ) + ( send - sstart ) - write_ptr);
         tmp = fsmin( endf + 1 - fs_read_ptr, ( LAST_SECTOR_START - ( u32 )pdata->pbase ) + ( send - sstart ) - write_ptr);
-        write_ptr = ( write_ptr + 1 + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 );
         printf("CP F: %d, T: %d, L: %d\n", fs_read_ptr, write_ptr, tmp);
         pdata->writef( ( u32* )(fs_read_ptr + ( u32 )pdata->pbase), write_ptr, tmp, pdata );
         //tmp = ( tmp + 1 + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 );
