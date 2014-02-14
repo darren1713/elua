@@ -691,10 +691,11 @@ int wofs_repack(  void )
   FSDATA *pdata = &wofs_fsdata;
   u8 freed_sectors[ FLASH_SECTOR_COUNT / 8 ];
   u32 startf, endf, last_endf;
-  u32 sstart, send, snum_startf, snum_endf;
+  u32 sstart, send, snum_startf, snum_endf, snum_startf2, snum_endf2;
   u32 write_ptr;
   u32 fs_read_ptr = 0;
   u32 tmp;
+  u32 last_sector;
   int ret;
   int i;
 
@@ -787,8 +788,35 @@ int wofs_repack(  void )
         printf("CP F: %lu, T: %lu, L: %lu, L2 %lu\n", fs_read_ptr, write_ptr, endf + 1 - fs_read_ptr, ( LAST_SECTOR_START - ( u32 )pdata->pbase ) + ( send + 1 - sstart ) - write_ptr );
         pdata->writef( ( u32* )(fs_read_ptr + ( u32 )pdata->pbase), write_ptr, tmp, pdata);
         //tmp = ( tmp + 1 + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 );
+        last_sector = platform_flash_get_sector_of_address( fs_read_ptr + ( u32 )pdata->pbase );
         fs_read_ptr += tmp; // Advance so that read ptr is correct when we exit this loop
-        write_ptr  += tmp;
+        write_ptr += tmp;
+        if( platform_flash_get_sector_of_address( fs_read_ptr + ( u32 )pdata->pbase ) > last_sector )
+        {
+          printf("Erasing2: %d\n", last_sector);
+          bit_array_set(freed_sectors, last_sector, 1);
+          if( platform_flash_erase_sector( i ) == PLATFORM_ERR )
+          {
+            printf("Couldn't erase: %d", last_sector);
+            return 0;
+          }
+        }
+      }
+      else
+      {
+        snum_endf2 = platform_flash_find_sector( endf + pdata->pbase, &sstart, &send );
+        snum_startf2 = platform_flash_find_sector( startf + pdata->pbase, &sstart, &send );
+        printf("Sector Range: %lu - %lu\n",snum_startf2, snum_endf2 );
+        for( i = snum_startf2; i < snum_endf2; i++ )
+        {
+          printf("Erasing: %d\n", i);
+          bit_array_set(freed_sectors, i, 1);
+          if( platform_flash_erase_sector( i ) == PLATFORM_ERR )
+          {
+            printf("Couldn't erase: %d", i);
+            return 0;
+          }
+        }
       }
     }
 
@@ -832,8 +860,19 @@ int wofs_repack(  void )
       printf("CP F: %lu, T: %lu, L: %lu, EF: %lu\n", fs_read_ptr, write_ptr, tmp, endf);
       pdata->writef( ( u32* )fs_read_ptr, write_ptr, tmp, pdata);
       //tmp = ( tmp + 1 + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 );
+      last_sector = platform_flash_get_sector_of_address( fs_read_ptr + ( u32 )pdata->pbase );
       fs_read_ptr += tmp;
       write_ptr += tmp;
+      if( platform_flash_get_sector_of_address( fs_read_ptr + ( u32 )pdata->pbase ) > last_sector )
+      {
+        printf("Erasing3: %d\n", last_sector);
+        bit_array_set(freed_sectors, last_sector, 1);
+        if( platform_flash_erase_sector( i ) == PLATFORM_ERR )
+        {
+          printf("Couldn't erase: %d", last_sector);
+          return 0;
+        }
+      }
     }
 
     // Put more files if they will fit
@@ -854,6 +893,22 @@ int wofs_repack(  void )
         //tmp = ( tmp + 1 + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 );
         fs_read_ptr += tmp;
         write_ptr  += tmp;
+      }
+      else
+      {
+        snum_endf = platform_flash_find_sector( endf + pdata->pbase, &sstart, &send );
+        snum_startf = platform_flash_find_sector( startf + pdata->pbase, &sstart, &send );
+        printf("Sector Range: %lu - %lu\n",snum_startf, snum_endf );
+        for( i = snum_startf; i < snum_endf; i++ )
+        {
+          printf("Erasing: %d\n", i);
+          bit_array_set(freed_sectors, i, 1);
+          if( platform_flash_erase_sector( i ) == PLATFORM_ERR )
+          {
+            printf("Couldn't erase: %d", i);
+            return 0;
+          }
+        }
       }
     }
     //startf = ( endf + 1 + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 );
@@ -893,7 +948,7 @@ int romfs_init()
 #if defined( BUILD_WOFS ) && !defined( ELUA_CPU_LINUX )
   // Get the start address and size of WOFS and register it
   wofs_fsdata.pbase = ( u8* )platform_flash_get_first_free_block_address( NULL );
-  wofs_fsdata.max_size = INTERNAL_FLASH_SIZE - ( ( u32 )wofs_fsdata.pbase - INTERNAL_FLASH_START_ADDRESS );
+  wofs_fsdata.max_size = INTERNAL_FLASH_SIZE - ( ( u32 )wofs_fsdata.pbase - INTERNAL_FLASH_START_ADDRESS ) - INTERNAL_FLASH_SECTOR_SIZE;
   dm_register( "/wo", &wofs_fsdata, &romfs_device );
 #endif // ifdef BUILD_WOFS
 #ifdef BUILD_ROMFS
