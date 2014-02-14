@@ -683,8 +683,6 @@ int bit_array_get_lowest( char* arr )
 }
 
 // TODO: Needs to handle remaining open file if there is one
-// TODO: Needs to erase intervening sectors when deleted files span more than 2 sectors
-// FIXME: Filesystem gets corrupted when last file is the deleted one
 // Returns 1 if OK, 0 for error
 int wofs_repack(  void )
 {
@@ -742,7 +740,7 @@ int wofs_repack(  void )
     }
     else
       snum_startf = platform_flash_find_sector( fs_read_ptr + pdata->pbase, &sstart, &send );
-    // TODO: Look at intervening sectors and erase
+
     printf("S: %lu E:%lu PB: %lu\n", sstart, send, ( u32 )pdata->pbase );
     sstart -= ( u32 )pdata->pbase;
     send -= ( u32 )pdata->pbase;
@@ -751,7 +749,6 @@ int wofs_repack(  void )
     // 3 - start copying files until source sector is exhausted
 
     // Copy data exactly up until deleted file
-    // FIXME? Alignment?
     write_ptr = LAST_SECTOR_START - ( u32 )pdata->pbase; // Beginning of "spare" sector
 
     if( fs_read_ptr == 0 ) // First run
