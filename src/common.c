@@ -485,6 +485,31 @@ static u32 flashh_find_sector( u32 address, u32 *pstart, u32 *pend )
 #endif // #ifdef INTERNAL_FLASH_SECTOR_SIZE
 }
 
+u32 platform_flash_get_sector_range( u32 sect_id, u32 *pstart, u32 *pend )
+{
+#ifdef INTERNAL_FLASH_SECTOR_SIZE
+  // All the sectors in the flash have the same size, so just align the address
+  if( pstart )
+    *pstart = sect_id * INTERNAL_FLASH_SECTOR_SIZE + INTERNAL_FLASH_START_ADDRESS;
+  if( pend )
+    *pend = ( sect_id + 1 ) * INTERNAL_FLASH_SECTOR_SIZE + INTERNAL_FLASH_START_ADDRESS - 1;
+  return sect_id;
+#else // #ifdef INTERNAL_FLASH_SECTOR_SIZE
+  // The flash has blocks of different size
+  // Their size is decribed in the INTERNAL_FLASH_SECTOR_ARRAY macro
+  const u32 flash_sect_size[] = INTERNAL_FLASH_SECTOR_ARRAY;
+  u32 total = 0, i = 0;
+
+  while( ( i < sect_id ) && ( i < sizeof( flash_sect_size ) / sizeof( u32 ) ) )
+    total += flash_sect_size[ i ++ ];
+  if( pstart )
+    *pstart = ( total - flash_sect_size[ i - 1 ] ) + INTERNAL_FLASH_START_ADDRESS;
+  if( pend )
+    *pend = total + INTERNAL_FLASH_START_ADDRESS - 1;
+  return i - 1;
+#endif // #ifdef INTERNAL_FLASH_SECTOR_SIZE
+}
+
 u32 platform_flash_find_sector( u32 addr, u32 *pstart, u32 *pend )
 {
   return flashh_find_sector( addr, pstart, pend );

@@ -642,6 +642,46 @@ int romfs_walk_fs( u32 *start, u32 *end, void *pdata  )
 #define LAST_SECTOR_END  ( INTERNAL_FLASH_SIZE - INTERNAL_FLASH_START_ADDRESS )
 #define LAST_SECTOR_START ( LAST_SECTOR_END - INTERNAL_FLASH_SECTOR_SIZE )
 
+#define FLASH_SECTOR_COUNT ( INTERNAL_FLASH_SIZE / INTERNAL_FLASH_SECTOR_SIZE )
+
+int bit_array_set( char* arr, u32 bitnum, u8 value )
+{
+  int byte = bitnum / 8;
+  int bit = bitnum % 8;
+
+  if( byte >= ( FLASH_SECTOR_COUNT / 8 ) )
+  {
+    printf("too late!");
+    return 0;
+  }
+  if( value > 0)
+    arr[byte] |= ( u8 )( 1 << bit );
+  else
+    arr[byte] &= ~( u8 )( 1 << bit );
+}
+
+int bit_array_get_lowest( char* arr )
+{
+  int byte;
+  int bit;
+  u8 value;
+
+  for( byte = 0; byte < ( FLASH_SECTOR_COUNT / 8 ); byte++ )
+  {
+    if( arr[ byte ] )
+    {
+      bit = 0;
+      value = arr[ byte ];
+      while( !( value & 1) )
+      {
+        value >>= 1;
+        ++bit;
+      }
+      return ( bit + byte * 8 );
+    }
+  }
+}
+
 // TODO: Needs to handle remaining open file if there is one
 // TODO: Needs to erase intervening sectors when deleted files span more than 2 sectors
 // FIXME: Filesystem gets corrupted when last file is the deleted one
@@ -649,6 +689,7 @@ int romfs_walk_fs( u32 *start, u32 *end, void *pdata  )
 int wofs_repack(  void )
 {
   FSDATA *pdata = &wofs_fsdata;
+  u8 freed_sectors[ FLASH_SECTOR_COUNT / 8 ];
   u32 startf, endf, last_endf;
   u32 sstart, send, snum_startf, snum_endf;
   u32 write_ptr;
@@ -656,6 +697,10 @@ int wofs_repack(  void )
   u32 tmp;
   int ret;
   int i;
+
+  // Clear freed sector list
+  for( i = 0; i < ( FLASH_SECTOR_COUNT / 8 ); i++ )
+    freed_sectors[ i ] = 0;
 
   // 1 - Find first of any deleted files
   endf = 0;
@@ -686,6 +731,7 @@ int wofs_repack(  void )
       for( i = snum_startf + 1; i < snum_endf; i++ )
       {
         printf("Erasing: %d\n", i);
+        bit_array_set(freed_sectors, i, 1);
         if( platform_flash_erase_sector( i ) == PLATFORM_ERR )
         {
           printf("Couldn't erase: %d", i);
@@ -748,12 +794,21 @@ int wofs_repack(  void )
 
     // 4 - erase origin sector 
     printf("Erasing: %lu\n", snum_startf);
+    bit_array_set(freed_sectors, snum_startf, 1);
     if( platform_flash_erase_sector( snum_startf ) == PLATFORM_ERR )
     {
       printf("Couldn't erase: %lu", snum_startf);
       return 0;
     }
+
     // ... and copy back
+    tmp = bit_array_get_lowest( freed_sectors );
+    platform_flash_get_sector_range(tmp, &sstart, &send);
+    printf("S: %lu E:%lu PB: %lu\n", sstart, send, ( u32 )pdata->pbase );
+    sstart -= ( u32 )pdata->pbase;
+    send -= ( u32 )pdata->pbase;
+    printf("Sector: %lu\n", snum_startf );
+    bit_array_set(freed_sectors, tmp, 0);
     tmp = LAST_SECTOR_START - ( u32 )pdata->pbase;
     printf("WF: %lu, SS: %lu, LN: %lu\n", tmp, sstart, write_ptr - ( LAST_SECTOR_START - ( u32 )pdata->pbase));
     pdata->writef( ( u32* )(tmp + ( u32 )pdata->pbase), sstart, write_ptr - ( LAST_SECTOR_START - ( u32 )pdata->pbase ), pdata);
@@ -762,6 +817,7 @@ int wofs_repack(  void )
 
     // 5 - erase spare sector
     printf("Erasing: %d\n", LAST_SECTOR_NUM);
+    bit_array_set(freed_sectors, LAST_SECTOR_NUM, 1);
     if( platform_flash_erase_sector( LAST_SECTOR_NUM ) == PLATFORM_ERR )
     {
       printf("Couldn't erase: %d", LAST_SECTOR_NUM);

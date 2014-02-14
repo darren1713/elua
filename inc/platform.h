@@ -322,6 +322,7 @@ int platform_usb_cdc_recv( s32 timeout );
 u32 platform_flash_get_first_free_block_address( u32 *psect );
 u32 platform_flash_get_sector_of_address( u32 addr );
 u32 platform_flash_find_sector( u32 addr, u32 *pstart, u32 *pend );
+u32 platform_flash_get_sector_range( u32 sect_id, u32 *pstart, u32 *pend );
 u32 platform_flash_write( const void *from, u32 toaddr, u32 size );
 u32 platform_s_flash_write( const void *from, u32 toaddr, u32 size );
 u32 platform_flash_get_num_sectors();
