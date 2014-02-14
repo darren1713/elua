@@ -391,7 +391,7 @@ static struct dm_dirent* romfs_readdir_r( struct _reent *r, void *d, void *pdata
 
     // Read filename
     j = 0;
-    //printf("SOFF: %d ", off);
+    printf("SOFF: %d ", off);
     while( ( dm_shared_fname[ j ++ ] = romfsh_read8( off ++, pfsdata ) ) != '\0' );
     pent->fname = dm_shared_fname;
 
@@ -418,11 +418,13 @@ static struct dm_dirent* romfs_readdir_r( struct _reent *r, void *d, void *pdata
     // Jump offset ahead by length field & file size
     off += ROMFS_SIZE_LEN;
     off += pent->fsize;
-    //printf("EOFF: %d ", off);
+
 
     // If WOFS, also advance offset by deleted file field
     if( romfsh_is_wofs( pfsdata ) )
       off = ( off + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 );
+
+    printf("EOFF: %d ", off);
 //If file security is enabled, don't return a matching filename as valid
 #ifdef ROMFS_SECURE_FILENAMES_WITH_CHAR
     if( !is_deleted && ( romfs_security_lock == 0 || strstr( pent->fname, ROMFS_SECURE_FILENAMES_WITH_CHAR) == NULL ) )
@@ -648,11 +650,12 @@ int wofs_repack(  void )
 {
   FSDATA *pdata = &wofs_fsdata;
   u32 startf, endf, last_endf;
-  u32 sstart, send, snum;
+  u32 sstart, send, snum_startf, snum_endf;
   u32 write_ptr;
   u32 fs_read_ptr = 0;
   u32 tmp;
   int ret;
+  int i;
 
   // 1 - Find first of any deleted files
   endf = 0;
@@ -676,14 +679,27 @@ int wofs_repack(  void )
   {
     // 2 - Find sector it came from
     if( fs_read_ptr == 0 )
-      snum = platform_flash_find_sector( startf + pdata->pbase, &sstart, &send );
+    {
+      snum_endf = platform_flash_find_sector( endf + pdata->pbase, &sstart, &send );
+      snum_startf = platform_flash_find_sector( startf + pdata->pbase, &sstart, &send );
+      printf("Sector Range: %lu - %lu\n",snum_startf, snum_endf );
+      for( i = snum_startf + 1; i < snum_endf; i++ )
+      {
+        printf("Erasing: %d\n", i);
+        if( platform_flash_erase_sector( i ) == PLATFORM_ERR )
+        {
+          printf("Couldn't erase: %d", i);
+          return 0;
+        }
+      }
+    }
     else
-      snum = platform_flash_find_sector( fs_read_ptr + pdata->pbase, &sstart, &send );
+      snum_startf = platform_flash_find_sector( fs_read_ptr + pdata->pbase, &sstart, &send );
     // TODO: Look at intervening sectors and erase
     printf("S: %lu E:%lu PB: %lu\n", sstart, send, ( u32 )pdata->pbase );
     sstart -= ( u32 )pdata->pbase;
     send -= ( u32 )pdata->pbase;
-    printf("Sector: %lu\n", snum );
+    printf("Sector: %lu\n", snum_startf );
 
     // 3 - start copying files until source sector is exhausted
 
@@ -731,10 +747,10 @@ int wofs_repack(  void )
     }
 
     // 4 - erase origin sector 
-    printf("Erasing: %lu\n", snum);
-    if( platform_flash_erase_sector( snum ) == PLATFORM_ERR )
+    printf("Erasing: %lu\n", snum_startf);
+    if( platform_flash_erase_sector( snum_startf ) == PLATFORM_ERR )
     {
-      printf("Couldn't erase: %lu", snum);
+      printf("Couldn't erase: %lu", snum_startf);
       return 0;
     }
     // ... and copy back
