@@ -343,6 +343,8 @@ int platform_init()
   //The pre-generated code for SI32_RSTSRC_A_get_last_reset_source is incorrect and does
   //not take into account PORRF. Also, these registers MUST be read in order PORRF, VMONRF, PINRF
   //as the remainder are invalid if the previous one is set. See table 6.2.
+
+  // Wake from PM9
   if((pmu_status & SI32_PMU_A_STATUS_PM9EF_MASK) == SI32_PMU_A_STATUS_PM9EF_SET_U32)
   {
     //Check for reset pin while in PM9
@@ -392,15 +394,21 @@ int platform_init()
       }
     }
   }
+  // Wake sources other than PM9
   else if (((reset_status & SI32_RSTSRC_A_RESETFLAG_PORRF_MASK) == SI32_RSTSRC_A_RESETFLAG_PORRF_SET_U32)
     ||  ((reset_status & SI32_RSTSRC_A_RESETFLAG_VMONRF_MASK) == SI32_RSTSRC_A_RESETFLAG_VMONRF_SET_U32)
     ||  ((reset_status & SI32_RSTSRC_A_RESETFLAG_PINRF_MASK) == SI32_RSTSRC_A_RESETFLAG_PINRF_SET_U32)
     ||  ((pmu_status & SI32_PMU_A_STATUS_PORF_MASK) == SI32_PMU_A_STATUS_PORF_SET_U32) 
     ||  ((pmu_wake_status & SI32_PMU_A_WAKESTATUS_RSTWF_MASK) == SI32_PMU_A_WAKESTATUS_RSTWF_SET_U32) )
   {
-    //Fresh powerup! Reset our retained ram registers
+    if((pmu_wake_status & SI32_PMU_A_WAKESTATUS_RSTWF_MASK) == SI32_PMU_A_WAKESTATUS_RSTWF_SET_U32)
+      wake_reason = WAKE_RESETPIN;
+    else if((pmu_status & SI32_PMU_A_STATUS_PWAKEF_MASK) == 0) //Check for pin wake NOTE: SiLabs headers are wrong, this bit is backwards per the manual...
+      wake_reason = WAKE_WAKEPIN;
+    else
+      wake_reason = WAKE_POWERUP;
+
     reset_parameters();
-    wake_reason = WAKE_POWERUP;
   }
 
 #endif
