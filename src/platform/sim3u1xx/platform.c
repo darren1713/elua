@@ -2265,6 +2265,10 @@ void myPB_enter_off_config()
   //Set 5V pin to analog float...
   SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 0x00000200);
   SI32_PBSTD_A_write_pins_low( SI32_PBSTD_1, 0x0200 );
+
+#if defined( PCB_V7 ) || defined( PCB_V8 )
+  SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_2, 0x00000002);
+#endif
   
   SI32_PBHD_A_set_pins_push_pull_output( SI32_PBHD_4, 0x00 );
   SI32_PBHD_A_set_pins_low_drive_strength(SI32_PBHD_4, 0x3F);
