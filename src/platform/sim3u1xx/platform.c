@@ -2243,10 +2243,18 @@ void myPB_enter_off_config()
   for( i=0; i<4; i++)
   {
     SI32_PBSTD_A_set_pins_analog(port_std[ i ], 0x0000);
+       // basePointer->PBMDSEL_CLR = pin_mask;
+       // basePointer->PB_SET      = pin_mask;
     SI32_PBSTD_A_write_pbskipen(port_std[ i ], 0xFFFF);
+       // basePointer->PBSKIPEN.U32 = pbskipen;
     SI32_PBSTD_A_set_pins_digital_input( port_std[ i ], 0xFFFF);
+       // basePointer->PBOUTMD_CLR = pin_mask;
+       // basePointer->PB_SET      = pin_mask;
+       // basePointer->PBMDSEL_SET = pin_mask;
     SI32_PBSTD_A_disable_pullup_resistors( port_std[ i ] );
+       // basePointer->PBDRV_CLR = SI32_PBSTD_A_PBDRV_PBPUEN_MASK;
     SI32_PBSTD_A_write_pins_low( port_std[ i ], 0xFFFF );
+       // basePointer->PB_CLR = pin_mask
   }
 
   //JEFF TEST
@@ -2267,7 +2275,8 @@ void myPB_enter_off_config()
   SI32_PBSTD_A_write_pins_low( SI32_PBSTD_1, 0x0200 );
 
 #if defined( PCB_V7 ) || defined( PCB_V8 )
-  SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_2, 0x00000002);
+  SI32_PBSTD_A_set_pins_digital_input( SI32_PBSTD_2, 0x0002 );
+  SI32_PBSTD_A_set_pins_digital_input( SI32_PBSTD_3, 1 << 9 );
 #endif
   
   SI32_PBHD_A_set_pins_push_pull_output( SI32_PBHD_4, 0x00 );
