@@ -606,11 +606,18 @@ static u8 seconds_tick_pending = 0;
 void TIMER0H_IRQHandler(void)
 { 
 #if defined( BUILD_USB_CDC )
+  usb_pcb_t *pcb = usb_pcb_get();
   //Check if USB is powered. It will not actually TX/RX unless enumerated though
   if( SI32_VREG_A_is_vbus_valid( SI32_VREG_0 ) )
+  {
     console_cdc_active = 1;
+    pcb->connected = true;
+  }
   else
+  {
     console_cdc_active = 0;
+    pcb->connected = false;
+  }
 
   if( console_cdc_active )
     usb_poll();
