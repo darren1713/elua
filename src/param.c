@@ -23,7 +23,7 @@ int32_t set_param( const char * name, const char * prefix, uint8_t type, uint8_t
     if (fp == NULL)
         return -1;
 
-    n = fputc(type, fp);
+    fputc(type, fp);
     n = fwrite( value, 1, length, fp);
     fclose(fp);
     return n;
@@ -46,6 +46,7 @@ int32_t get_param( const char * name, const char * prefix, uint8_t type, uint8_t
     if( fgetc( fp ) != type)
     {
         printf("bad type\n");
+        fclose(fp);
         return -2;
     }
 
@@ -57,13 +58,16 @@ int32_t get_param( const char * name, const char * prefix, uint8_t type, uint8_t
 int32_t get_param_type( const char * name, const char * prefix)
 {
     FILE *fp;
+    int32_t type;
 
     fp = open_param_file(name, prefix, SETTING_FORMAT, "r");
 
     if (fp == NULL)
         return -1;
 
-    return fgetc( fp );
+    type = fgetc( fp );
+    fclose( fp );
+    return type;
 }
 
 // store 32-bit integer parameter
