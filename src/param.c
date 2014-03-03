@@ -12,6 +12,7 @@ FILE * open_param_file(const char * name, const char * prefix, const char * form
   FILE * ret = fopen(fname, mode);
   return ret;
 }
+
 int32_t set_param( const char * name, const char * prefix, uint8_t type, uint8_t * value, uint32_t length )
 {
   FILE *fp;
@@ -107,7 +108,7 @@ int32_t get_param_string_len( const char * name, const char * prefix )
     return -1;
 
   while( fgetc( fp ) != EOF )
-      n++;
+    n++;
 
   fclose(fp);
   return n-1; // return position minus header length
@@ -123,7 +124,7 @@ int32_t get_param_string( const char * name, const char * prefix, uint8_t *value
 
   // If an error was encountered, pass it up
   if( len < 0 )
-      return len;
+    return len;
 
   if( len <= max_len )
     len = get_param( name, prefix, PARAM_STRING, value, len);
