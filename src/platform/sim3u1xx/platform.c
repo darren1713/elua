@@ -670,7 +670,7 @@ static u8 const * led_cled_ptr[] = {
   CLED_FLASH5
 };
 
-#define LEDTICKHZ 500
+#define LEDTICKHZ 800
 u8 led_pointer_tick = 0;
 u8 led_tick = 0;
 u8 led_repeat_tick = 0;
@@ -705,28 +705,6 @@ void TIMER1H_IRQHandler(void)
   led_ticks=((led_ticks+1) & 0x0F);
   if(!led_ticks)
   {
-#if defined( PCB_V8 )
-    //turn LED's off. 6 LEDS are on P0
-    SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ],
-        ( ( u32 ) 1 << 4 ) |
-        ( ( u32 ) 1 << 5 ) |
-        ( ( u32 ) 1 << 6 ) |
-        ( ( u32 ) 1 << 7 ) |
-        ( ( u32 ) 1 << 8 ) |
-        ( ( u32 ) 1 << 9 )
-         );
-#else
-    //turn LED's off. 5 LEDS are on P2 and the on board blue LED is on P4.3
-    SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], 
-        ( ( u32 ) 1 << 5 ) |
-        ( ( u32 ) 1 << 6 ) |
-        ( ( u32 ) 1 << 7 ) |
-        ( ( u32 ) 1 << 8 ) |
-        ( ( u32 ) 1 << 9 )
-         );
-    SI32_PBHD_A_write_pins_low( SI32_PBHD_4, ( ( u32 ) 1 << 3 ) );
-#endif
-
     if(led_pointer_tick == 3)
     {
       led_pointer_tick = 0;
@@ -765,36 +743,65 @@ void TIMER1H_IRQHandler(void)
     }
     led_pointer_tick++;
   }
-
-  if(led_ticks > led_ticks_ptr[0] && (led_mask & 1 ) )
-    SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 5 ) );
-  if(led_ticks > led_ticks_ptr[1] && (led_mask & 1<<1 ) )
+  else
   {
-    SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 6 ) );
-  #if !defined( MEMBRANE_V1)
-  #if defined( PCB_V8 )
-    SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 4 ) );
-  #else
-    SI32_PBHD_A_write_pins_high( SI32_PBHD_4, ( ( u32 ) 1 << 3 ) );
-  #endif
-  #endif
+    if(led_ticks > led_ticks_ptr[0] && (led_mask & 1 ) )
+      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 5 ) );
+    else
+      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << 5 ) );
+    if(led_ticks > led_ticks_ptr[1] && (led_mask & 1<<1 ) )
+    {
+      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 6 ) );
+    #if !defined( MEMBRANE_V1)
+    #if defined( PCB_V8 )
+      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 4 ) );
+    #else
+      SI32_PBHD_A_write_pins_high( SI32_PBHD_4, ( ( u32 ) 1 << 3 ) );
+    #endif
+    #endif
+    }
+    else
+    {
+      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << 6 ) );
+    #if !defined( MEMBRANE_V1)
+    #if defined( PCB_V8 )
+      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << 4 ) );
+    #else
+      SI32_PBHD_A_write_pins_low( SI32_PBHD_4, ( ( u32 ) 1 << 3 ) );
+    #endif
+    #endif
+    }
+    if(led_ticks > led_ticks_ptr[2] && (led_mask & 1<<2 ) )
+    {
+    #if defined( MEMBRANE_V1)
+    #if defined( PCB_V8 )
+      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 4 ) );
+    #else
+      SI32_PBHD_A_write_pins_high( SI32_PBHD_4, ( ( u32 ) 1 << 3 ) );
+    #endif
+    #endif
+      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 7 ) );
+    }
+    else
+    {
+    #if defined( MEMBRANE_V1)
+    #if defined( PCB_V8 )
+      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << 4 ) );
+    #else
+      SI32_PBHD_A_write_pins_low( SI32_PBHD_4, ( ( u32 ) 1 << 3 ) );
+    #endif
+    #endif
+      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << 7 ) );
+    }
+    if(led_ticks > led_ticks_ptr[3] && (led_mask & 1<<3 ) )
+      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 8 ) );
+    else
+      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << 8 ) );
+    if(led_ticks > led_ticks_ptr[4] && (led_mask & 1<<4 ) )
+      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 9 ) );
+    else
+      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << 9 ) );
   }
-  if(led_ticks > led_ticks_ptr[2] && (led_mask & 1<<2 ) )
-  {
-  #if defined( MEMBRANE_V1)
-  #if defined( PCB_V8 )
-    SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 4 ) );
-  #else
-    SI32_PBHD_A_write_pins_high( SI32_PBHD_4, ( ( u32 ) 1 << 3 ) );
-  #endif
-  #endif
-    SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 7 ) );
-  }
-  if(led_ticks > led_ticks_ptr[3] && (led_mask & 1<<3 ) )
-    SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 8 ) );
-  if(led_ticks > led_ticks_ptr[4] && (led_mask & 1<<4 ) )
-    SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 9 ) );
- 
   // Clear the interrupt flag
   SI32_TIMER_A_clear_high_overflow_interrupt(SI32_TIMER_1);
 }
