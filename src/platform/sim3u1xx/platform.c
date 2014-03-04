@@ -768,7 +768,8 @@ void TIMER1H_IRQHandler(void)
 
   if(led_ticks > led_ticks_ptr[0] && (led_mask & 1 ) )
     SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 5 ) );
-  if(led_ticks > led_ticks_ptr[1] && (led_mask & 1<<1 ) ) 
+  if(led_ticks > led_ticks_ptr[1] && (led_mask & 1<<1 ) )
+  {
     SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 6 ) );
   #if !defined( MEMBRANE_V1)
   #if defined( PCB_V8 )
@@ -777,6 +778,7 @@ void TIMER1H_IRQHandler(void)
     SI32_PBHD_A_write_pins_high( SI32_PBHD_4, ( ( u32 ) 1 << 3 ) );
   #endif
   #endif
+  }
   if(led_ticks > led_ticks_ptr[2] && (led_mask & 1<<2 ) )
   {
   #if defined( MEMBRANE_V1)
