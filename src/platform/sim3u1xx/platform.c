@@ -670,7 +670,7 @@ static u8 const * led_cled_ptr[] = {
   CLED_FLASH5
 };
 
-#define LEDTICKHZ 1250
+#define LEDTICKHZ 500
 u8 led_pointer_tick = 0;
 u8 led_tick = 0;
 u8 led_repeat_tick = 0;
