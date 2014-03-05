@@ -2279,7 +2279,10 @@ void myPB_enter_off_config()
   //Set bluetooth pins to analog high...
   SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 0x0080);
   SI32_PBSTD_A_write_pins_high( SI32_PBSTD_1, 0x0080 );
+  SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_0, 1 << 12);
+  SI32_PBSTD_A_write_pins_high( SI32_PBSTD_0, 1 << 12 );
 #endif
+
   //Set 5V pin to analog high...
   SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 0x00000200);
   SI32_PBSTD_A_write_pins_low( SI32_PBSTD_1, 0x0200 );
@@ -2301,7 +2304,7 @@ void myPB_enter_off_config()
 #if defined( PCB_V7_CHARGER_NPN ) || defined( PCB_V8 )
   //PB4.2 is set low above which disables the NPN so do nothing
 #else
-  //PB4.2 Set the disconnect mosfets to float!
+  //PB4.2 Set the disconnect mosfets to high!
   SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x04 );
   SI32_PBHD_A_set_pins_analog( SI32_PBHD_4, 0x04 );
 #endif
