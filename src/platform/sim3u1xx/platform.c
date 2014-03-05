@@ -2220,12 +2220,6 @@ void myPB_enter_off_config()
 //  SI32_PBHD_A_disable_p_channel_drivers( SI32_PBHD_4, 0x3F );
 //  SI32_PBHD_A_disable_n_channel_drivers( SI32_PBHD_4, 0x3F );
 
-  // all ports hi-z (analog)
-  //SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_0, 0x0000FFFF);
-  //SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_1, 0x0000FFFF);
-  //SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_2, 0x0000FFFF);
-  //SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_3, 0x0000FFFF);
-
   //PBHD to High impedance
   //SI32_PBHD_A_disable_drivers(SI32_PBHD_4);
   //SI32_PBHD_A_disable_bias(SI32_PBHD_4);
@@ -2282,11 +2276,11 @@ void myPB_enter_off_config()
   SI32_PBSTD_A_set_pins_analog( SI32_PBSTD_0, 0x0000C000);
   SI32_PBSTD_A_write_pins_low( SI32_PBSTD_0, 0xC000 );
 #ifdef BLUETOOTH_POWEREDWHILESLEEPING
-  //Set bluetooth pins to analog float...
+  //Set bluetooth pins to analog high...
   SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 0x0080);
   SI32_PBSTD_A_write_pins_high( SI32_PBSTD_1, 0x0080 );
 #endif
-  //Set 5V pin to analog float...
+  //Set 5V pin to analog high...
   SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 0x00000200);
   SI32_PBSTD_A_write_pins_low( SI32_PBSTD_1, 0x0200 );
 
@@ -2795,53 +2789,5 @@ int platform_usb_cdc_recv( s32 timeout )
 // {
 //   return 0;
 // }
-
-// Some extra Lua functions...need to find a home in a better place...
-
-/*
-int load_lua_string (const char *s) {
-  lua_State *L = lua_getstate();
-
-  if(L == NULL)
-    return 0;
-
-  if (luaL_loadstring(L, s) || lua_pcall(L, 0, 0, 0))
-    return 0;
-
-  return 1;
-}
-
-int load_lua_file (char *filename) {
-  lua_State *L = lua_getstate();
-
-  if(L == NULL)
-    return 0;
-
-  if (luaL_loadfile(L, filename) || lua_pcall(L, 0, 0, 0))
-    return 0;
-
-  return 1;
-}
-
-int load_lua_function (char *func) {
-  lua_State *L = lua_getstate();
-
-  if(L == NULL)
-    return 0;
-
-  lua_getglobal( L, func );
-
-  if (! LUA_ISCALLABLE(L, -1))
-  {
-    printf("No function %s\n", func);
-    return 0;
-  }
-
-//  if (lua_pcall(L, 0, 0, 0))
-  lua_call(L, 0, 0);
-  //  return 0;
-  lua_settop ( L, 0 );
-  return 1;
-}*/
 
 // #endif // #ifdef ENABLE_PMU

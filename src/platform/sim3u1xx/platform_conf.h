@@ -318,14 +318,6 @@ extern unsigned console_cdc_active;
 //define DEBUG_I2C
 //define USE_EXTERNAL_MOSFETS
 
-/*extern const u8 CLED_FADEUP[];
-extern const u8 CLED_FADEDOWN[];
-extern const u8 CLED_OFF[];
-extern const u8 CLED_ON[];
-extern const u8 CLED_FASTFLASH[];
-extern const u8 CLED_MEDIUMFLASH[];
-extern const u8 CLED_SLOWFLASH[];*/
-
 enum {
   LED_FADEUP,
   LED_FADEDOWN,
