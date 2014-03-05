@@ -45,7 +45,7 @@
 // ****************************************************************************
 // Platform initialization
 
-#define PIN_CHECK_INTERVAL 120
+#define PIN_CHECK_INTERVAL 10
 int wake_reason = WAKE_UNKNOWN;
 
 // Watchdog timer
@@ -253,6 +253,10 @@ int external_io()
       if(!val) return 1;
     }
   }
+#if defined( BLUETOOTH_ENABLE_TDI_DTR )
+  if( !platform_pio_op( 1, 1 << 4, PLATFORM_IO_PIN_GET ) )
+    return 1;
+#endif
 #endif
   return 0;
 }
@@ -381,11 +385,17 @@ int platform_init()
         rram_write_int(RRAM_INT_SLEEPTIME, SLEEP_FOREVER); //will wakeup in 68 years
       } 
 
-      if(external_buttons() || external_power() || external_io())
+      if(external_buttons() || external_power() )
       {
         //Continue on as normal. The timer will count down rram_reg and execute
         //the appropriate script when it reaches zero
         wake_reason = WAKE_POWERCONNECTED;
+      }
+      if( external_io() )
+      {
+        wake_reason = WAKE_IO;
+        //Don't auto-sleep for some period of seconds
+        sleep_delay = 5;
       }
       else if( rram_read_int(RRAM_INT_SLEEPTIME) > 0 )  //Go back to sleep if we woke from a PMU wakeup
       {
@@ -575,7 +585,7 @@ void SecondsTick_Handler()
       cmn_int_handler( INT_BOOT, 0 );
       //printf("wakeup %i\n", load_lua_string("wakeup();\n"));
     }
-    if((external_power() == 0 && !external_buttons()) || rram_read_bit(RRAM_BIT_SLEEP_WHEN_POWERED) == SLEEP_WHEN_POWERED_ACTIVE)
+    if((external_power() == 0 && !external_buttons()) && !external_io() || rram_read_bit(RRAM_BIT_SLEEP_WHEN_POWERED) == SLEEP_WHEN_POWERED_ACTIVE)
     {
       printf("no power %i\n", rram_read_int(RRAM_INT_SLEEPTIME));
       if(sleep_delay > 0)
@@ -977,6 +987,10 @@ void pios_init( void )
   // PB1 Setup
   SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_1, 0x03A1);
   SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_1, 0xFC1C);
+
+#if defined( BLUETOOTH_ENABLE_TDI_DTR )
+  SI32_PBSTD_A_set_pins_digital_input( SI32_PBSTD_1, 1 << 4 );
+#endif
 
   // Analog Pins (1.14 & 1.15)
   SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_1, 0xC000);
