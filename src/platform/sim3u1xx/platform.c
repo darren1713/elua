@@ -692,7 +692,7 @@ u8 led_repeats_ptr[LED_COUNT] = { 10, 10, 10, 10, 10 };
 u8 * led_pending_mode_ptr[LED_COUNT] = { NULL, NULL, NULL, NULL, NULL };
 u8 led_pending_repeats_ptr[LED_COUNT] = { 0, 0, 0, 0, 0 };
 
-u8 led_mask;
+u8 led_mask = 0x00;
 
 #if defined( PCB_V8 )
 #define LED_PORT 0
