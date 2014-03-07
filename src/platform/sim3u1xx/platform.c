@@ -36,6 +36,7 @@
 #include <SI32_VREG_A_Type.h>
 #include <SI32_PMU_A_Type.h>
 #include <SI32_SARADC_A_Type.h>
+#include <SI32_LDO_A_Type.h>
 #include "myPB.h"
 #include <gVMON0.h>
 #include <gLDO0.h>
@@ -585,7 +586,7 @@ void SecondsTick_Handler()
       cmn_int_handler( INT_BOOT, 0 );
       //printf("wakeup %i\n", load_lua_string("wakeup();\n"));
     }
-    if((external_power() == 0 && !external_buttons()) && !external_io() || rram_read_bit(RRAM_BIT_SLEEP_WHEN_POWERED) == SLEEP_WHEN_POWERED_ACTIVE)
+    if((external_power() == 0 && !external_buttons() && !external_io()) || rram_read_bit(RRAM_BIT_SLEEP_WHEN_POWERED) == SLEEP_WHEN_POWERED_ACTIVE)
     {
       printf("no power %i\n", rram_read_int(RRAM_INT_SLEEPTIME));
       if(sleep_delay > 0)
@@ -2388,10 +2389,20 @@ void sim3_pmu_pm9( unsigned seconds )
 
   // Enter Sleep Mode
   myPB_enter_off_config();
+  
+  //VMON0_enter_power_9_mode_from_normal_power_mode();
+  SI32_VMON_A_disable_vdd_supply_monitor(SI32_VMON_0);
+
+  //LDO0_enter_power_9_mode_from_normal_power_mode();
+  SI32_LDO_A_disable_bias(SI32_LDO_0);
+  SI32_LDO_A_select_low_bias(SI32_LDO_0);
+
+  //VREG0_enter_power_9_mode_from_normal_power_mode();
+  SI32_VREG_A_enter_suspend_mode(SI32_VREG_0);
 #ifndef BLUETOOTH_POWEREDWHILESLEEPING
-  VMON0_enter_power_9_mode_from_normal_power_mode();
-  LDO0_enter_power_9_mode_from_normal_power_mode();
-  VREG0_enter_power_9_mode_from_normal_power_mode();
+  //Disabling this reduces power consumption by 87uA
+  // max 5ma at VDD is not enough for bluetooth module
+  SI32_VREG_A_disable_band_gap(SI32_VREG_0); 
 #endif
   RSTSRC0_enter_power_9_mode_from_normal_power_mode();
 
