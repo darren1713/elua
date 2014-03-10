@@ -320,6 +320,8 @@ extern unsigned console_cdc_active;
 //define DEBUG_I2C
 //define USE_EXTERNAL_MOSFETS
 
+//#define LOW_SYSTEM_CLOCK
+
 enum {
   LED_FADEUP,
   LED_FADEDOWN,

@@ -483,10 +483,12 @@ int platform_init()
 
 void clk_init( void )
 {
-  //SI32_CLKCTRL_A_select_ahb_divider(SI32_CLKCTRL_0, SI32_CLKCTRL_A_CONTROL_AHBDIV_DIV8_VALUE);
+#if defined( LOW_SYSTEM_CLOCK )
+  SI32_CLKCTRL_A_select_ahb_divider(SI32_CLKCTRL_0, SI32_CLKCTRL_A_CONTROL_AHBDIV_DIV4_VALUE);
 
   // Set system clock to AHB divider frequency
-  //SystemCoreClock = 2500000;
+  SystemCoreClock = 5000000;
+#endif
 #if defined( ELUA_BOARD_GSBRD )
   SI32_CLKCTRL_A_enable_apb_to_modules_0(SI32_CLKCTRL_0,
                                          SI32_CLKCTRL_A_APBCLKG0_PB0 |
@@ -1291,6 +1293,11 @@ static SI32_USART_A_Type* const usart[] = { SI32_USART_0, SI32_USART_1 };
 // PB1.14 CTS
 // PB1.15 RTS
 
+// http://stackoverflow.com/a/18067292/105950
+int div_round_closest(const int n, const int d)
+{
+  return ((n < 0) ^ (d < 0)) ? ((n - d/2)/d) : ((n + d/2)/d);
+}
 
 u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int stopbits )
 {
@@ -1300,8 +1307,8 @@ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int st
 
     // Set Baud Rate
     // rate = F_APB / ( N * (R/TBAUD + 1 ) )
-    SI32_USART_A_set_rx_baudrate( usart[ id ], (SystemCoreClock / (2 * baud)) - 1);
-    SI32_USART_A_set_tx_baudrate( usart[ id ], (SystemCoreClock / (2 * baud)) - 1);
+    SI32_USART_A_set_rx_baudrate( usart[ id ], div_round_closest(cmsis_get_cpu_frequency(), (2 * baud)) - 1);
+    SI32_USART_A_set_tx_baudrate( usart[ id ], div_round_closest(cmsis_get_cpu_frequency(), (2 * baud)) - 1);
 
     // Use Asynchronous Mode
     SI32_USART_A_select_tx_asynchronous_mode ( usart[ id ] );
@@ -1368,8 +1375,8 @@ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int st
 
     // Set Baud Rate
     // rate = F_APB / ( N * (R/TBAUD + 1 ) )
-    SI32_UART_A_set_rx_baudrate( uart[ id ], (SystemCoreClock / (2 * baud)) - 1);
-    SI32_UART_A_set_tx_baudrate( uart[ id ], (SystemCoreClock / (2 * baud)) - 1);
+    SI32_UART_A_set_rx_baudrate( uart[ id ], div_round_closest(cmsis_get_cpu_frequency(), (2 * baud)) - 1);
+    SI32_UART_A_set_tx_baudrate( uart[ id ], div_round_closest(cmsis_get_cpu_frequency(), (2 * baud)) - 1);
 
     // Use Asynchronous Mode
     //SI32_UART_A_select_tx_asynchronous_mode ( uart[ id ] );
@@ -1862,7 +1869,7 @@ static SI32_I2C_A_Type* const i2cs[] = { SI32_I2C_0, SI32_I2C_1 };
 
 u32 platform_i2c_setup( unsigned id, u32 speed )
 {
-  SI32_I2C_A_set_scaler_value( i2cs[ id ], ( cmsis_get_cpu_frequency() / speed ) );
+  SI32_I2C_A_set_scaler_value( i2cs[ id ], div_round_closest( cmsis_get_cpu_frequency(), speed ) );
 
   // set SETUP time to non-zero value for repeated starts to function correctly
   SI32_I2C_A_set_extended_data_setup_time(SI32_I2C_0, 0x01);
