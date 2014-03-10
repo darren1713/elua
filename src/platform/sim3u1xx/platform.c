@@ -94,6 +94,12 @@ static void gTIMER1_enter_auto_reload_config(void);
 
 static SI32_PBSTD_A_Type* const port_std[] = { SI32_PBSTD_0, SI32_PBSTD_1, SI32_PBSTD_2, SI32_PBSTD_3 };
 
+// http://stackoverflow.com/a/18067292/105950
+int div_round_closest(const int n, const int d)
+{
+  return ((n < 0) ^ (d < 0)) ? ((n - d/2)/d) : ((n + d/2)/d);
+}
+
 void hard_fault_handler_c(unsigned int * hardfault_args)
 {
   FILE *fp;
@@ -1293,12 +1299,6 @@ static SI32_USART_A_Type* const usart[] = { SI32_USART_0, SI32_USART_1 };
 // PB1.14 CTS
 // PB1.15 RTS
 
-// http://stackoverflow.com/a/18067292/105950
-int div_round_closest(const int n, const int d)
-{
-  return ((n < 0) ^ (d < 0)) ? ((n - d/2)/d) : ((n + d/2)/d);
-}
-
 u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int stopbits )
 {
   if( id < 2 )
@@ -1722,13 +1722,14 @@ void SARADC1_IRQHandler( void )
   }
 }
 
+#define ADC_CLK 1000000
+
 static void adcs_init()
 {
   unsigned id;
   //elua_adc_dev_state *d = adc_get_dev_state( 0 );
-
-  // set SAR clock to operate at 10 MHZ
-  SI32_SARADC_A_select_sar_clock_divider( SI32_ADC, 15 );
+  // Fclk_SAR = (2 x Fapb)/(sar_clk_div +1).
+  SI32_SARADC_A_select_sar_clock_divider( SI32_ADC, ( div_round_closest( 2 * cmsis_get_cpu_frequency(), ADC_CLK )  - 1 ) );
 
   SI32_SARADC_A_select_output_packing_mode_lower_halfword_only( SI32_ADC );
   
