@@ -2225,45 +2225,12 @@ void VREG0_vbus_invalid_handler(void)
 }
 void myPB_enter_off_config()
 {
-  //SI32_PBSTD_A_write_pins_high(SI32_PBSTD_2, 0xC00);
-  /*int i;
-  for( i=0; i<4; i++)
-  {
-    SI32_PBSTD_A_set_pins_digital_input( port_std[ i ], 0xFFFF);
-    SI32_PBSTD_A_disable_pullup_resistors( port_std[ i ] );
-    SI32_PBSTD_A_write_pins_low( port_std[ i ], 0xFFFF );
-  }
-
-   SI32_PBHD_A_disable_bias( SI32_PBHD_4 );
-   SI32_PBHD_A_disable_pin_current_limit( SI32_PBHD_4, 0x3F );
-   SI32_PBHD_A_set_pins_digital_input( SI32_PBHD_4, 0x3F );
-   SI32_PBHD_A_disable_pullup_resistors( SI32_PBHD_4 );
-   SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x3F );*/
-
-
-//  SI32_PBHD_A_set_pins_push_pull_output( SI32_PBHD_4, 0x00 ); //Disable P channel drivers
-//  SI32_PBHD_A_disable_p_channel_drivers( SI32_PBHD_4, 0x3F );
-//  SI32_PBHD_A_disable_n_channel_drivers( SI32_PBHD_4, 0x3F );
-
-  //PBHD to High impedance
-  //SI32_PBHD_A_disable_drivers(SI32_PBHD_4);
-  //SI32_PBHD_A_disable_bias(SI32_PBHD_4);
-
    // all ports hi-z (analog)
   SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_0, 0x0000FFFF);
   SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_1, 0x0000FFFF);
   SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_2, 0x0000FFFF);
   SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_3, 0x0000FFFF);
 
-  //PBHD to High impedance
-  //SI32_PBHD_A_disable_drivers(SI32_PBHD_4);
-  //SI32_PBHD_A_disable_bias(SI32_PBHD_4);
-
-  //PBHD to High impedance
-  //SI32_PBHD_A_set_pins_low_drive_strength(SI32_PBHD_4,0x3F);
-  //SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x3F );
-  ////SI32_PBHD_A_disable_drivers(SI32_PBHD_4);
-  ////SI32_PBHD_A_disable_bias(SI32_PBHD_4);
   SI32_PBCFG_A_unlock_ports(SI32_PBCFG_0);
   SI32_PBHD_A_write_pblock(SI32_PBHD_4, 0x00);
 
@@ -2445,128 +2412,11 @@ void sim3_pmu_pm9( unsigned seconds )
   SI32_RTC_A_start_timer(SI32_RTC_0); //Start count down to wakeup
   myPMU_enter_sleep();
 
-
-
-
-  // GET CURRENT TIMER VALUE INTO SETCAP
-  //--SI32_RTC_A_start_timer_capture(SI32_RTC_0);
-  //--while(SI32_RTC_A_is_timer_capture_in_progress(SI32_RTC_0));
-
-  // SET ALARM FOR now+s
-  // RTC running at 16.384Khz so there are 16384 cycles/sec)
-  //--if( seconds > PIN_CHECK_INTERVAL )
-  //--{
-  //--  rram_reg[0] = seconds - PIN_CHECK_INTERVAL;
-  //--  SI32_RTC_A_write_alarm0(SI32_RTC_0, SI32_RTC_A_read_setcap(SI32_RTC_0) + (16384 * PIN_CHECK_INTERVAL));
-  //--}
-  //--else
-  //--{
-  //--  rram_reg[0] = 0;
-  //--  SI32_RTC_A_write_alarm0(SI32_RTC_0, SI32_RTC_A_read_setcap(SI32_RTC_0) + (16384 * seconds));
-  //--}
-
-  //--SI32_RTC_A_clear_alarm0_interrupt(SI32_RTC_0);
-
-  // Stop USB
-  //--SI32_USB_A_reset_module( SI32_USB_0 );
-  //--NVIC_DisableIRQ(USB0_IRQn);
-  //--SI32_USB_A_disable_module(SI32_USB_0);
-  //--SI32_USB_A_disable_internal_pull_up( SI32_USB_0 );
-
-
-  // Enable RTC alarm interrupt
-  //SI32_RTC_A_enable_alarm0_interrupt(SI32_RTC_0);
-
-  // Disable crossbar peripheral connections
-  //SI32_PBCFG_A_write_xbar1(SI32_PBCFG_0,0x00000000);
-  //SI32_PBCFG_A_write_xbar0h(SI32_PBCFG_0,0x00000000);
-  //SI32_PBCFG_A_write_xbar0l(SI32_PBCFG_0,0x00000000);
-
-  // Set pins as digital inputs, disable pullups and set pins low since
-  // SI32_PBSTD_A_set_pins_digital_input sets latch high
-  //--for( i=0; i<4; i++)
-  //--{
-  //--  SI32_PBSTD_A_set_pins_digital_input( port_std[ i ], 0xFFFF);
-  //--  SI32_PBSTD_A_disable_pullup_resistors( port_std[ i ] );
-  //--  SI32_PBSTD_A_write_pins_low( port_std[ i ], 0xFFFF );
-  //--}
-
-  // Attempt to minimize current on I2C pins by enabling pullups again on
-  // PB0 & resetting pins as digital input (sets latch high)
-  //--SI32_PBSTD_A_enable_pullup_resistors( port_std[ 0 ] );
-  //--SI32_PBSTD_A_set_pins_digital_input( port_std[ 0 ], 0x6000);
-  //SI32_PBSTD_A_enable_pullup_resistors( port_std[ 3 ] );
-
-  // Prep PBHD for PM9 and set up as digital inputs as done with
-  // PBSTD ports.
-  //--SI32_PBHD_A_disable_bias( SI32_PBHD_4 );
-  //--SI32_PBHD_A_disable_pin_current_limit( SI32_PBHD_4, 0x3F );
-  //--SI32_PBHD_A_set_pins_digital_input( SI32_PBHD_4, 0x3F );
-  //--SI32_PBHD_A_disable_pullup_resistors( SI32_PBHD_4 );
-  //--SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x3F );
-
-  // Mask low priority interrupts from waking us
-  //--__set_BASEPRI(0x40);
-
   // DISABLE all wakeup sources
   SI32_PMU_A_write_wakeen(SI32_PMU_0, 0x0);
 
-  // ENABLE RTC_Alarm, RESET pin & Comparator 0 as wake events
-  //SI32_PMU_A_enable_rtc0_alarm_wake_event( SI32_PMU_0 );
-  //SI32_PMU_A_enable_reset_pin_wake_event( SI32_PMU_0 );
-  //SI32_PMU_A_enable_comparator0_wake_event( SI32_PMU_0 );
-
-  // Enable 3.6 (WAKE.10)
-  //SI32_PMU_A_set_pin_wake_events( SI32_PMU_0, (1 << 10), (1 << 10) );
-  //SI32_PMU_A_enable_pin_wake_event( SI32_PMU_0 );
-
-  //SI32_DMACTRL_A_disable_module( SI32_DMACTRL_0 );
-
-  // Switch VREG to low power mode
-  //--SI32_VREG_A_disable_band_gap( SI32_VREG_0 );
-  //--SI32_VREG_A_enter_suspend_mode( SI32_VREG_0 );
-  //SI32_VREG_A_enable_vbus_invalid_interrupt( SI32_VREG_0 );
-  //SI32_PMU_A_enable_pin_wake( SI32_PMU_0 );
-
-  // Disable VDD Monitor
-  //--SI32_VMON_A_disable_vdd_supply_monitor(SI32_VMON_0);
-
-  // CLEAR WAKUP SOURCES
-  //--SI32_PMU_A_clear_wakeup_flags( SI32_PMU_0 );
-
   SI32_RSTSRC_A_enable_power_mode_9(SI32_RSTSRC_0);
   SI32_RSTSRC_A_enable_rtc0_reset_source(SI32_RSTSRC_0);
-  //SI32_RSTSRC_A_enable_comparator0_reset_source( SI32_RSTSRC_0 );
-//  SI32_RSTSRC_0->RESETEN_SET = SI32_RSTSRC_A_RESETEN_WAKEREN_MASK | 0x0000003; //The default value has the first 2 bits set
-
-  // Turn off all peripheral clocks
-  //--SI32_CLKCTRL_A_disable_apb_to_all_modules( SI32_CLKCTRL_0 );
-
-  //PROBLEM: If this is enabled, the PMU STATUS register does not indicate wake from PM9...
-//  SI32_CLKCTRL_A_select_ahb_source_low_frequency_oscillator( SI32_CLKCTRL_0 );
-
-  // SET DEEPSLEEP in SCR (and service all pending interrutps before sleep
-  //--SCB->SCR = 0x14;
-
-  // Switch AHB source to RTC oscillator
-
-  //--__WFI();
-
-  // We should never actually get here...
-
-  //--SI32_PMU_A_clear_pmu_level_shifter_hold(SI32_PMU_0);
-  //--SI32_PMU_A_clear_pin_level_shifter_hold(SI32_PMU_0);
-
-  //--SI32_CLKCTRL_A_select_ahb_source_low_power_oscillator(SI32_CLKCTRL_0);
-
-  // Allow all interrupts
-  //--__set_BASEPRI(0x00);
-
-  // Re-enable clocks used at startup
-  //--clk_init();
-
-  //--SI32_VREG_A_enable_band_gap( SI32_VREG_0 );
-  //--SI32_EXTVREG_A_enable_module( SI32_EXTVREG_0 );
 }
 
 // ****************************************************************************
