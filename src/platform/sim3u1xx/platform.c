@@ -301,7 +301,9 @@ int platform_init()
   clk_init();
 
   //Set flash read speed to slow
-  //SI32_FLASHCTRL_A_select_flash_read_time_slow(SI32_FLASHCTRL_0);
+#if defined( LOW_SYSTEM_CLOCK )
+  SI32_FLASHCTRL_A_select_flash_read_time_slow(SI32_FLASHCTRL_0);
+#endif
 
   SI32_PMU_A_clear_pmu_level_shifter_hold(SI32_PMU_0);
   pmu_status = SI32_PMU_0->STATUS.U32;
