@@ -492,6 +492,7 @@ int platform_init()
 void clk_init( void )
 {
 #if defined( LOW_SYSTEM_CLOCK )
+  while( SI32_CLKCTRL_A_are_system_clocks_busy( SI32_CLKCTRL_0 ) );
   SI32_CLKCTRL_A_select_ahb_divider(SI32_CLKCTRL_0, SI32_CLKCTRL_A_CONTROL_AHBDIV_DIV4_VALUE);
 
   // Set system clock to AHB divider frequency
