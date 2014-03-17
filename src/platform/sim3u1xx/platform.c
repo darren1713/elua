@@ -2197,7 +2197,7 @@ void sim3_pmu_reboot( void )
   NVIC_DisableIRQ(USB0_IRQn);
   SI32_USB_A_disable_module(SI32_USB_0);
   SI32_USB_A_disable_internal_pull_up( SI32_USB_0 );
-  rram_write_int(RRAM_INT_SLEEPTIME, 0);
+  reset_parameters();
 
   SI32_RSTSRC_A_generate_software_reset( SI32_RSTSRC_0 );
 }
@@ -2377,6 +2377,7 @@ void sim3_pmu_pm9( unsigned seconds )
 
   //VREG0_enter_power_9_mode_from_normal_power_mode();
   SI32_VREG_A_enter_suspend_mode(SI32_VREG_0);
+
 #ifndef BLUETOOTH_POWEREDWHILESLEEPING
   //Disabling this reduces power consumption by 87uA
   // max 5ma at VDD is not enough for bluetooth module
