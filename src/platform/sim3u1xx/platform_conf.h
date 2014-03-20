@@ -302,7 +302,8 @@ typedef enum {
     WAKE_WAKEPIN = 0x03,
     WAKE_RTC = 0x04,
     WAKE_POWERCONNECTED = 0x05,
-    WAKE_IO = 0x06
+    WAKE_IO = 0x06,
+    WAKE_WATCHDOG = 0x07
 } wake_type;
 
 extern int wake_reason;

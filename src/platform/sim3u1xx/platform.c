@@ -418,10 +418,13 @@ int platform_init()
     ||  ((reset_status & SI32_RSTSRC_A_RESETFLAG_VMONRF_MASK) == SI32_RSTSRC_A_RESETFLAG_VMONRF_SET_U32)
     ||  ((reset_status & SI32_RSTSRC_A_RESETFLAG_PINRF_MASK) == SI32_RSTSRC_A_RESETFLAG_PINRF_SET_U32)
     ||  ((pmu_status & SI32_PMU_A_STATUS_PORF_MASK) == SI32_PMU_A_STATUS_PORF_SET_U32) 
-    ||  ((pmu_wake_status & SI32_PMU_A_WAKESTATUS_RSTWF_MASK) == SI32_PMU_A_WAKESTATUS_RSTWF_SET_U32) )
+    ||  ((pmu_wake_status & SI32_PMU_A_WAKESTATUS_RSTWF_MASK) == SI32_PMU_A_WAKESTATUS_RSTWF_SET_U32)
+    ||  ((reset_status & SI32_RSTSRC_A_RESETFLAG_WDTRF_MASK) == SI32_RSTSRC_A_RESETFLAG_WDTRF_SET_U32) )
   {
     if((pmu_wake_status & SI32_PMU_A_WAKESTATUS_RSTWF_MASK) == SI32_PMU_A_WAKESTATUS_RSTWF_SET_U32)
       wake_reason = WAKE_RESETPIN;
+    if((reset_status & SI32_RSTSRC_A_RESETFLAG_WDTRF_MASK) == SI32_RSTSRC_A_RESETFLAG_WDTRF_SET_U32)
+      wake_reason = WAKE_WATCHDOG;    
     else if((pmu_status & SI32_PMU_A_STATUS_PWAKEF_MASK) == 0) //Check for pin wake NOTE: SiLabs headers are wrong, this bit is backwards per the manual...
       wake_reason = WAKE_WAKEPIN;
     else
