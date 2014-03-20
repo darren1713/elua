@@ -261,7 +261,7 @@ int external_io()
     }
   }
 #if defined( BLUETOOTH_ENABLE_TDI_DTR )
-  if( !platform_pio_op( 1, 1 << 4, PLATFORM_IO_PIN_GET ) )
+  if( platform_pio_op( 1, 1 << 4, PLATFORM_IO_PIN_GET ) )
     return 1;
 #endif
 #endif
