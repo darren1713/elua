@@ -596,7 +596,7 @@ void SecondsTick_Handler()
 #endif
       //Normally we would run the startup script, but fix memory leaks first...
       //printf("startup %i\n", load_lua_function("autorun"));
-      printf("wakeup\n");
+      //printf("wakeup\n");
       cmn_int_handler( INT_BOOT, 0 );
       //printf("wakeup %i\n", load_lua_string("wakeup();\n"));
     }
@@ -2320,7 +2320,7 @@ void sim3_pmu_pm9( unsigned seconds )
 
   if(seconds != TRICK_TO_REBOOT_WITHOUT_DFU_MODE && external_power() && rram_read_bit(RRAM_BIT_SLEEP_WHEN_POWERED) == SLEEP_WHEN_POWERED_DISABLED)
   {
-    printf("Unit is powered, no PM9\n");
+    //printf("Unit is powered, no PM9\n");
     wake_reason = WAKE_POWERCONNECTED;
     rram_write_int(RRAM_INT_SLEEPTIME, seconds);
     return;
