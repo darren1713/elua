@@ -304,8 +304,9 @@ typedef enum {
     WAKE_RESETPIN = 0x02,
     WAKE_WAKEPIN = 0x03,
     WAKE_RTC = 0x04,
-    WAKE_POWERCONNECTED = 0x05
-
+    WAKE_POWERCONNECTED = 0x05,
+    WAKE_IO = 0x06,
+    WAKE_WATCHDOG = 0x07
 } wake_type;
 
 extern int wake_reason;
@@ -316,18 +317,14 @@ extern unsigned console_cdc_active;
 //#define PCB_V7 !!! this is defined in conf.lua now
 //#define PCB_V7_CHARGER_NPN
 
-//define BLUETOOTH_POWEREDWHILESLEEPING
-#define REBOOT_AT_END_OF_SLEEP
+
+#define BLUETOOTH_ENABLE_TDI_DTR
+#define BLUETOOTH_POWEREDWHILESLEEPING
+//#define REBOOT_AT_END_OF_SLEEP
 //define DEBUG_I2C
 //define USE_EXTERNAL_MOSFETS
 
-/*extern const u8 CLED_FADEUP[];
-extern const u8 CLED_FADEDOWN[];
-extern const u8 CLED_OFF[];
-extern const u8 CLED_ON[];
-extern const u8 CLED_FASTFLASH[];
-extern const u8 CLED_MEDIUMFLASH[];
-extern const u8 CLED_SLOWFLASH[];*/
+//#define LOW_SYSTEM_CLOCK
 
 enum {
   LED_FADEUP,

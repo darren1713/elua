@@ -36,6 +36,7 @@
 #include <SI32_VREG_A_Type.h>
 #include <SI32_PMU_A_Type.h>
 #include <SI32_SARADC_A_Type.h>
+#include <SI32_LDO_A_Type.h>
 #include "myPB.h"
 #include <gVMON0.h>
 #include <gLDO0.h>
@@ -45,7 +46,7 @@
 // ****************************************************************************
 // Platform initialization
 
-#define PIN_CHECK_INTERVAL 120
+#define PIN_CHECK_INTERVAL 10
 int wake_reason = WAKE_UNKNOWN;
 
 // Watchdog timer
@@ -92,6 +93,12 @@ static void gTIMER0_enter_auto_reload_config(void);
 static void gTIMER1_enter_auto_reload_config(void);
 
 static SI32_PBSTD_A_Type* const port_std[] = { SI32_PBSTD_0, SI32_PBSTD_1, SI32_PBSTD_2, SI32_PBSTD_3 };
+
+// http://stackoverflow.com/a/18067292/105950
+int div_round_closest(const int n, const int d)
+{
+  return ((n < 0) ^ (d < 0)) ? ((n - d/2)/d) : ((n + d/2)/d);
+}
 
 void hard_fault_handler_c(unsigned int * hardfault_args)
 {
@@ -253,6 +260,10 @@ int external_io()
       if(!val) return 1;
     }
   }
+#if defined( BLUETOOTH_ENABLE_TDI_DTR )
+  if( platform_pio_op( 1, 1 << 4, PLATFORM_IO_PIN_GET ) )
+    return 1;
+#endif
 #endif
   return 0;
 }
@@ -290,7 +301,9 @@ int platform_init()
   clk_init();
 
   //Set flash read speed to slow
-  //SI32_FLASHCTRL_A_select_flash_read_time_slow(SI32_FLASHCTRL_0);
+#if defined( LOW_SYSTEM_CLOCK )
+  SI32_FLASHCTRL_A_select_flash_read_time_slow(SI32_FLASHCTRL_0);
+#endif
 
   SI32_PMU_A_clear_pmu_level_shifter_hold(SI32_PMU_0);
   pmu_status = SI32_PMU_0->STATUS.U32;
@@ -343,6 +356,8 @@ int platform_init()
   //The pre-generated code for SI32_RSTSRC_A_get_last_reset_source is incorrect and does
   //not take into account PORRF. Also, these registers MUST be read in order PORRF, VMONRF, PINRF
   //as the remainder are invalid if the previous one is set. See table 6.2.
+
+  // Wake from PM9
   if((pmu_status & SI32_PMU_A_STATUS_PM9EF_MASK) == SI32_PMU_A_STATUS_PM9EF_SET_U32)
   {
     //Check for reset pin while in PM9
@@ -379,11 +394,17 @@ int platform_init()
         rram_write_int(RRAM_INT_SLEEPTIME, SLEEP_FOREVER); //will wakeup in 68 years
       } 
 
-      if(external_buttons() || external_power() || external_io())
+      if(external_buttons() || external_power() )
       {
         //Continue on as normal. The timer will count down rram_reg and execute
         //the appropriate script when it reaches zero
         wake_reason = WAKE_POWERCONNECTED;
+      }
+      if( external_io() )
+      {
+        wake_reason = WAKE_IO;
+        //Don't auto-sleep for some period of seconds
+        sleep_delay = 5;
       }
       else if( rram_read_int(RRAM_INT_SLEEPTIME) > 0 )  //Go back to sleep if we woke from a PMU wakeup
       {
@@ -392,15 +413,24 @@ int platform_init()
       }
     }
   }
+  // Wake sources other than PM9
   else if (((reset_status & SI32_RSTSRC_A_RESETFLAG_PORRF_MASK) == SI32_RSTSRC_A_RESETFLAG_PORRF_SET_U32)
     ||  ((reset_status & SI32_RSTSRC_A_RESETFLAG_VMONRF_MASK) == SI32_RSTSRC_A_RESETFLAG_VMONRF_SET_U32)
     ||  ((reset_status & SI32_RSTSRC_A_RESETFLAG_PINRF_MASK) == SI32_RSTSRC_A_RESETFLAG_PINRF_SET_U32)
     ||  ((pmu_status & SI32_PMU_A_STATUS_PORF_MASK) == SI32_PMU_A_STATUS_PORF_SET_U32) 
-    ||  ((pmu_wake_status & SI32_PMU_A_WAKESTATUS_RSTWF_MASK) == SI32_PMU_A_WAKESTATUS_RSTWF_SET_U32) )
+    ||  ((pmu_wake_status & SI32_PMU_A_WAKESTATUS_RSTWF_MASK) == SI32_PMU_A_WAKESTATUS_RSTWF_SET_U32)
+    ||  ((reset_status & SI32_RSTSRC_A_RESETFLAG_WDTRF_MASK) == SI32_RSTSRC_A_RESETFLAG_WDTRF_SET_U32) )
   {
-    //Fresh powerup! Reset our retained ram registers
+    if((pmu_wake_status & SI32_PMU_A_WAKESTATUS_RSTWF_MASK) == SI32_PMU_A_WAKESTATUS_RSTWF_SET_U32)
+      wake_reason = WAKE_RESETPIN;
+    if((reset_status & SI32_RSTSRC_A_RESETFLAG_WDTRF_MASK) == SI32_RSTSRC_A_RESETFLAG_WDTRF_SET_U32)
+      wake_reason = WAKE_WATCHDOG;    
+    else if((pmu_status & SI32_PMU_A_STATUS_PWAKEF_MASK) == 0) //Check for pin wake NOTE: SiLabs headers are wrong, this bit is backwards per the manual...
+      wake_reason = WAKE_WAKEPIN;
+    else
+      wake_reason = WAKE_POWERUP;
+
     reset_parameters();
-    wake_reason = WAKE_POWERUP;
   }
 
 #endif
@@ -464,10 +494,13 @@ int platform_init()
 
 void clk_init( void )
 {
-  //SI32_CLKCTRL_A_select_ahb_divider(SI32_CLKCTRL_0, SI32_CLKCTRL_A_CONTROL_AHBDIV_DIV8_VALUE);
+#if defined( LOW_SYSTEM_CLOCK )
+  while( SI32_CLKCTRL_A_are_system_clocks_busy( SI32_CLKCTRL_0 ) );
+  SI32_CLKCTRL_A_select_ahb_divider(SI32_CLKCTRL_0, SI32_CLKCTRL_A_CONTROL_AHBDIV_DIV4_VALUE);
 
   // Set system clock to AHB divider frequency
-  //SystemCoreClock = 2500000;
+  SystemCoreClock = 5000000;
+#endif
 #if defined( ELUA_BOARD_GSBRD )
   SI32_CLKCTRL_A_enable_apb_to_modules_0(SI32_CLKCTRL_0,
                                          SI32_CLKCTRL_A_APBCLKG0_PB0 |
@@ -563,11 +596,11 @@ void SecondsTick_Handler()
 #endif
       //Normally we would run the startup script, but fix memory leaks first...
       //printf("startup %i\n", load_lua_function("autorun"));
-      printf("wakeup\n");
+      //printf("wakeup\n");
       cmn_int_handler( INT_BOOT, 0 );
       //printf("wakeup %i\n", load_lua_string("wakeup();\n"));
     }
-    if((external_power() == 0 && !external_buttons()) || rram_read_bit(RRAM_BIT_SLEEP_WHEN_POWERED) == SLEEP_WHEN_POWERED_ACTIVE)
+    if((external_power() == 0 && !external_buttons() && !external_io()) || rram_read_bit(RRAM_BIT_SLEEP_WHEN_POWERED) == SLEEP_WHEN_POWERED_ACTIVE)
     {
       printf("no power %i\n", rram_read_int(RRAM_INT_SLEEPTIME));
       if(sleep_delay > 0)
@@ -598,11 +631,18 @@ static u8 seconds_tick_pending = 0;
 void TIMER0H_IRQHandler(void)
 { 
 #if defined( BUILD_USB_CDC )
+  usb_pcb_t *pcb = usb_pcb_get();
   //Check if USB is powered. It will not actually TX/RX unless enumerated though
   if( SI32_VREG_A_is_vbus_valid( SI32_VREG_0 ) )
+  {
     console_cdc_active = 1;
+    pcb->connected = true;
+  }
   else
+  {
     console_cdc_active = 0;
+    pcb->connected = false;
+  }
 
   if( console_cdc_active )
     usb_poll();
@@ -655,7 +695,7 @@ static u8 const * led_cled_ptr[] = {
   CLED_FLASH5
 };
 
-#define LEDTICKHZ 1250
+#define LEDTICKHZ 800
 u8 led_pointer_tick = 0;
 u8 led_tick = 0;
 u8 led_repeat_tick = 0;
@@ -677,7 +717,7 @@ u8 led_repeats_ptr[LED_COUNT] = { 10, 10, 10, 10, 10 };
 u8 * led_pending_mode_ptr[LED_COUNT] = { NULL, NULL, NULL, NULL, NULL };
 u8 led_pending_repeats_ptr[LED_COUNT] = { 0, 0, 0, 0, 0 };
 
-u8 led_mask;
+u8 led_mask = 0x00;
 
 #if defined( PCB_V8 )
 #define LED_PORT 0
@@ -690,28 +730,6 @@ void TIMER1H_IRQHandler(void)
   led_ticks=((led_ticks+1) & 0x0F);
   if(!led_ticks)
   {
-#if defined( PCB_V8 )
-    //turn LED's off. 6 LEDS are on P0
-    SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ],
-        ( ( u32 ) 1 << 4 ) |
-        ( ( u32 ) 1 << 5 ) |
-        ( ( u32 ) 1 << 6 ) |
-        ( ( u32 ) 1 << 7 ) |
-        ( ( u32 ) 1 << 8 ) |
-        ( ( u32 ) 1 << 9 )
-         );
-#else
-    //turn LED's off. 5 LEDS are on P2 and the on board blue LED is on P4.3
-    SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], 
-        ( ( u32 ) 1 << 5 ) |
-        ( ( u32 ) 1 << 6 ) |
-        ( ( u32 ) 1 << 7 ) |
-        ( ( u32 ) 1 << 8 ) |
-        ( ( u32 ) 1 << 9 )
-         );
-    SI32_PBHD_A_write_pins_low( SI32_PBHD_4, ( ( u32 ) 1 << 3 ) );
-#endif
-
     if(led_pointer_tick == 3)
     {
       led_pointer_tick = 0;
@@ -750,34 +768,65 @@ void TIMER1H_IRQHandler(void)
     }
     led_pointer_tick++;
   }
-
-  if(led_ticks > led_ticks_ptr[0] && (led_mask & 1 ) )
-    SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 5 ) );
-  if(led_ticks > led_ticks_ptr[1] && (led_mask & 1<<1 ) ) 
-    SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 6 ) );
-  #if !defined( MEMBRANE_V1)
-  #if defined( PCB_V8 )
-    SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 4 ) );
-  #else
-    SI32_PBHD_A_write_pins_high( SI32_PBHD_4, ( ( u32 ) 1 << 3 ) );
-  #endif
-  #endif
-  if(led_ticks > led_ticks_ptr[2] && (led_mask & 1<<2 ) )
+  else
   {
-  #if defined( MEMBRANE_V1)
-  #if defined( PCB_V8 )
-    SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 4 ) );
-  #else
-    SI32_PBHD_A_write_pins_high( SI32_PBHD_4, ( ( u32 ) 1 << 3 ) );
-  #endif
-  #endif
-    SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 7 ) );
+    if(led_ticks > led_ticks_ptr[0] && (led_mask & 1 ) )
+      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 5 ) );
+    else
+      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << 5 ) );
+    if(led_ticks > led_ticks_ptr[1] && (led_mask & 1<<1 ) )
+    {
+      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 6 ) );
+    #if !defined( MEMBRANE_V1)
+    #if defined( PCB_V8 )
+      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 4 ) );
+    #else
+      SI32_PBHD_A_write_pins_high( SI32_PBHD_4, ( ( u32 ) 1 << 3 ) );
+    #endif
+    #endif
+    }
+    else
+    {
+      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << 6 ) );
+    #if !defined( MEMBRANE_V1)
+    #if defined( PCB_V8 )
+      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << 4 ) );
+    #else
+      SI32_PBHD_A_write_pins_low( SI32_PBHD_4, ( ( u32 ) 1 << 3 ) );
+    #endif
+    #endif
+    }
+    if(led_ticks > led_ticks_ptr[2] && (led_mask & 1<<2 ) )
+    {
+    #if defined( MEMBRANE_V1)
+    #if defined( PCB_V8 )
+      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 4 ) );
+    #else
+      SI32_PBHD_A_write_pins_high( SI32_PBHD_4, ( ( u32 ) 1 << 3 ) );
+    #endif
+    #endif
+      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 7 ) );
+    }
+    else
+    {
+    #if defined( MEMBRANE_V1)
+    #if defined( PCB_V8 )
+      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << 4 ) );
+    #else
+      SI32_PBHD_A_write_pins_low( SI32_PBHD_4, ( ( u32 ) 1 << 3 ) );
+    #endif
+    #endif
+      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << 7 ) );
+    }
+    if(led_ticks > led_ticks_ptr[3] && (led_mask & 1<<3 ) )
+      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 8 ) );
+    else
+      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << 8 ) );
+    if(led_ticks > led_ticks_ptr[4] && (led_mask & 1<<4 ) )
+      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 9 ) );
+    else
+      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << 9 ) );
   }
-  if(led_ticks > led_ticks_ptr[3] && (led_mask & 1<<3 ) )
-    SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 8 ) );
-  if(led_ticks > led_ticks_ptr[4] && (led_mask & 1<<4 ) )
-    SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 9 ) );
- 
   // Clear the interrupt flag
   SI32_TIMER_A_clear_high_overflow_interrupt(SI32_TIMER_1);
 }
@@ -953,6 +1002,10 @@ void pios_init( void )
   // PB1 Setup
   SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_1, 0x03A1);
   SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_1, 0xFC1C);
+
+#if defined( BLUETOOTH_ENABLE_TDI_DTR )
+  SI32_PBSTD_A_set_pins_digital_input( SI32_PBSTD_1, 1 << 4 );
+#endif
 
   // Analog Pins (1.14 & 1.15)
   SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_1, 0xC000);
@@ -1252,7 +1305,6 @@ static SI32_USART_A_Type* const usart[] = { SI32_USART_0, SI32_USART_1 };
 // PB1.14 CTS
 // PB1.15 RTS
 
-
 u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int stopbits )
 {
   if( id < 2 )
@@ -1261,8 +1313,8 @@ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int st
 
     // Set Baud Rate
     // rate = F_APB / ( N * (R/TBAUD + 1 ) )
-    SI32_USART_A_set_rx_baudrate( usart[ id ], (SystemCoreClock / (2 * baud)) - 1);
-    SI32_USART_A_set_tx_baudrate( usart[ id ], (SystemCoreClock / (2 * baud)) - 1);
+    SI32_USART_A_set_rx_baudrate( usart[ id ], div_round_closest(cmsis_get_cpu_frequency(), (2 * baud)) - 1);
+    SI32_USART_A_set_tx_baudrate( usart[ id ], div_round_closest(cmsis_get_cpu_frequency(), (2 * baud)) - 1);
 
     // Use Asynchronous Mode
     SI32_USART_A_select_tx_asynchronous_mode ( usart[ id ] );
@@ -1329,8 +1381,8 @@ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int st
 
     // Set Baud Rate
     // rate = F_APB / ( N * (R/TBAUD + 1 ) )
-    SI32_UART_A_set_rx_baudrate( uart[ id ], (SystemCoreClock / (2 * baud)) - 1);
-    SI32_UART_A_set_tx_baudrate( uart[ id ], (SystemCoreClock / (2 * baud)) - 1);
+    SI32_UART_A_set_rx_baudrate( uart[ id ], div_round_closest(cmsis_get_cpu_frequency(), (2 * baud)) - 1);
+    SI32_UART_A_set_tx_baudrate( uart[ id ], div_round_closest(cmsis_get_cpu_frequency(), (2 * baud)) - 1);
 
     // Use Asynchronous Mode
     //SI32_UART_A_select_tx_asynchronous_mode ( uart[ id ] );
@@ -1676,13 +1728,14 @@ void SARADC1_IRQHandler( void )
   }
 }
 
+#define ADC_CLK 1000000
+
 static void adcs_init()
 {
   unsigned id;
   //elua_adc_dev_state *d = adc_get_dev_state( 0 );
-
-  // set SAR clock to operate at 10 MHZ
-  SI32_SARADC_A_select_sar_clock_divider( SI32_ADC, 15 );
+  // Fclk_SAR = (2 x Fapb)/(sar_clk_div +1).
+  SI32_SARADC_A_select_sar_clock_divider( SI32_ADC, ( div_round_closest( 2 * cmsis_get_cpu_frequency(), ADC_CLK )  - 1 ) );
 
   SI32_SARADC_A_select_output_packing_mode_lower_halfword_only( SI32_ADC );
   
@@ -1823,7 +1876,7 @@ static SI32_I2C_A_Type* const i2cs[] = { SI32_I2C_0, SI32_I2C_1 };
 
 u32 platform_i2c_setup( unsigned id, u32 speed )
 {
-  SI32_I2C_A_set_scaler_value( i2cs[ id ], ( cmsis_get_cpu_frequency() / speed ) );
+  SI32_I2C_A_set_scaler_value( i2cs[ id ], div_round_closest( cmsis_get_cpu_frequency(), speed ) );
 
   // set SETUP time to non-zero value for repeated starts to function correctly
   SI32_I2C_A_set_extended_data_setup_time(SI32_I2C_0, 0x01);
@@ -2147,7 +2200,7 @@ void sim3_pmu_reboot( void )
   NVIC_DisableIRQ(USB0_IRQn);
   SI32_USB_A_disable_module(SI32_USB_0);
   SI32_USB_A_disable_internal_pull_up( SI32_USB_0 );
-  rram_write_int(RRAM_INT_SLEEPTIME, 0);
+  reset_parameters();
 
   SI32_RSTSRC_A_generate_software_reset( SI32_RSTSRC_0 );
 }
@@ -2176,51 +2229,12 @@ void VREG0_vbus_invalid_handler(void)
 }
 void myPB_enter_off_config()
 {
-  //SI32_PBSTD_A_write_pins_high(SI32_PBSTD_2, 0xC00);
-  /*int i;
-  for( i=0; i<4; i++)
-  {
-    SI32_PBSTD_A_set_pins_digital_input( port_std[ i ], 0xFFFF);
-    SI32_PBSTD_A_disable_pullup_resistors( port_std[ i ] );
-    SI32_PBSTD_A_write_pins_low( port_std[ i ], 0xFFFF );
-  }
-
-   SI32_PBHD_A_disable_bias( SI32_PBHD_4 );
-   SI32_PBHD_A_disable_pin_current_limit( SI32_PBHD_4, 0x3F );
-   SI32_PBHD_A_set_pins_digital_input( SI32_PBHD_4, 0x3F );
-   SI32_PBHD_A_disable_pullup_resistors( SI32_PBHD_4 );
-   SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x3F );*/
-
-
-//  SI32_PBHD_A_set_pins_push_pull_output( SI32_PBHD_4, 0x00 ); //Disable P channel drivers
-//  SI32_PBHD_A_disable_p_channel_drivers( SI32_PBHD_4, 0x3F );
-//  SI32_PBHD_A_disable_n_channel_drivers( SI32_PBHD_4, 0x3F );
-
-  // all ports hi-z (analog)
-  //SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_0, 0x0000FFFF);
-  //SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_1, 0x0000FFFF);
-  //SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_2, 0x0000FFFF);
-  //SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_3, 0x0000FFFF);
-
-  //PBHD to High impedance
-  //SI32_PBHD_A_disable_drivers(SI32_PBHD_4);
-  //SI32_PBHD_A_disable_bias(SI32_PBHD_4);
-
    // all ports hi-z (analog)
   SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_0, 0x0000FFFF);
   SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_1, 0x0000FFFF);
   SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_2, 0x0000FFFF);
   SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_3, 0x0000FFFF);
 
-  //PBHD to High impedance
-  //SI32_PBHD_A_disable_drivers(SI32_PBHD_4);
-  //SI32_PBHD_A_disable_bias(SI32_PBHD_4);
-
-  //PBHD to High impedance
-  //SI32_PBHD_A_set_pins_low_drive_strength(SI32_PBHD_4,0x3F);
-  //SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x3F );
-  ////SI32_PBHD_A_disable_drivers(SI32_PBHD_4);
-  ////SI32_PBHD_A_disable_bias(SI32_PBHD_4);
   SI32_PBCFG_A_unlock_ports(SI32_PBCFG_0);
   SI32_PBHD_A_write_pblock(SI32_PBHD_4, 0x00);
 
@@ -2235,10 +2249,18 @@ void myPB_enter_off_config()
   for( i=0; i<4; i++)
   {
     SI32_PBSTD_A_set_pins_analog(port_std[ i ], 0x0000);
+       // basePointer->PBMDSEL_CLR = pin_mask;
+       // basePointer->PB_SET      = pin_mask;
     SI32_PBSTD_A_write_pbskipen(port_std[ i ], 0xFFFF);
+       // basePointer->PBSKIPEN.U32 = pbskipen;
     SI32_PBSTD_A_set_pins_digital_input( port_std[ i ], 0xFFFF);
+       // basePointer->PBOUTMD_CLR = pin_mask;
+       // basePointer->PB_SET      = pin_mask;
+       // basePointer->PBMDSEL_SET = pin_mask;
     SI32_PBSTD_A_disable_pullup_resistors( port_std[ i ] );
+       // basePointer->PBDRV_CLR = SI32_PBSTD_A_PBDRV_PBPUEN_MASK;
     SI32_PBSTD_A_write_pins_low( port_std[ i ], 0xFFFF );
+       // basePointer->PB_CLR = pin_mask
   }
 
   //JEFF TEST
@@ -2250,13 +2272,21 @@ void myPB_enter_off_config()
   SI32_PBSTD_A_set_pins_analog( SI32_PBSTD_0, 0x0000C000);
   SI32_PBSTD_A_write_pins_low( SI32_PBSTD_0, 0xC000 );
 #ifdef BLUETOOTH_POWEREDWHILESLEEPING
-  //Set bluetooth pins to analog float...
+  //Set bluetooth pins to analog high...
   SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 0x0080);
   SI32_PBSTD_A_write_pins_high( SI32_PBSTD_1, 0x0080 );
+  SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_0, 1 << 12);
+  SI32_PBSTD_A_write_pins_high( SI32_PBSTD_0, 1 << 12 );
 #endif
-  //Set 5V pin to analog float...
+
+  //Set 5V pin to analog high...
   SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 0x00000200);
   SI32_PBSTD_A_write_pins_low( SI32_PBSTD_1, 0x0200 );
+
+#if defined( PCB_V7 ) || defined( PCB_V8 )
+  SI32_PBSTD_A_set_pins_digital_input( SI32_PBSTD_2, 0x0002 );
+  SI32_PBSTD_A_set_pins_digital_input( SI32_PBSTD_3, 1 << 9 );
+#endif
   
   SI32_PBHD_A_set_pins_push_pull_output( SI32_PBHD_4, 0x00 );
   SI32_PBHD_A_set_pins_low_drive_strength(SI32_PBHD_4, 0x3F);
@@ -2270,7 +2300,7 @@ void myPB_enter_off_config()
 #if defined( PCB_V7_CHARGER_NPN ) || defined( PCB_V8 )
   //PB4.2 is set low above which disables the NPN so do nothing
 #else
-  //PB4.2 Set the disconnect mosfets to float!
+  //PB4.2 Set the disconnect mosfets to high!
   SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x04 );
   SI32_PBHD_A_set_pins_analog( SI32_PBHD_4, 0x04 );
 #endif
@@ -2290,7 +2320,7 @@ void sim3_pmu_pm9( unsigned seconds )
 
   if(seconds != TRICK_TO_REBOOT_WITHOUT_DFU_MODE && external_power() && rram_read_bit(RRAM_BIT_SLEEP_WHEN_POWERED) == SLEEP_WHEN_POWERED_DISABLED)
   {
-    printf("Unit is powered, no PM9\n");
+    //printf("Unit is powered, no PM9\n");
     wake_reason = WAKE_POWERCONNECTED;
     rram_write_int(RRAM_INT_SLEEPTIME, seconds);
     return;
@@ -2340,10 +2370,21 @@ void sim3_pmu_pm9( unsigned seconds )
 
   // Enter Sleep Mode
   myPB_enter_off_config();
+  
+  //VMON0_enter_power_9_mode_from_normal_power_mode();
+  SI32_VMON_A_disable_vdd_supply_monitor(SI32_VMON_0);
+
+  //LDO0_enter_power_9_mode_from_normal_power_mode();
+  SI32_LDO_A_disable_bias(SI32_LDO_0);
+  SI32_LDO_A_select_low_bias(SI32_LDO_0);
+
+  //VREG0_enter_power_9_mode_from_normal_power_mode();
+  SI32_VREG_A_enter_suspend_mode(SI32_VREG_0);
+
 #ifndef BLUETOOTH_POWEREDWHILESLEEPING
-  VMON0_enter_power_9_mode_from_normal_power_mode();
-  LDO0_enter_power_9_mode_from_normal_power_mode();
-  VREG0_enter_power_9_mode_from_normal_power_mode();
+  //Disabling this reduces power consumption by 87uA
+  // max 5ma at VDD is not enough for bluetooth module
+  SI32_VREG_A_disable_band_gap(SI32_VREG_0); 
 #endif
   RSTSRC0_enter_power_9_mode_from_normal_power_mode();
 
@@ -2376,128 +2417,11 @@ void sim3_pmu_pm9( unsigned seconds )
   SI32_RTC_A_start_timer(SI32_RTC_0); //Start count down to wakeup
   myPMU_enter_sleep();
 
-
-
-
-  // GET CURRENT TIMER VALUE INTO SETCAP
-  //--SI32_RTC_A_start_timer_capture(SI32_RTC_0);
-  //--while(SI32_RTC_A_is_timer_capture_in_progress(SI32_RTC_0));
-
-  // SET ALARM FOR now+s
-  // RTC running at 16.384Khz so there are 16384 cycles/sec)
-  //--if( seconds > PIN_CHECK_INTERVAL )
-  //--{
-  //--  rram_reg[0] = seconds - PIN_CHECK_INTERVAL;
-  //--  SI32_RTC_A_write_alarm0(SI32_RTC_0, SI32_RTC_A_read_setcap(SI32_RTC_0) + (16384 * PIN_CHECK_INTERVAL));
-  //--}
-  //--else
-  //--{
-  //--  rram_reg[0] = 0;
-  //--  SI32_RTC_A_write_alarm0(SI32_RTC_0, SI32_RTC_A_read_setcap(SI32_RTC_0) + (16384 * seconds));
-  //--}
-
-  //--SI32_RTC_A_clear_alarm0_interrupt(SI32_RTC_0);
-
-  // Stop USB
-  //--SI32_USB_A_reset_module( SI32_USB_0 );
-  //--NVIC_DisableIRQ(USB0_IRQn);
-  //--SI32_USB_A_disable_module(SI32_USB_0);
-  //--SI32_USB_A_disable_internal_pull_up( SI32_USB_0 );
-
-
-  // Enable RTC alarm interrupt
-  //SI32_RTC_A_enable_alarm0_interrupt(SI32_RTC_0);
-
-  // Disable crossbar peripheral connections
-  //SI32_PBCFG_A_write_xbar1(SI32_PBCFG_0,0x00000000);
-  //SI32_PBCFG_A_write_xbar0h(SI32_PBCFG_0,0x00000000);
-  //SI32_PBCFG_A_write_xbar0l(SI32_PBCFG_0,0x00000000);
-
-  // Set pins as digital inputs, disable pullups and set pins low since
-  // SI32_PBSTD_A_set_pins_digital_input sets latch high
-  //--for( i=0; i<4; i++)
-  //--{
-  //--  SI32_PBSTD_A_set_pins_digital_input( port_std[ i ], 0xFFFF);
-  //--  SI32_PBSTD_A_disable_pullup_resistors( port_std[ i ] );
-  //--  SI32_PBSTD_A_write_pins_low( port_std[ i ], 0xFFFF );
-  //--}
-
-  // Attempt to minimize current on I2C pins by enabling pullups again on
-  // PB0 & resetting pins as digital input (sets latch high)
-  //--SI32_PBSTD_A_enable_pullup_resistors( port_std[ 0 ] );
-  //--SI32_PBSTD_A_set_pins_digital_input( port_std[ 0 ], 0x6000);
-  //SI32_PBSTD_A_enable_pullup_resistors( port_std[ 3 ] );
-
-  // Prep PBHD for PM9 and set up as digital inputs as done with
-  // PBSTD ports.
-  //--SI32_PBHD_A_disable_bias( SI32_PBHD_4 );
-  //--SI32_PBHD_A_disable_pin_current_limit( SI32_PBHD_4, 0x3F );
-  //--SI32_PBHD_A_set_pins_digital_input( SI32_PBHD_4, 0x3F );
-  //--SI32_PBHD_A_disable_pullup_resistors( SI32_PBHD_4 );
-  //--SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x3F );
-
-  // Mask low priority interrupts from waking us
-  //--__set_BASEPRI(0x40);
-
   // DISABLE all wakeup sources
   SI32_PMU_A_write_wakeen(SI32_PMU_0, 0x0);
 
-  // ENABLE RTC_Alarm, RESET pin & Comparator 0 as wake events
-  //SI32_PMU_A_enable_rtc0_alarm_wake_event( SI32_PMU_0 );
-  //SI32_PMU_A_enable_reset_pin_wake_event( SI32_PMU_0 );
-  //SI32_PMU_A_enable_comparator0_wake_event( SI32_PMU_0 );
-
-  // Enable 3.6 (WAKE.10)
-  //SI32_PMU_A_set_pin_wake_events( SI32_PMU_0, (1 << 10), (1 << 10) );
-  //SI32_PMU_A_enable_pin_wake_event( SI32_PMU_0 );
-
-  //SI32_DMACTRL_A_disable_module( SI32_DMACTRL_0 );
-
-  // Switch VREG to low power mode
-  //--SI32_VREG_A_disable_band_gap( SI32_VREG_0 );
-  //--SI32_VREG_A_enter_suspend_mode( SI32_VREG_0 );
-  //SI32_VREG_A_enable_vbus_invalid_interrupt( SI32_VREG_0 );
-  //SI32_PMU_A_enable_pin_wake( SI32_PMU_0 );
-
-  // Disable VDD Monitor
-  //--SI32_VMON_A_disable_vdd_supply_monitor(SI32_VMON_0);
-
-  // CLEAR WAKUP SOURCES
-  //--SI32_PMU_A_clear_wakeup_flags( SI32_PMU_0 );
-
   SI32_RSTSRC_A_enable_power_mode_9(SI32_RSTSRC_0);
   SI32_RSTSRC_A_enable_rtc0_reset_source(SI32_RSTSRC_0);
-  //SI32_RSTSRC_A_enable_comparator0_reset_source( SI32_RSTSRC_0 );
-//  SI32_RSTSRC_0->RESETEN_SET = SI32_RSTSRC_A_RESETEN_WAKEREN_MASK | 0x0000003; //The default value has the first 2 bits set
-
-  // Turn off all peripheral clocks
-  //--SI32_CLKCTRL_A_disable_apb_to_all_modules( SI32_CLKCTRL_0 );
-
-  //PROBLEM: If this is enabled, the PMU STATUS register does not indicate wake from PM9...
-//  SI32_CLKCTRL_A_select_ahb_source_low_frequency_oscillator( SI32_CLKCTRL_0 );
-
-  // SET DEEPSLEEP in SCR (and service all pending interrutps before sleep
-  //--SCB->SCR = 0x14;
-
-  // Switch AHB source to RTC oscillator
-
-  //--__WFI();
-
-  // We should never actually get here...
-
-  //--SI32_PMU_A_clear_pmu_level_shifter_hold(SI32_PMU_0);
-  //--SI32_PMU_A_clear_pin_level_shifter_hold(SI32_PMU_0);
-
-  //--SI32_CLKCTRL_A_select_ahb_source_low_power_oscillator(SI32_CLKCTRL_0);
-
-  // Allow all interrupts
-  //--__set_BASEPRI(0x00);
-
-  // Re-enable clocks used at startup
-  //--clk_init();
-
-  //--SI32_VREG_A_enable_band_gap( SI32_VREG_0 );
-  //--SI32_EXTVREG_A_enable_module( SI32_EXTVREG_0 );
 }
 
 // ****************************************************************************
@@ -2761,53 +2685,5 @@ int platform_usb_cdc_recv( s32 timeout )
 // {
 //   return 0;
 // }
-
-// Some extra Lua functions...need to find a home in a better place...
-
-/*
-int load_lua_string (const char *s) {
-  lua_State *L = lua_getstate();
-
-  if(L == NULL)
-    return 0;
-
-  if (luaL_loadstring(L, s) || lua_pcall(L, 0, 0, 0))
-    return 0;
-
-  return 1;
-}
-
-int load_lua_file (char *filename) {
-  lua_State *L = lua_getstate();
-
-  if(L == NULL)
-    return 0;
-
-  if (luaL_loadfile(L, filename) || lua_pcall(L, 0, 0, 0))
-    return 0;
-
-  return 1;
-}
-
-int load_lua_function (char *func) {
-  lua_State *L = lua_getstate();
-
-  if(L == NULL)
-    return 0;
-
-  lua_getglobal( L, func );
-
-  if (! LUA_ISCALLABLE(L, -1))
-  {
-    printf("No function %s\n", func);
-    return 0;
-  }
-
-//  if (lua_pcall(L, 0, 0, 0))
-  lua_call(L, 0, 0);
-  //  return 0;
-  lua_settop ( L, 0 );
-  return 1;
-}*/
 
 // #endif // #ifdef ENABLE_PMU
