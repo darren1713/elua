@@ -792,7 +792,7 @@ int wofs_repack(  void )
         {
           printf("Erasing2: %d\n", last_sector);
           bit_array_set(freed_sectors, last_sector, 1);
-          if( platform_flash_erase_sector( i ) == PLATFORM_ERR )
+          if( platform_flash_erase_sector( last_sector ) == PLATFORM_ERR )
           {
             printf("Couldn't erase: %d", last_sector);
             return 0;
@@ -864,7 +864,7 @@ int wofs_repack(  void )
       {
         printf("Erasing3: %d\n", last_sector);
         bit_array_set(freed_sectors, last_sector, 1);
-        if( platform_flash_erase_sector( i ) == PLATFORM_ERR )
+        if( platform_flash_erase_sector( last_sector ) == PLATFORM_ERR )
         {
           printf("Couldn't erase: %d", last_sector);
           return 0;
