@@ -50,10 +50,10 @@
 int wake_reason = WAKE_UNKNOWN;
 
 // Watchdog timer
-#define EARLY_WARNING_DELAY_MS        1000   // Will result in approx a 1 s
+#define EARLY_WARNING_DELAY_MS        500   // Will result in approx a 1 s
                                              // periodic early warning interrupt
 
-#define RESET_DELAY_MS                2000  // Will result in approx a 2 s
+#define RESET_DELAY_MS                3000  // Will result in approx a 2 s
                                             // reset delay (if early warning isn't captured)
 
 #define EARLY_WARNING_THRESHOLD       (uint32_t)((16400*EARLY_WARNING_DELAY_MS)/1000)
