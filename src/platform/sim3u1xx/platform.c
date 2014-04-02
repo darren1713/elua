@@ -2469,6 +2469,7 @@ u8 flash_erase( u32 address, u8 verify)
 
     // Disable interrupts
     //hw_intp_disable();
+    __disable_irq();
 
     // Unlock the flash interface for a single access
     armed_flash_key = flash_key_mask ^ 0xA4;
@@ -2481,7 +2482,10 @@ u8 flash_erase( u32 address, u8 verify)
     SI32_FLASHCTRL_A_write_wrdata(SI32_FLASHCTRL_0, 0xA5);
 
     // Wait for flash operation to complete
-    while (SI32_FLASHCTRL_A_is_flash_busy(SI32_FLASHCTRL_0));
+    while (SI32_FLASHCTRL_A_is_flash_busy(SI32_FLASHCTRL_0))
+    {
+      WDTIMER0_IRQHandler();
+    }
 
     if( verify )
     {
@@ -2499,6 +2503,7 @@ u8 flash_erase( u32 address, u8 verify)
     }
 
     //hw_intp_enable();
+    __enable_irq();
 
     return 0;
 }
@@ -2517,6 +2522,7 @@ u8 flash_write( u32 address, u32* data, u32 count, u8 verify )
 
     // disable interrupts
     //hw_intp_disable();
+    __disable_irq();
 
     // Unlock flash interface for multiple accesses
     armed_flash_key = flash_key_mask ^ 0xA4;
@@ -2531,13 +2537,17 @@ u8 flash_write( u32 address, u32* data, u32 count, u8 verify )
         SI32_FLASHCTRL_A_write_wrdata( SI32_FLASHCTRL_0, *data );
         SI32_FLASHCTRL_A_write_wrdata( SI32_FLASHCTRL_0, *data >> 16 );
         data++;
+        WDTIMER0_IRQHandler();
     }
 
     // Relock flash interface
     SI32_FLASHCTRL_A_write_flash_key( SI32_FLASHCTRL_0, 0x5A );
 
     // Wait for flash operation to complete
-    while( SI32_FLASHCTRL_A_is_flash_busy(SI32_FLASHCTRL_0 ) );
+    while( SI32_FLASHCTRL_A_is_flash_busy(SI32_FLASHCTRL_0 ) )
+    {
+      WDTIMER0_IRQHandler();
+    }
 
     if( verify )
     {
@@ -2556,6 +2566,7 @@ u8 flash_write( u32 address, u32* data, u32 count, u8 verify )
 
     // re-enable interrupts
     //hw_intp_enable();
+    __enable_irq();
 
     return 0;
 }
