@@ -94,6 +94,10 @@ static u8 romfs_open_file( const char* fname, FD* pfd, FSDATA *pfs, u32 *plast, 
   u32 fsize;
   int is_deleted;
 
+  if( !pfs->ready )
+    return FS_FILE_NOT_FOUND;
+
+
 #ifdef ROMFS_SECURE_FILENAMES_WITH_CHAR
   if(romfs_security_lock && strstr(fname,ROMFS_SECURE_FILENAMES_WITH_CHAR) != NULL)
     return FS_FILE_NOT_FOUND;
@@ -506,7 +510,8 @@ static const FSDATA romfs_fsdata =
   ROMFS_FS_FLAG_DIRECT,
   NULL,
   NULL,
-  sizeof( romfiles_fs )
+  sizeof( romfiles_fs ),
+  1
 };
 
 // ****************************************************************************
@@ -569,6 +574,7 @@ static FSDATA wofs_fsdata =
   ROMFS_FS_FLAG_WO | ROMFS_FS_FLAG_DIRECT,
   NULL,
   sim_wofs_write,
+  0,
   0
 };
 
@@ -680,7 +686,7 @@ int bit_array_get_lowest( u8* arr )
   }
 }
 
-//#define WOFS_REPACK_DEBUG
+#define WOFS_REPACK_DEBUG
 
 // TODO: Needs to handle remaining open file if there is one
 // Returns 1 if OK, 0 for error
@@ -696,6 +702,8 @@ int wofs_repack( void )
   u32 last_sector;
   int ret;
   int i;
+
+  wofs_fsdata.ready = 0;
 
   // Clear freed sector list
   for( i = 0; i < ( FLASH_SECTOR_COUNT / 8 ); i++ )
@@ -720,6 +728,7 @@ int wofs_repack( void )
 #if defined( WOFS_REPACK_DEBUG )
     printf("Can't repack, no deleted files!");
 #endif
+    wofs_fsdata.ready = 1;
     return 1;
   }
 
@@ -963,6 +972,7 @@ int wofs_repack( void )
   // At the end fs_read_ptr: next spot in old FS
   // write_ptr should be just into next sector if we have any more work
   }
+  wofs_fsdata.ready = 1;
   return 1;
 }
 
@@ -992,17 +1002,20 @@ int romfs_init()
     wofs_sim_fd = hostif_open( WOFS_FNAME, 2, 0666 );
   }
   dm_register( "/wo", ( void* )&wofs_sim_fsdata, &romfs_device );
+  wofs_fsdata.ready = 1;
 #endif // #if defined( ELUA_CPU_LINUX ) && defined( BUILD_WOFS )
 #if defined( BUILD_WOFS ) && !defined( ELUA_CPU_LINUX )
   // Get the start address and size of WOFS and register it
   wofs_fsdata.pbase = ( u8* )platform_flash_get_first_free_block_address( NULL );
   wofs_fsdata.max_size = INTERNAL_FLASH_SIZE - ( ( u32 )wofs_fsdata.pbase - INTERNAL_FLASH_START_ADDRESS ) - INTERNAL_FLASH_SECTOR_SIZE;
   dm_register( "/wo", &wofs_fsdata, &romfs_device );
+  wofs_fsdata.ready = 1;
 #endif // ifdef BUILD_WOFS
 #ifdef BUILD_ROMFS
   // Register the ROM filesystem
   dm_register( "/rom", ( void* )&romfs_fsdata, &romfs_device );
 #endif // #ifdef BUILD_ROMFS
+
   return 0;
 }
 

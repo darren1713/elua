@@ -74,6 +74,7 @@ typedef struct
   p_fs_read readf;                // pointer to read function (for non-direct mode FS)
   p_fs_write writef;              // pointer to write function (only for ROMFS_FS_FLAG_WO)
   u32 max_size;                   // maximum size of the FS (in bytes)
+  u8 ready;                       // filesystem is ready (not being formatted or repacked)
 } FSDATA;
 
 #define romfs_fs_set_flag( p, f )     p->flags |= ( f )
