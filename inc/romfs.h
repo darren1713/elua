@@ -30,7 +30,8 @@ File data: (file size bytes)
 enum
 {
   FS_FILE_NOT_FOUND,
-  FS_FILE_OK
+  FS_FILE_OK,
+  FS_NOT_READY
 };
  
 // ROMFS/WOFS functions
