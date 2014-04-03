@@ -945,7 +945,7 @@ int wofs_repack( void )
   snum_endf = platform_flash_find_sector( startf + ( u32 )pdata->pbase, &sstart, &send );
   snum_startf = platform_flash_find_sector( write_ptr + ( u32 )pdata->pbase, &sstart, &send );
   if( !wofs_repack_erase_sector_range(snum_startf+1, snum_endf, freed_sectors ) )
-      return 0;
+    return 0;
 
   wofs_fsdata.ready = 1;
   return 1;
