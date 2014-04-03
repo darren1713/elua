@@ -395,7 +395,6 @@ static struct dm_dirent* romfs_readdir_r( struct _reent *r, void *d, void *pdata
 
     // Read filename
     j = 0;
-    printf("SOFF: %6lu ", off);
     while( ( dm_shared_fname[ j ++ ] = romfsh_read8( off ++, pfsdata ) ) != '\0' );
     pent->fname = dm_shared_fname;
 
@@ -428,8 +427,7 @@ static struct dm_dirent* romfs_readdir_r( struct _reent *r, void *d, void *pdata
     if( romfsh_is_wofs( pfsdata ) )
       off = ( off + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 );
 
-    printf("EOFF: %6lu ", off);
-//If file security is enabled, don't return a matching filename as valid
+    //If file security is enabled, don't return a matching filename as valid
 #ifdef ROMFS_SECURE_FILENAMES_WITH_CHAR
     if( !is_deleted && ( romfs_security_lock == 0 || strstr( pent->fname, ROMFS_SECURE_FILENAMES_WITH_CHAR) == NULL ) )
       break;
