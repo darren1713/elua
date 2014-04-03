@@ -70,7 +70,7 @@ static int shellh_ls_walkdir_cb( const char *path, const struct dm_dirent *pent,
         printf( "<DIR>" );
       else
       {
-        printf( "%u bytes", ( unsigned )pent->fsize );
+        printf( "%6u bytes", ( unsigned )pent->fsize );
         ps->dir_total += pent->fsize;
         md5_digest(path, pent->fname);
       }
