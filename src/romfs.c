@@ -705,12 +705,12 @@ int wofs_repack_erase_sector_range(u32 start_sect, u32 end_sect, u8* freed_secto
     ret = bit_array_set(freed_sectors, i, 1);
     if( !ret )
     {
-      printf("Sector out of range.");
+      fprintf(stderr, "Sector out of range.");
       return 0;
     }
     if( platform_flash_erase_sector( i ) == PLATFORM_ERR )
     {
-      printf("Couldn't erase: %d", i);
+      fprintf(stderr, "Couldn't erase: %d", i);
       return 0;
     }
   }
@@ -756,7 +756,7 @@ int wofs_repack( void )
   if( ret == -1 )
   {
 #if defined( WOFS_REPACK_DEBUG )
-    printf("Can't repack, no deleted files!");
+    printf("No need to repack.");
 #endif
     wofs_fsdata.ready = 1;
     return 1;
@@ -812,9 +812,6 @@ int wofs_repack( void )
     // Fill out last sector from FS until source sector is exhausted or end of FS
     while( write_ptr < ( LAST_SECTOR_START - ( u32 )pdata->pbase ) + send + 1 - sstart  && ret != -1 )
     {
-#if defined( WOFS_REPACK_DEBUG )
-      printf("Checking for next file!\n");
-#endif
       startf = ( endf + 1 + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 ); // Starting is next aligned chunk
       ret = romfs_walk_fs( &startf, &endf, pdata ); // find end of file & type
 
@@ -857,7 +854,7 @@ int wofs_repack( void )
     tmp = bit_array_get_lowest( freed_sectors );
     if( tmp < 0 )
     {
-      printf("No free sector");
+      fprintf(stderr, "No free sector");
       return 0;
     }
     platform_flash_get_sector_range(tmp, &sstart, &send);
