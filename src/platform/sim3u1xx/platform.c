@@ -2277,6 +2277,7 @@ void myPB_enter_off_config()
   SI32_PBSTD_A_write_pins_high( SI32_PBSTD_1, 0x0080 );
   SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_0, 1 << 12);
   SI32_PBSTD_A_write_pins_high( SI32_PBSTD_0, 1 << 12 );
+  SI32_PBSTD_A_set_pins_digital_input( SI32_PBSTD_0, ( (1 << 11) | (1 << 13) ));
 #endif
 
   //Set 5V pin to analog high...
