@@ -2381,12 +2381,7 @@ void sim3_pmu_pm9( unsigned seconds )
 
   //VREG0_enter_power_9_mode_from_normal_power_mode();
   SI32_VREG_A_enter_suspend_mode(SI32_VREG_0);
-
-#ifndef BLUETOOTH_POWEREDWHILESLEEPING
-  //Disabling this reduces power consumption by 87uA
-  // max 5ma at VDD is not enough for bluetooth module
   SI32_VREG_A_disable_band_gap(SI32_VREG_0); 
-#endif
   RSTSRC0_enter_power_9_mode_from_normal_power_mode();
 
   //Reset RTC Timer and clear any interrupts
