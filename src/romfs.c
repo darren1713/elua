@@ -94,10 +94,6 @@ static u8 romfs_open_file( const char* fname, FD* pfd, FSDATA *pfs, u32 *plast, 
   u32 fsize;
   int is_deleted;
 
-  if( !pfs->ready )
-    return FS_NOT_READY;
-
-
 #ifdef ROMFS_SECURE_FILENAMES_WITH_CHAR
   if(romfs_security_lock && strstr(fname,ROMFS_SECURE_FILENAMES_WITH_CHAR) != NULL)
     return FS_FILE_NOT_FOUND;
@@ -139,10 +135,13 @@ static u8 romfs_open_file( const char* fname, FD* pfd, FSDATA *pfs, u32 *plast, 
     
     if( (( u64 )j + ( u64 )ROMFS_SIZE_LEN + ( u64 )fsize) > ( u64 )pfs->max_size )
     {
-      fprintf(stderr, "[ERROR] File length exceeds max\n");
-      pfs->ready = 0;
+      if( romfs_fs_is_flag_set( pfs, ROMFS_FS_FLAG_READY_WRITE ) )
+      {
+        fprintf(stderr, "[ERROR] File too long, making filesystem readonly\n");
+        romfs_fs_clear_flag( pfs, ROMFS_FS_FLAG_READY_WRITE );
+      }
       *plast = i;
-      return FS_ERROR;
+      return FS_FILE_NOT_FOUND;
     }
 
     j += ROMFS_SIZE_LEN;
@@ -181,6 +180,14 @@ static int romfs_open_r( struct _reent *r, const char *path, int flags, int mode
     r->_errno = ENFILE;
     return -1;
   }
+
+  // Is the FS ready for reading
+  if( !romfs_fs_is_flag_set( pfsdata, ROMFS_FS_FLAG_READY_READ ) )
+  {
+    r->_errno = EBUSY;
+    return -1;
+  }
+
   // Does the file exist?
   exists = romfs_open_file( path, &tempfs, pfsdata, &firstfree, &nameaddr ) == FS_FILE_OK;
   // Now interpret "flags" to set file flags and to check if we should create the file
@@ -221,7 +228,9 @@ static int romfs_open_r( struct _reent *r, const char *path, int flags, int mode
     r->_errno = EACCES;
     return -1;
   }
-  if( ( lflags & ( ROMFS_FILE_FLAG_WRITE | ROMFS_FILE_FLAG_APPEND ) ) && romfs_fs_is_flag_set( pfsdata, ROMFS_FS_FLAG_WRITING ) )
+  if( ( lflags & ( ROMFS_FILE_FLAG_WRITE | ROMFS_FILE_FLAG_APPEND ) ) && 
+        romfs_fs_is_flag_set( pfsdata, ROMFS_FS_FLAG_WRITING ) && 
+       !romfs_fs_is_flag_set( pfsdata, ROMFS_FS_FLAG_READY_WRITE ) )
   {
     // At most one file can be opened in write mode at any given time on WOFS
     r->_errno = EROFS;
@@ -425,8 +434,11 @@ static struct dm_dirent* romfs_readdir_r( struct _reent *r, void *d, void *pdata
     
     if( (( u64 )off + ( u64 )ROMFS_SIZE_LEN + ( u64 )pent->fsize) > ( u64 )pfsdata->max_size )
     {
-      fprintf(stderr, "[ERROR] File length exceeds max\n");
-      pfsdata->ready = 0;
+      if( romfs_fs_is_flag_set( pfsdata, ROMFS_FS_FLAG_READY_WRITE ) )
+      {
+        fprintf(stderr, "[ERROR] File too long, making filesystem readonly\n");
+        romfs_fs_clear_flag( pfsdata, ROMFS_FS_FLAG_READY_WRITE );
+      }
       return NULL;
     }
     
@@ -521,11 +533,10 @@ static const DM_DEVICE romfs_device =
 static const FSDATA romfs_fsdata =
 {
   ( u8* )romfiles_fs,
-  ROMFS_FS_FLAG_DIRECT,
+  ROMFS_FS_FLAG_DIRECT | ROMFS_FS_FLAG_READY_READ,
   NULL,
   NULL,
-  sizeof( romfiles_fs ),
-  1
+  sizeof( romfiles_fs )
 };
 
 // ****************************************************************************
@@ -588,7 +599,6 @@ static FSDATA wofs_fsdata =
   ROMFS_FS_FLAG_WO | ROMFS_FS_FLAG_DIRECT,
   NULL,
   sim_wofs_write,
-  0,
   0
 };
 
@@ -644,8 +654,11 @@ int romfs_walk_fs( u32 *start, u32 *end, void *pdata  )
 
   if( (( u64 )off + ( u64 )ROMFS_SIZE_LEN + ( u64 )fsize) > ( u64 )pfsdata->max_size )
   {
-    fprintf(stderr, "[ERROR] File length exceeds max\n");
-    pfsdata->ready = 0;
+    if( romfs_fs_is_flag_set( pfsdata, ROMFS_FS_FLAG_READY_WRITE ) )
+    {
+      fprintf(stderr, "[ERROR] File too long, making filesystem readonly\n");
+      romfs_fs_clear_flag( pfsdata, ROMFS_FS_FLAG_READY_WRITE );
+    }
     return -1;
   }
 
@@ -765,7 +778,7 @@ int wofs_repack( void )
   int ret;
   int i;
 
-  wofs_fsdata.ready = 0;
+  romfs_fs_clear_flag( pdata, ROMFS_FS_FLAG_READY_WRITE | ROMFS_FS_FLAG_READY_READ );
 
   // Clear freed sector list
   for( i = 0; i < ( FLASH_SECTOR_COUNT / 8 ); i++ )
@@ -790,7 +803,7 @@ int wofs_repack( void )
 #if defined( WOFS_REPACK_DEBUG )
     printf("No need to repack.");
 #endif
-    wofs_fsdata.ready = 1;
+    romfs_fs_set_flag( pdata, ROMFS_FS_FLAG_READY_READ | ROMFS_FS_FLAG_READY_WRITE );
     return 1;
   }
 
@@ -974,7 +987,7 @@ int wofs_repack( void )
     return 0;
 
   // Mark FS as ready
-  wofs_fsdata.ready = 1;
+  romfs_fs_set_flag( pdata, ROMFS_FS_FLAG_READY_READ | ROMFS_FS_FLAG_READY_WRITE );
   return 1;
 }
 
@@ -1006,7 +1019,7 @@ int romfs_init()
     wofs_sim_fd = hostif_open( WOFS_FNAME, 2, 0666 );
   }
   dm_register( "/wo", ( void* )&wofs_sim_fsdata, &romfs_device );
-  wofs_fsdata.ready = 1;
+  romfs_fs_set_flag( &wofs_fsdata, ROMFS_FS_FLAG_READY_WRITE | ROMFS_FS_FLAG_READY_READ );
 #endif // #if defined( ELUA_CPU_LINUX ) && defined( BUILD_WOFS )
 #if defined( BUILD_WOFS ) && !defined( ELUA_CPU_LINUX )
   // Get the start address and size of WOFS and register it
@@ -1017,7 +1030,7 @@ int romfs_init()
   wofs_fsdata.max_size = INTERNAL_FLASH_SIZE - ( ( u32 )wofs_fsdata.pbase - INTERNAL_FLASH_START_ADDRESS ) - INTERNAL_FLASH_SECTOR_ARRAY[ LAST_SECTOR_NUM ];
 #endif // #ifdef INTERNAL_FLASH_SECTOR_SIZE
   dm_register( "/wo", &wofs_fsdata, &romfs_device );
-  wofs_fsdata.ready = 1;
+  romfs_fs_set_flag( &wofs_fsdata, ROMFS_FS_FLAG_READY_WRITE | ROMFS_FS_FLAG_READY_READ );
 #endif // ifdef BUILD_WOFS
 #ifdef BUILD_ROMFS
   // Register the ROM filesystem
