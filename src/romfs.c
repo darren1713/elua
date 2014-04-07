@@ -229,8 +229,7 @@ static int romfs_open_r( struct _reent *r, const char *path, int flags, int mode
     return -1;
   }
   if( ( lflags & ( ROMFS_FILE_FLAG_WRITE | ROMFS_FILE_FLAG_APPEND ) ) && 
-        romfs_fs_is_flag_set( pfsdata, ROMFS_FS_FLAG_WRITING ) && 
-       !romfs_fs_is_flag_set( pfsdata, ROMFS_FS_FLAG_READY_WRITE ) )
+      ( romfs_fs_is_flag_set( pfsdata, ROMFS_FS_FLAG_WRITING ) || !romfs_fs_is_flag_set( pfsdata, ROMFS_FS_FLAG_READY_WRITE ) ) )
   {
     // At most one file can be opened in write mode at any given time on WOFS
     r->_errno = EROFS;
