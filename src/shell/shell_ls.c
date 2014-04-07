@@ -39,13 +39,16 @@ md5_digest(const char* dir, const char* fname)
   printf(" ");
   sprintf(path, "%s/%s",dir, fname );
   FILE *fp = fopen(path, "r");
-  MD5Open(&md5);
-  while ((length = fread(buffer, 1, sizeof(buffer), fp)) > 0)
-    MD5Digest(&md5, buffer, length);
-  MD5Close(&md5, digest);
-  for(i = 0; i < 16; i++ )
-    printf("%02x", digest[i]);
-  fclose(fp);
+  if( fp != NULL )
+  {
+    MD5Open(&md5);
+    while ((length = fread(buffer, 1, sizeof(buffer), fp)) > 0)
+      MD5Digest(&md5, buffer, length);
+    MD5Close(&md5, digest);
+    for(i = 0; i < 16; i++ )
+      printf("%02x", digest[i]);
+    fclose(fp);
+  }
 }
 
 // 'ls' and 'dir' handler

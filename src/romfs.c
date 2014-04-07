@@ -136,6 +136,15 @@ static u8 romfs_open_file( const char* fname, FD* pfd, FSDATA *pfs, u32 *plast, 
     // And read the size
     fsize = romfsh_read8( j, pfs ) + ( romfsh_read8( j + 1, pfs ) << 8 );
     fsize += ( romfsh_read8( j + 2, pfs ) << 16 ) + ( romfsh_read8( j + 3, pfs ) << 24 );
+    
+    if( (( u64 )j + ( u64 )ROMFS_SIZE_LEN + ( u64 )fsize) > ( u64 )pfs->max_size )
+    {
+      fprintf(stderr, "[ERROR] File length exceeds max\n");
+      pfs->ready = 0;
+      *plast = i;
+      return FS_ERROR;
+    }
+
     j += ROMFS_SIZE_LEN;
     if( !strncasecmp( fname, fsname, DM_MAX_FNAME_LENGTH ) && !is_deleted )
     {
@@ -414,6 +423,13 @@ static struct dm_dirent* romfs_readdir_r( struct _reent *r, void *d, void *pdata
     pent->fsize = romfsh_read8( off, pfsdata ) + ( romfsh_read8( off + 1, pfsdata ) << 8 );
     pent->fsize += ( romfsh_read8( off + 2, pfsdata ) << 16 ) + ( romfsh_read8( off + 3, pfsdata ) << 24 );
     
+    if( (( u64 )off + ( u64 )ROMFS_SIZE_LEN + ( u64 )pent->fsize) > ( u64 )pfsdata->max_size )
+    {
+      fprintf(stderr, "[ERROR] File length exceeds max\n");
+      pfsdata->ready = 0;
+      return NULL;
+    }
+    
     // fill in file time & flags
     pent->ftime = 0;
     pent->flags = 0;
@@ -625,6 +641,13 @@ int romfs_walk_fs( u32 *start, u32 *end, void *pdata  )
 
   fsize = romfsh_read8( off, pfsdata ) + ( romfsh_read8( off + 1, pfsdata ) << 8 );
   fsize += ( romfsh_read8( off + 2, pfsdata ) << 16 ) + ( romfsh_read8( off + 3, pfsdata ) << 24 );
+
+  if( (( u64 )off + ( u64 )ROMFS_SIZE_LEN + ( u64 )fsize) > ( u64 )pfsdata->max_size )
+  {
+    fprintf(stderr, "[ERROR] File length exceeds max\n");
+    pfsdata->ready = 0;
+    return -1;
+  }
 
   // Jump offset ahead by length field & file size
   off += ROMFS_SIZE_LEN;

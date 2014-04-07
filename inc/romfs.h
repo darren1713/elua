@@ -31,7 +31,8 @@ enum
 {
   FS_FILE_NOT_FOUND,
   FS_FILE_OK,
-  FS_NOT_READY
+  FS_NOT_READY,
+  FS_ERROR
 };
  
 // ROMFS/WOFS functions
