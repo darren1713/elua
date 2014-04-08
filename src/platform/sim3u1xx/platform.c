@@ -267,6 +267,16 @@ int external_io()
 #endif
   return 0;
 }
+int bluetooth_connected()
+{
+#if defined( BLUETOOTH_ENABLE_TDI_DTR )
+  if( platform_pio_op( 1, 1 << 4, PLATFORM_IO_PIN_GET ) )
+    return 1;
+#endif
+  return 0;
+}
+
+
 #endif
 static int pmu_wake_status = -1;
 static int pmu_status = -1;
@@ -335,6 +345,12 @@ void wake_init( void )
       if( external_io() )
       {
         wake_reason = WAKE_IO;
+        //Don't auto-sleep for some period of seconds
+        sleep_delay = 5;
+      }
+      if( bluetooth_connected() )
+      {
+        wake_reason = WAKE_BLUETOOTH;
         //Don't auto-sleep for some period of seconds
         sleep_delay = 5;
       }
@@ -606,7 +622,7 @@ void SecondsTick_Handler()
       cmn_int_handler( INT_BOOT, 0 );
       //printf("wakeup %i\n", load_lua_string("wakeup();\n"));
     }
-    if((external_power() == 0 && !external_buttons() && !external_io()) || rram_read_bit(RRAM_BIT_SLEEP_WHEN_POWERED) == SLEEP_WHEN_POWERED_ACTIVE)
+    if((external_power() == 0 && !external_buttons() && !external_io()) && !bluetooth_connected() || rram_read_bit(RRAM_BIT_SLEEP_WHEN_POWERED) == SLEEP_WHEN_POWERED_ACTIVE)
     {
       printf("no power %i\n", rram_read_int(RRAM_INT_SLEEPTIME));
       if(sleep_delay > 0)
