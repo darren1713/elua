@@ -280,76 +280,8 @@ void reset_parameters()
   }
 }
 
-
-int platform_init()
+void wake_init( void )
 {
-  int i;
-  SystemInit();
-
-  // Configure the NVIC Preemption Priority Bits:
-  // two (2) bits of preemption priority, six (6) bits of sub-priority.
-  // Since the Number of Bits used for Priority Levels is five (5), so the
-  // actual bit number of sub-priority is three (3)
-  //NVIC_SetPriorityGrouping(0x05);
-
-  // Setup peripherals
-  // platform_setup_timers();
-  SI32_VREG_A_enable_band_gap(SI32_VREG_0);
-  SI32_VREG_A_exit_suspend_mode(SI32_VREG_0);
-
-  // Peripheral Clocking setup
-  clk_init();
-
-  //Set flash read speed to slow
-#if defined( LOW_SYSTEM_CLOCK )
-  SI32_FLASHCTRL_A_select_flash_read_time_slow(SI32_FLASHCTRL_0);
-#endif
-
-  SI32_PMU_A_clear_pmu_level_shifter_hold(SI32_PMU_0);
-  pmu_status = SI32_PMU_0->STATUS.U32;
-  pmu_wake_status = SI32_PMU_0->WAKESTATUS.U32;
-  reset_status = SI32_RSTSRC_0->RESETFLAG.U32;
-  SI32_PMU_A_clear_pin_level_shifter_hold(SI32_PMU_0);
-  SI32_PMU_A_clear_wakeup_flags(SI32_PMU_0);
-  SI32_PMU_A_clear_por_flag(SI32_PMU_0);
-
-  // GPIO setup
-  pios_init();
-
-  // System timer setup
-  cmn_systimer_set_base_freq( cmsis_get_cpu_frequency() );
-  cmn_systimer_set_interrupt_freq( SYSTICKHZ );
-
-  // Enable SysTick
-  SysTick_Config( cmsis_get_cpu_frequency() / SYSTICKHZ );
-
-  // RTC Configuration
-  SI32_RTC_A_start_timer_capture(SI32_RTC_0);
-  while(SI32_RTC_A_is_timer_capture_in_progress(SI32_RTC_0));
-
-  rtc_remaining = (SI32_RTC_A_read_alarm0(SI32_RTC_0)-SI32_RTC_A_read_setcap(SI32_RTC_0))/16384;
-  rtc_init();
-
-#ifdef BUILD_ADC
-  // Setup ADCs
-  adcs_init();
-#endif
-
-#if defined( BUILD_USB_CDC )
-
-  usb_init();
-  hw_init();
-
-  // init the class driver here
-  cdc_init();
-
-  // register the rx handler function with the cdc
-  cdc_reg_rx_handler(NULL);
-#endif //defined( BUILD_USB_CDC )
-
-  // Common platform initialization code
-  cmn_platform_init();
-
 #if defined( ELUA_BOARD_GSBRD )
 
   //Determine if we had a power failure, voltage dropout, or reset button pressed
@@ -434,6 +366,80 @@ int platform_init()
   }
 
 #endif
+}
+
+
+int platform_init()
+{
+  int i;
+  SystemInit();
+
+  // Configure the NVIC Preemption Priority Bits:
+  // two (2) bits of preemption priority, six (6) bits of sub-priority.
+  // Since the Number of Bits used for Priority Levels is five (5), so the
+  // actual bit number of sub-priority is three (3)
+  //NVIC_SetPriorityGrouping(0x05);
+
+  // Setup peripherals
+  // platform_setup_timers();
+  SI32_VREG_A_enable_band_gap(SI32_VREG_0);
+  SI32_VREG_A_exit_suspend_mode(SI32_VREG_0);
+
+  // Peripheral Clocking setup
+  clk_init();
+
+  //Set flash read speed to slow
+#if defined( LOW_SYSTEM_CLOCK )
+  SI32_FLASHCTRL_A_select_flash_read_time_slow(SI32_FLASHCTRL_0);
+#endif
+
+  SI32_PMU_A_clear_pmu_level_shifter_hold(SI32_PMU_0);
+  pmu_status = SI32_PMU_0->STATUS.U32;
+  pmu_wake_status = SI32_PMU_0->WAKESTATUS.U32;
+  reset_status = SI32_RSTSRC_0->RESETFLAG.U32;
+  SI32_PMU_A_clear_pin_level_shifter_hold(SI32_PMU_0);
+  SI32_PMU_A_clear_wakeup_flags(SI32_PMU_0);
+  SI32_PMU_A_clear_por_flag(SI32_PMU_0);
+
+  // GPIO setup
+  pios_init();
+
+  // System timer setup
+  cmn_systimer_set_base_freq( cmsis_get_cpu_frequency() );
+  cmn_systimer_set_interrupt_freq( SYSTICKHZ );
+
+  // Enable SysTick
+  SysTick_Config( cmsis_get_cpu_frequency() / SYSTICKHZ );
+
+  // RTC Configuration
+  SI32_RTC_A_start_timer_capture(SI32_RTC_0);
+  while(SI32_RTC_A_is_timer_capture_in_progress(SI32_RTC_0));
+
+  rtc_remaining = (SI32_RTC_A_read_alarm0(SI32_RTC_0)-SI32_RTC_A_read_setcap(SI32_RTC_0))/16384;
+  rtc_init();
+
+#ifdef BUILD_ADC
+  // Setup ADCs
+  adcs_init();
+#endif
+
+#if defined( BUILD_USB_CDC )
+
+  usb_init();
+  hw_init();
+
+  // init the class driver here
+  cdc_init();
+
+  // register the rx handler function with the cdc
+  cdc_reg_rx_handler(NULL);
+#endif //defined( BUILD_USB_CDC )
+
+  wake_init();
+
+  // Common platform initialization code
+  cmn_platform_init();
+
 #if defined( INT_SYSINIT )
     cmn_int_handler( INT_SYSINIT, 0 );
 #endif
@@ -614,9 +620,6 @@ void SecondsTick_Handler()
   }
   if(firstSecond)
   {
-    SI32_RTC_A_start_timer_capture(SI32_RTC_0);
-    while(SI32_RTC_A_is_timer_capture_in_progress(SI32_RTC_0));
-
     printf("PWS 0x%x PS 0x%x RS 0x%x - %i rtc %i\n",
          pmu_wake_status,
          pmu_status,
