@@ -355,7 +355,7 @@ void wake_init( void )
       {
         wake_reason = WAKE_BLUETOOTH;
         //Don't auto-sleep for some period of seconds
-        sleep_delay = 5;
+        sleep_delay = 2;
       }
       else if( rram_read_int(RRAM_INT_SLEEPTIME) > 0 )  //Go back to sleep if we woke from a PMU wakeup
       {
@@ -2295,11 +2295,14 @@ void myPB_enter_off_config()
   SI32_PBSTD_A_write_pins_low( SI32_PBSTD_0, 0xC000 );
 #ifdef BLUETOOTH_POWEREDWHILESLEEPING
   //Set bluetooth pins to analog high...
-  SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 0x0080);
-  SI32_PBSTD_A_write_pins_high( SI32_PBSTD_1, 0x0080 );
-  SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_0, 1 << 12);
-  SI32_PBSTD_A_write_pins_high( SI32_PBSTD_0, 1 << 12 );
-  SI32_PBSTD_A_set_pins_digital_input( SI32_PBSTD_0, ( (1 << 11) | (1 << 13) ));
+  if( rram_read_bit(RRAM_BIT_STORAGE_MODE) == STORAGE_MODE_DISABLED )
+  {
+    SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 0x0080);
+    SI32_PBSTD_A_write_pins_high( SI32_PBSTD_1, 0x0080 );
+    SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_0, 1 << 12);
+    SI32_PBSTD_A_write_pins_high( SI32_PBSTD_0, 1 << 12 );
+    SI32_PBSTD_A_set_pins_digital_input( SI32_PBSTD_0, ( (1 << 11) | (1 << 13) ));
+  }
 #endif
 
   //Set 5V pin to analog high...
