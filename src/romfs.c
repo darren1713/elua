@@ -707,6 +707,17 @@ int bit_array_set( u8* arr, u32 bitnum, u8 value )
   return 1;
 }
 
+int bit_array_get( u8* arr, u32 bitnum )
+{
+  int byte = bitnum / 8;
+  int bit = bitnum % 8;
+
+  if( byte >= ( FLASH_SECTOR_COUNT / 8 ) )
+    return -1;
+
+  return ( ( arr[byte] & ( u8 )( 1 << bit ) ) > 0 );
+}
+
 // Returns lowest set bit, -1 if none found
 int bit_array_get_lowest( u8* arr )
 {
@@ -731,6 +742,29 @@ int bit_array_get_lowest( u8* arr )
   return -1;
 }
 
+// Returns highest set bit, -1 if none found
+int bit_array_get_highest( u8* arr )
+{
+  int byte;
+  int bit;
+  u8 value;
+
+  for( byte = ( FLASH_SECTOR_COUNT / 8 ) - 1; byte >= 0; byte-- )
+  {
+    if( arr[ byte ] )
+    {
+      bit = 0;
+      value = arr[ byte ];
+      while (value >>= 1)
+      {
+        bit++;
+      }
+      return ( bit + byte * 8 );
+    }
+  }
+  return -1;
+}
+
 #define WOFS_REPACK_DEBUG
 
 // Erase a range of sectors and mark in freed sectors in bit array
@@ -743,20 +777,23 @@ int wofs_repack_erase_sector_range(u32 start_sect, u32 end_sect, u8* freed_secto
 #endif
   for( i = start_sect; i <= end_sect; i++ )
   {
+    if( bit_array_get( freed_sectors, i ) == 0 )
+    {
 #if defined( WOFS_REPACK_DEBUG )
-    printf("Erasing: %d\n", i);
+      printf("Erasing: %d\n", i);
 #endif
 
-    if( !bit_array_set(freed_sectors, i, 1) )
-    {
-      fprintf(stderr, "[ERROR] Sector out of range.");
-      return 0;
-    }
+      if( !bit_array_set(freed_sectors, i, 1) )
+      {
+        fprintf(stderr, "[ERROR] Sector out of range.");
+        return 0;
+      }
 
-    if( platform_flash_erase_sector( i ) == PLATFORM_ERR )
-    {
-      fprintf(stderr, "[ERROR] Couldn't erase: %d", i);
-      return 0;
+      if( platform_flash_erase_sector( i ) == PLATFORM_ERR )
+      {
+        fprintf(stderr, "[ERROR] Couldn't erase: %d", i);
+        return 0;
+      }
     }
   }
   return 1;
@@ -771,18 +808,40 @@ int wofs_repack( void )
   u8 freed_sectors[ FLASH_SECTOR_COUNT / 8 ];
   u32 startf, endf, last_endf;
   u32 sstart, send, snum_startf, snum_endf, snum_startf2, snum_endf2;
+  u32 snum_tmp_sect, sstart_tmp_sect, send_tmp_sect;
   u32 write_ptr;
   u32 fs_read_ptr = 0;
   u32 tmp;
   u32 last_sector;
+  u32 sect_last, lowest_spare;
+  FD tempfd;
+
   int ret;
   int i;
-
-  romfs_fs_clear_flag( pdata, ROMFS_FS_FLAG_READY_WRITE | ROMFS_FS_FLAG_READY_READ );
 
   // Clear freed sector list
   for( i = 0; i < ( FLASH_SECTOR_COUNT / 8 ); i++ )
     freed_sectors[ i ] = 0;
+
+  // Find the last wector we've written into
+  romfs_open_file( "\1", &tempfd, &wofs_fsdata, &sect_last, NULL );
+  lowest_spare = platform_flash_get_sector_of_address( sect_last + ( u32 )wofs_fsdata.pbase ) + 1;
+
+  // If filesystem hasn't been flagged as broken, mark sectors after FS as free
+  if( romfs_fs_is_flag_set( pdata, ROMFS_FS_FLAG_READY_WRITE ) )
+  {
+    for( i = lowest_spare; i <= LAST_SECTOR_NUM; i++ )
+    {
+      if( !bit_array_set(freed_sectors, i, 1) )
+      {
+        fprintf(stderr, "[ERROR] Sector out of range.");
+        return 0;
+      }
+    }
+  }
+
+  // Mark FS as unwriteable/unreadable while we work on it
+  romfs_fs_clear_flag( pdata, ROMFS_FS_FLAG_READY_WRITE | ROMFS_FS_FLAG_READY_READ );
 
   // 1 - Find first of any deleted files
   endf = 0;
@@ -812,6 +871,10 @@ int wofs_repack( void )
     // 2 - Find sector erased file came from
     if( fs_read_ptr == 0 )
     {
+      // Make sure free sectors are free
+      wofs_repack_erase_sector_range( lowest_spare, LAST_SECTOR_NUM, freed_sectors );
+      printf("Lowest: %d, Highest %d\n", bit_array_get_lowest( freed_sectors), bit_array_get_highest( freed_sectors));
+
       snum_endf = platform_flash_find_sector( endf + ( u32 )pdata->pbase, &sstart, &send );
       snum_startf = platform_flash_find_sector( startf + ( u32 )pdata->pbase, &sstart, &send );
       if( !wofs_repack_erase_sector_range(snum_startf + 1, snum_endf - 1, freed_sectors ) )
@@ -826,13 +889,21 @@ int wofs_repack( void )
     sstart -= ( u32 )pdata->pbase;
     send -= ( u32 )pdata->pbase;
 #if defined( WOFS_REPACK_DEBUG )
-    printf("Sector: %lu\n", snum_startf );
+    printf("Source Sector: %lu\n", snum_startf );
 #endif
 
     // 3 - start copying files until source sector is exhausted
+    snum_tmp_sect = lowest_spare;
+    while( bit_array_get( freed_sectors, snum_tmp_sect ) == 0 )
+      snum_tmp_sect++;
 
+    platform_flash_get_sector_range(snum_tmp_sect, &sstart_tmp_sect, &send_tmp_sect);
     // Copy data exactly up until deleted file
-    write_ptr = LAST_SECTOR_START - ( u32 )pdata->pbase; // Beginning of "spare" sector
+    write_ptr = sstart_tmp_sect - ( u32 )pdata->pbase; // Beginning of "spare" sector
+    bit_array_set(freed_sectors, snum_tmp_sect, 0);
+#if defined( WOFS_REPACK_DEBUG )
+    printf("Tmp Sector: %lu\n", snum_tmp_sect );
+#endif
 
     if( fs_read_ptr == 0 ) // First run
     {
@@ -847,15 +918,18 @@ int wofs_repack( void )
       tmp = fsmin( endf + 1 - fs_read_ptr, 1024 ); // max out at end of current read sector
     }
 
+    if( tmp > 1 ) // 
+    {
 #if defined( WOFS_REPACK_DEBUG )
-    printf("CP F: %lu, T: %lu, L: %lu\n", fs_read_ptr, write_ptr, tmp);
+      printf("CP F: %lu, T: %lu, L: %lu\n", fs_read_ptr, write_ptr, tmp);
 #endif
-    pdata->writef( ( u32* )(fs_read_ptr + ( u32 )pdata->pbase), write_ptr, tmp, pdata );
-    write_ptr += tmp;
-    fs_read_ptr += tmp;
+      pdata->writef( ( u32* )(fs_read_ptr + ( u32 )pdata->pbase), write_ptr, tmp, pdata );
+      write_ptr += tmp;
+      fs_read_ptr += tmp;
+    }
 
     // Fill out last sector from FS until source sector is exhausted or end of FS
-    while( write_ptr < ( LAST_SECTOR_START - ( u32 )pdata->pbase ) + send + 1 - sstart  && ret != -1 )
+    while( write_ptr < ( sstart_tmp_sect - ( u32 )pdata->pbase ) + send + 1 - sstart  && ret != -1 )
     {
       startf = ( endf + 1 + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 ); // Starting is next aligned chunk
       ret = romfs_walk_fs( &startf, &endf, pdata ); // find end of file & type
@@ -866,9 +940,9 @@ int wofs_repack( void )
         fs_read_ptr = startf;
 
         write_ptr = ( write_ptr + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 );
-        tmp = fsmin( endf + 1 - fs_read_ptr, ( LAST_SECTOR_START - ( u32 )pdata->pbase ) + ( send + 1 - sstart ) - write_ptr );
+        tmp = fsmin( endf + 1 - fs_read_ptr, ( sstart_tmp_sect - ( u32 )pdata->pbase ) + ( send + 1 - sstart ) - write_ptr );
 #if defined( WOFS_REPACK_DEBUG )
-        printf("CP F: %lu, T: %lu, L: %lu, L2 %lu\n", fs_read_ptr, write_ptr, endf + 1 - fs_read_ptr, ( LAST_SECTOR_START - ( u32 )pdata->pbase ) + ( send + 1 - sstart ) - write_ptr );
+        printf("CP F: %lu, T: %lu, L: %lu, L2 %lu\n", fs_read_ptr, write_ptr, endf + 1 - fs_read_ptr, ( sstart_tmp_sect - ( u32 )pdata->pbase ) + ( send + 1 - sstart ) - write_ptr );
 #endif
         pdata->writef( ( u32* )(fs_read_ptr + ( u32 )pdata->pbase), write_ptr, tmp, pdata);
         last_sector = platform_flash_get_sector_of_address( fs_read_ptr + ( u32 )pdata->pbase );
@@ -909,20 +983,23 @@ int wofs_repack( void )
     sstart -= ( u32 )pdata->pbase;
     send -= ( u32 )pdata->pbase;
 #if defined( WOFS_REPACK_DEBUG )
-    printf("Sector: %lu\n", snum_startf );
+    printf("Back Sector: %lu\n", snum_startf );
 #endif
     bit_array_set(freed_sectors, tmp, 0);
-    tmp = LAST_SECTOR_START - ( u32 )pdata->pbase;
+    tmp = sstart_tmp_sect - ( u32 )pdata->pbase;
 #if defined( WOFS_REPACK_DEBUG )
-    printf("WF: %lu, SS: %lu, LN: %lu\n", tmp, sstart, write_ptr - ( LAST_SECTOR_START - ( u32 )pdata->pbase));
+    printf("WF: %lu, SS: %lu, LN: %lu\n", tmp, sstart, write_ptr - ( sstart_tmp_sect - ( u32 )pdata->pbase));
 #endif
-    pdata->writef( ( u32* )(tmp + ( u32 )pdata->pbase), sstart, write_ptr - ( LAST_SECTOR_START - ( u32 )pdata->pbase ), pdata);
-    write_ptr = sstart + write_ptr - ( LAST_SECTOR_START - ( u32 )pdata->pbase ); // Now points into origin sector
+    pdata->writef( ( u32* )(tmp + ( u32 )pdata->pbase), sstart, write_ptr - ( sstart_tmp_sect - ( u32 )pdata->pbase ), pdata);
+    write_ptr = sstart + write_ptr - ( sstart_tmp_sect - ( u32 )pdata->pbase ); // Now points into origin sector
 
 
     // 5 - erase spare sector
-    if( !wofs_repack_erase_sector_range(LAST_SECTOR_NUM, LAST_SECTOR_NUM, freed_sectors ) )
-      return 0;
+    if( bit_array_get_lowest( freed_sectors ) < 0 )
+    {
+      if( !wofs_repack_erase_sector_range( snum_tmp_sect, snum_tmp_sect, freed_sectors ) )
+        return 0;
+    }
 
     // 6 - Fill "source" sector from FS, if space remains
     // Start filling in unfinished files
@@ -955,9 +1032,9 @@ int wofs_repack( void )
         fs_read_ptr = startf;
         write_ptr = ( write_ptr + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 );
 #if defined( WOFS_REPACK_DEBUG )
-        printf("Ef: %lu, rptr: %lu, se: %lu end:%lu\n", endf, fs_read_ptr, send, ( LAST_SECTOR_START - ( u32 )pdata->pbase ) + ( send - sstart ) - write_ptr);
+        printf("Ef: %lu, rptr: %lu, se: %lu end:%lu\n", endf, fs_read_ptr, send, ( sstart_tmp_sect - ( u32 )pdata->pbase ) + ( send - sstart ) - write_ptr);
 #endif
-        tmp = fsmin( endf + 1 - fs_read_ptr, ( LAST_SECTOR_START - ( u32 )pdata->pbase ) + ( send - sstart ) - write_ptr);
+        tmp = fsmin( endf + 1 - fs_read_ptr, ( sstart_tmp_sect - ( u32 )pdata->pbase ) + ( send - sstart ) - write_ptr);
 #if defined( WOFS_REPACK_DEBUG )
         printf("CP F: %lu, T: %lu, L: %lu\n", fs_read_ptr, write_ptr, tmp);
 #endif
@@ -981,9 +1058,8 @@ int wofs_repack( void )
   // 7 - Clean Up
   // If end of FS was found in sector after last write pointer position, erase sector 
   // after write pointer up to where we were last looking for another file
-  snum_endf = platform_flash_find_sector( startf + ( u32 )pdata->pbase, &sstart, &send );
   snum_startf = platform_flash_find_sector( write_ptr + ( u32 )pdata->pbase, &sstart, &send );
-  if( !wofs_repack_erase_sector_range(snum_startf+1, snum_endf, freed_sectors ) )
+  if( !wofs_repack_erase_sector_range(snum_startf+1, LAST_SECTOR_NUM, freed_sectors ) )
     return 0;
 
   // Mark FS as ready
