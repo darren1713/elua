@@ -486,6 +486,7 @@ static const char* romfs_getaddr_r( struct _reent *r, int fd, void *pdata )
     return NULL;
 }
 
+// unlink
 static int romfs_unlink_r( struct _reent *r, const char *path, void *pdata )
 {
   FSDATA *pfsdata = ( FSDATA* )pdata;
