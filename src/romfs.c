@@ -605,23 +605,31 @@ static FSDATA wofs_fsdata =
 
 // WOFS formatting function
 // Returns 1 if OK, 0 for error
-int wofs_format()
+int wofs_format( void )
 {
   u32 sect_first, sect_last;
-  //FD tempfd;
+  FD tempfd;
 
   platform_flash_get_first_free_block_address( &sect_first );
-  // Get the first free address in WOFS. We use this address to compute the last block that we need to
-  // erase, instead of simply erasing everything from sect_first to the last Flash page. 
-  //romfs_open_file( "\1", &tempfd, &wofs_fsdata, &sect_last, NULL );
-  //sect_last = platform_flash_get_sector_of_address( sect_last + ( u32 )wofs_fsdata.pbase );
-  sect_last = (INTERNAL_FLASH_SIZE /  INTERNAL_FLASH_SECTOR_SIZE) - (INTERNAL_FLASH_START_ADDRESS / INTERNAL_FLASH_SECTOR_SIZE) - 1;
-  while( sect_first <= sect_last )
+
+  // Check if filesystem is marked as ready for writing
+  if( romfs_fs_is_flag_set( &wofs_fsdata, ROMFS_FS_FLAG_READY_WRITE ) )
   {
-    printf("%lu %lu\n", sect_first, sect_last);
+    // If filesystem is OK
+    // Get the first free address in WOFS. We use this address to compute the last block that we need to
+    // erase, instead of simply erasing everything from sect_first to the last Flash page. 
+    romfs_open_file( "\1", &tempfd, &wofs_fsdata, &sect_last, NULL );
+    sect_last = platform_flash_get_sector_of_address( sect_last + ( u32 )wofs_fsdata.pbase );
+  }
+  else
+  {
+    // If filesystem has been marked as unwriteable, erase all sectors
+    sect_last = platform_flash_get_num_sectors() - 1;
+  }
+
+  while( sect_first <= sect_last )
     if( platform_flash_erase_sector( sect_first ++ ) == PLATFORM_ERR )
       return 0;
-  }
   return 1;
 }
 
@@ -681,15 +689,6 @@ int romfs_walk_fs( u32 *start, u32 *end, void *pdata  )
 #define LAST_SECTOR_NUM ( platform_flash_get_num_sectors() - 1 )
 #define LAST_SECTOR_END  ( INTERNAL_FLASH_SIZE - INTERNAL_FLASH_START_ADDRESS )
 
-#ifdef INTERNAL_FLASH_SECTOR_SIZE
-#define LAST_SECTOR_START ( LAST_SECTOR_END - INTERNAL_FLASH_SECTOR_SIZE )
-#else // #ifdef INTERNAL_FLASH_SECTOR_SIZE
-#define LAST_SECTOR_START ( LAST_SECTOR_END - INTERNAL_FLASH_SECTOR_ARRAY[ LAST_SECTOR_NUM ] )
-#endif // #ifdef INTERNAL_FLASH_SECTOR_SIZE
-
-
-#define FLASH_SECTOR_COUNT platform_flash_get_num_sectors()
-
 // Sets bit in bit array
 // Returns 1 if OK, 0 if out of range
 int bit_array_set( u8* arr, u32 bitnum, u8 value )
@@ -697,7 +696,7 @@ int bit_array_set( u8* arr, u32 bitnum, u8 value )
   int byte = bitnum / 8;
   int bit = bitnum % 8;
 
-  if( byte >= ( FLASH_SECTOR_COUNT / 8 ) )
+  if( byte >= ( platform_flash_get_num_sectors() / 8 ) )
     return 0;
 
   if( value > 0)
@@ -713,7 +712,7 @@ int bit_array_get( u8* arr, u32 bitnum )
   int byte = bitnum / 8;
   int bit = bitnum % 8;
 
-  if( byte >= ( FLASH_SECTOR_COUNT / 8 ) )
+  if( byte >= ( platform_flash_get_num_sectors() / 8 ) )
     return -1;
 
   return ( ( arr[byte] & ( u8 )( 1 << bit ) ) > 0 );
@@ -726,7 +725,7 @@ int bit_array_get_lowest( u8* arr )
   int bit;
   u8 value;
 
-  for( byte = 0; byte < ( FLASH_SECTOR_COUNT / 8 ); byte++ )
+  for( byte = 0; byte < ( platform_flash_get_num_sectors() / 8 ); byte++ )
   {
     if( arr[ byte ] )
     {
@@ -750,7 +749,7 @@ int bit_array_get_highest( u8* arr )
   int bit;
   u8 value;
 
-  for( byte = ( FLASH_SECTOR_COUNT / 8 ) - 1; byte >= 0; byte-- )
+  for( byte = ( platform_flash_get_num_sectors() / 8 ) - 1; byte >= 0; byte-- )
   {
     if( arr[ byte ] )
     {
@@ -807,7 +806,7 @@ int wofs_repack_erase_sector_range(u32 start_sect, u32 end_sect, u8* freed_secto
 int wofs_repack( void )
 {
   FSDATA *pdata = &wofs_fsdata;
-  u8 freed_sectors[ FLASH_SECTOR_COUNT / 8 ];
+  u8 freed_sectors[ platform_flash_get_num_sectors() / 8 ];
   u32 startf, endf, last_endf;
   u32 sstart, send, snum_startf, snum_endf, snum_startf2, snum_endf2;
   u32 snum_tmp_sect, sstart_tmp_sect, send_tmp_sect;
@@ -824,7 +823,7 @@ int wofs_repack( void )
   int i;
 
   // Clear freed sector list
-  for( i = 0; i < ( FLASH_SECTOR_COUNT / 8 ); i++ )
+  for( i = 0; i < ( platform_flash_get_num_sectors() / 8 ); i++ )
     freed_sectors[ i ] = 0;
 
   // Find the last wector we've written into
