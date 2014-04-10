@@ -52,6 +52,18 @@ void romfs_sec_unlock()
 }
 #endif
 
+static int romfs_check_open_fds()
+{
+  int i;
+  
+  for( i = 0; i < TOTAL_MAX_FDS; i ++ )
+    if( fd_table[ i ].baseaddr != 0xFFFFFFFF &&
+        fd_table[ i ].offset != 0xFFFFFFFF &&
+        fd_table[ i ].size != 0xFFFFFFFF )
+      return 1;
+  return 0;
+}
+
 static int romfs_find_empty_fd()
 {
   int i;
@@ -816,11 +828,16 @@ int wofs_repack( void )
   u32 last_sector;
   u32 sect_last, lowest_spare;
   FD tempfd;
-
-  srand( platform_timer_read( PLATFORM_TIMER_SYS_ID ) );
-
   int ret;
   int i;
+
+  if( romfs_check_open_fds() )
+  {
+    fprintf(stderr, "[ERROR] Can't repack with open files.");
+    return 0;
+  }
+
+  srand( platform_timer_read( PLATFORM_TIMER_SYS_ID ) );
 
   // Clear freed sector list
   for( i = 0; i < ( platform_flash_get_num_sectors() / 8 ); i++ )
