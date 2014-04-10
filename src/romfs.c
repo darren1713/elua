@@ -6,6 +6,7 @@
 #include "devman.h"
 #include "romfiles.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include "ioctl.h"
 #include <fcntl.h>
 #include "platform.h"
@@ -800,6 +801,7 @@ int wofs_repack_erase_sector_range(u32 start_sect, u32 end_sect, u8* freed_secto
 }
 
 
+
 // TODO: Needs to handle remaining open file if there is one
 // Returns 1 if OK, 0 for error
 int wofs_repack( void )
@@ -815,6 +817,8 @@ int wofs_repack( void )
   u32 last_sector;
   u32 sect_last, lowest_spare;
   FD tempfd;
+
+  srand( platform_timer_read( PLATFORM_TIMER_SYS_ID ) );
 
   int ret;
   int i;
@@ -873,8 +877,9 @@ int wofs_repack( void )
     {
       // Make sure free sectors are free
       wofs_repack_erase_sector_range( lowest_spare, LAST_SECTOR_NUM, freed_sectors );
+#if defined( WOFS_REPACK_DEBUG )
       printf("Lowest: %d, Highest %d\n", bit_array_get_lowest( freed_sectors), bit_array_get_highest( freed_sectors));
-
+#endif
       snum_endf = platform_flash_find_sector( endf + ( u32 )pdata->pbase, &sstart, &send );
       snum_startf = platform_flash_find_sector( startf + ( u32 )pdata->pbase, &sstart, &send );
       if( !wofs_repack_erase_sector_range(snum_startf + 1, snum_endf - 1, freed_sectors ) )
@@ -893,9 +898,10 @@ int wofs_repack( void )
 #endif
 
     // 3 - start copying files until source sector is exhausted
-    snum_tmp_sect = lowest_spare;
-    while( bit_array_get( freed_sectors, snum_tmp_sect ) == 0 )
-      snum_tmp_sect++;
+    do
+    {
+      snum_tmp_sect = ( rand() % (LAST_SECTOR_NUM-lowest_spare+1) )+lowest_spare;
+    } while( bit_array_get( freed_sectors, snum_tmp_sect ) == 0 );
 
     platform_flash_get_sector_range(snum_tmp_sect, &sstart_tmp_sect, &send_tmp_sect);
     // Copy data exactly up until deleted file
@@ -918,7 +924,7 @@ int wofs_repack( void )
       tmp = fsmin( endf + 1 - fs_read_ptr, 1024 ); // max out at end of current read sector
     }
 
-    if( tmp > 1 ) // 
+    if( tmp > 1 ) // If initial file was deleted, tmp will be 1 and we should skip it
     {
 #if defined( WOFS_REPACK_DEBUG )
       printf("CP F: %lu, T: %lu, L: %lu\n", fs_read_ptr, write_ptr, tmp);
