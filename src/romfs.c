@@ -812,8 +812,36 @@ int wofs_repack_erase_sector_range(u32 start_sect, u32 end_sect, u8* freed_secto
 }
 
 
+int wofs_repack_init_spare_sectors( u8* freed_sectors, u32* lowest_spare )
+{
+  FSDATA *pdata = &wofs_fsdata;
+  FD tempfd;
+  u32 sect_last;
+  int i;
 
-// TODO: Needs to handle remaining open file if there is one
+  // Clear freed sector list
+  for( i = 0; i < ( platform_flash_get_num_sectors() / 8 ); i++ )
+    freed_sectors[ i ] = 0;
+
+  // Find the last wector we've written into
+  romfs_open_file( "\1", &tempfd, pdata, &sect_last, NULL );
+  *lowest_spare = platform_flash_get_sector_of_address( sect_last + ( u32 )wofs_fsdata.pbase ) + 1;
+
+  // If filesystem hasn't been flagged as broken, mark sectors after FS as free
+  if( romfs_fs_is_flag_set( pdata, ROMFS_FS_FLAG_READY_WRITE ) )
+  {
+    for( i = *lowest_spare; i <= LAST_SECTOR_NUM; i++ )
+    {
+      if( !bit_array_set(freed_sectors, i, 1) )
+      {
+        fprintf(stderr, "[ERROR] Sector out of range.");
+        return 0;
+      }
+    }
+  }
+  return 1;
+}
+
 // Returns 1 if OK, 0 for error
 int wofs_repack( void )
 {
@@ -821,15 +849,10 @@ int wofs_repack( void )
   u8 freed_sectors[ platform_flash_get_num_sectors() / 8 ];
   u32 startf, endf, last_endf;
   u32 sstart, send, snum_startf, snum_endf, snum_startf2, snum_endf2;
-  u32 snum_tmp_sect, sstart_tmp_sect, send_tmp_sect;
-  u32 write_ptr;
+  u32 snum_tmp_sect, sstart_tmp_sect;
+  u32 write_ptr, tmp, last_sector, lowest_spare;
   u32 fs_read_ptr = 0;
-  u32 tmp;
-  u32 last_sector;
-  u32 sect_last, lowest_spare;
-  FD tempfd;
   int ret;
-  int i;
 
   if( romfs_check_open_fds() )
   {
@@ -839,26 +862,9 @@ int wofs_repack( void )
 
   srand( platform_timer_read( PLATFORM_TIMER_SYS_ID ) );
 
-  // Clear freed sector list
-  for( i = 0; i < ( platform_flash_get_num_sectors() / 8 ); i++ )
-    freed_sectors[ i ] = 0;
-
-  // Find the last wector we've written into
-  romfs_open_file( "\1", &tempfd, &wofs_fsdata, &sect_last, NULL );
-  lowest_spare = platform_flash_get_sector_of_address( sect_last + ( u32 )wofs_fsdata.pbase ) + 1;
-
-  // If filesystem hasn't been flagged as broken, mark sectors after FS as free
-  if( romfs_fs_is_flag_set( pdata, ROMFS_FS_FLAG_READY_WRITE ) )
-  {
-    for( i = lowest_spare; i <= LAST_SECTOR_NUM; i++ )
-    {
-      if( !bit_array_set(freed_sectors, i, 1) )
-      {
-        fprintf(stderr, "[ERROR] Sector out of range.");
-        return 0;
-      }
-    }
-  }
+  // Check filesystem and mark spare sectors as freed
+  if( !wofs_repack_init_spare_sectors( freed_sectors, &lowest_spare ) )
+    return 0;
 
   // Mark FS as unwriteable/unreadable while we work on it
   romfs_fs_clear_flag( pdata, ROMFS_FS_FLAG_READY_WRITE | ROMFS_FS_FLAG_READY_READ );
@@ -919,7 +925,7 @@ int wofs_repack( void )
       snum_tmp_sect = ( rand() % (LAST_SECTOR_NUM-lowest_spare+1) )+lowest_spare;
     } while( bit_array_get( freed_sectors, snum_tmp_sect ) == 0 );
 
-    platform_flash_get_sector_range(snum_tmp_sect, &sstart_tmp_sect, &send_tmp_sect);
+    platform_flash_get_sector_range(snum_tmp_sect, &sstart_tmp_sect, NULL);
     // Copy data exactly up until deleted file
     write_ptr = sstart_tmp_sect - ( u32 )pdata->pbase; // Beginning of "spare" sector
     bit_array_set(freed_sectors, snum_tmp_sect, 0);
@@ -951,7 +957,7 @@ int wofs_repack( void )
     }
 
     // Fill out last sector from FS until source sector is exhausted or end of FS
-    while( write_ptr < ( sstart_tmp_sect - ( u32 )pdata->pbase ) + send + 1 - sstart  && ret != -1 )
+    while( write_ptr < ( sstart_tmp_sect - ( u32 )pdata->pbase ) + send + 1 - sstart && ret != -1 )
     {
       startf = ( endf + 1 + ROMFS_ALIGN - 1 ) & ~( ROMFS_ALIGN - 1 ); // Starting is next aligned chunk
       ret = romfs_walk_fs( &startf, &endf, pdata ); // find end of file & type
