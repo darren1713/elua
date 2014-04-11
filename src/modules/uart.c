@@ -1,13 +1,13 @@
 // Module for interfacing with UART
 
-#include "lua.h"
-#include "lualib.h"
+//#include "lua.h"
+//#include "lualib.h"
 #include "lauxlib.h"
 #include "platform.h"
-#include "auxmods.h"
+#//include "auxmods.h"
 #include "lrotable.h"
 #include "common.h"
-#include "sermux.h"
+//#include "sermux.h"
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
@@ -144,9 +144,9 @@ static int uart_read( lua_State* L )
     // are not supported.
     if( ( cres == '\n' ) && ( mode == UART_READ_MODE_LINE ) )
       break;
-    if( !isdigit( (int) cres ) && !issign && ( mode == UART_READ_MODE_NUMBER ) )
+    if( !isdigit( (unsigned char) cres ) && !issign && ( mode == UART_READ_MODE_NUMBER ) )
       break;
-    if( isspace( (int) cres ) && ( mode == UART_READ_MODE_SPACE ) )
+    if( isspace( (unsigned char) cres ) && ( mode == UART_READ_MODE_SPACE ) )
       break;
     luaL_putchar( &b, cres );
     if( ( count == maxsize ) && ( mode == UART_READ_MODE_MAXSIZE ) )
@@ -216,7 +216,7 @@ static int uart_set_flow_control( lua_State *L )
   return 0;
 }
 
-#ifdef BUILD_SERMUX
+#if defined( BUILD_SERMUX ) || defined( BUILD_USB_CDC )
 
 #define MAX_VUART_NAME_LEN    6
 #define MIN_VUART_NAME_LEN    6
@@ -226,9 +226,19 @@ static int uart_set_flow_control( lua_State *L )
 static int uart_mt_index( lua_State* L )
 {
   const char *key = luaL_checkstring( L ,2 );
+#ifdef BUILD_SERMUX
   char* pend;
   long res;
-  
+#endif
+
+#ifdef BUILD_USB_CDC
+  if( !strcmp( key, "CDC" ) )
+  {
+    lua_pushinteger( L, CDC_UART_ID );
+    return 1;
+  }
+#endif
+#ifdef BUILD_SERMUX
   if( strlen( key ) > MAX_VUART_NAME_LEN || strlen( key ) < MIN_VUART_NAME_LEN )
     return 0;
   if( strncmp( key, "VUART", 5 ) )
@@ -240,6 +250,8 @@ static int uart_mt_index( lua_State* L )
     return 0;
   lua_pushinteger( L, SERMUX_SERVICE_ID_FIRST + res );
   return 1;
+#endif
+  return 0;
 }
 #endif // #ifdef BUILD_SERMUX
 
@@ -258,6 +270,8 @@ const LUA_REG_TYPE uart_map[] =
   { LSTRKEY( "PAR_EVEN" ), LNUMVAL( PLATFORM_UART_PARITY_EVEN ) },
   { LSTRKEY( "PAR_ODD" ), LNUMVAL( PLATFORM_UART_PARITY_ODD ) },
   { LSTRKEY( "PAR_NONE" ), LNUMVAL( PLATFORM_UART_PARITY_NONE ) },
+  { LSTRKEY( "PAR_MARK" ), LNUMVAL( PLATFORM_UART_PARITY_MARK ) },
+  { LSTRKEY( "PAR_SPACE" ), LNUMVAL( PLATFORM_UART_PARITY_SPACE ) },
   { LSTRKEY( "STOP_1" ), LNUMVAL( PLATFORM_UART_STOPBITS_1 ) },
   { LSTRKEY( "STOP_1_5" ), LNUMVAL( PLATFORM_UART_STOPBITS_1_5 ) },
   { LSTRKEY( "STOP_2" ), LNUMVAL( PLATFORM_UART_STOPBITS_2 ) },
@@ -267,7 +281,7 @@ const LUA_REG_TYPE uart_map[] =
   { LSTRKEY( "FLOW_RTS" ), LNUMVAL( PLATFORM_UART_FLOW_RTS ) },
   { LSTRKEY( "FLOW_CTS" ), LNUMVAL( PLATFORM_UART_FLOW_CTS ) },
 #endif
-#if LUA_OPTIMIZE_MEMORY > 0 && defined( BUILD_SERMUX )
+#if LUA_OPTIMIZE_MEMORY > 0 && ( defined( BUILD_SERMUX ) || defined( BUILD_USB_CDC ) )
   { LSTRKEY( "__metatable" ), LROVAL( uart_map ) },
   { LSTRKEY( "__index" ), LFUNCVAL( uart_mt_index ) },  
 #endif
@@ -284,6 +298,8 @@ LUALIB_API int luaopen_uart( lua_State *L )
   MOD_REG_NUMBER( L, "PAR_EVEN", PLATFORM_UART_PARITY_EVEN );
   MOD_REG_NUMBER( L, "PAR_ODD", PLATFORM_UART_PARITY_ODD );
   MOD_REG_NUMBER( L, "PAR_NONE", PLATFORM_UART_PARITY_NONE );
+  MOD_REG_NUMBER( L, "PAR_EVEN", PLATFORM_UART_PARITY_MARK );
+  MOD_REG_NUMBER( L, "PAR_EVEN", PLATFORM_UART_PARITY_SPACE );
   MOD_REG_NUMBER( L, "STOP_1", PLATFORM_UART_STOPBITS_1 );
   MOD_REG_NUMBER( L, "STOP_1_5", PLATFORM_UART_STOPBITS_1_5 );
   MOD_REG_NUMBER( L, "STOP_2", PLATFORM_UART_STOPBITS_2 );

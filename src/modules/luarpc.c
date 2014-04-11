@@ -23,15 +23,18 @@ void *alloca(size_t);
 #include <alloca.h>
 #endif
 
-#include "lua.h"
+//#include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
 
 #ifndef LUA_CROSS_COMPILER
 #include "platform.h"
+#include "platform_conf.h"
 #endif
 
-#include "platform_conf.h"
+#ifdef LUA_RPC
+#include "desktop_conf.h"
+#endif
 
 #ifdef LUA_OPTIMIZE_MEMORY
 #include "lrotable.h"
@@ -52,12 +55,15 @@ void *alloca(size_t);
 #endif
 
 // Prototypes for Local Functions
-LUALIB_API int luaopen_rpc( lua_State *L );
+//LUALIB_API int luaopen_rpc( lua_State *L );   // Declared in auxmods
 Handle *handle_create( lua_State *L );
 static void rpc_dispatch_helper( lua_State *L, ServerHandle *handle );
 static int rpc_adispatch_helper( lua_State *L, ServerHandle * handle );
 
 struct exception_context the_exception_context[ 1 ];
+
+DOGCC(static void errorMessage( const char *msg, va_list ap ) 
+      __attribute__ ((format (printf, 1, 0)));)
 
 static void errorMessage( const char *msg, va_list ap )
 {
@@ -70,7 +76,7 @@ static void errorMessage( const char *msg, va_list ap )
 }
 
 DOGCC(static void panic( const char *msg, ... )
-      __attribute__ ((noreturn,unused));)
+      __attribute__ ((noreturn,unused,format (printf, 1, 2)));)
 static void panic (const char *msg, ...)
 {
   va_list ap;
@@ -81,7 +87,7 @@ static void panic (const char *msg, ...)
 
 
 DOGCC(static void rpcdebug( const char *msg, ... )
-      __attribute__ ((noreturn,unused));)
+      __attribute__ ((noreturn,unused,format (printf, 1, 2)));)
 static void rpcdebug (const char *msg, ...)
 {
   va_list ap;
@@ -495,12 +501,8 @@ static void write_variable( Transport *tpt, lua_State *L, int var_index )
       luaL_error( L, "light userdata transmission unsupported" );
       break;
   }
-  //Write this differently to eliminate compiler warning
-  //lua_assert( lua_gettop( L ) == stack_at_start );
-  if(lua_gettop( L ) == stack_at_start)
-    lua_assert(1);
-  else
-    lua_assert(0);
+  lua_assert( lua_gettop( L ) == stack_at_start );
+  UNUSED(stack_at_start);     // Prevent compiler warning if asserts not used
 }
 
 
@@ -1303,7 +1305,7 @@ static void read_cmd_call( Transport *tpt, lua_State *L )
     else
       msg = "not table/func: ";
     if( token == NULL ) // should occur if "function" was actually a table
-      token = "";
+      token = (char *)"";
     int errlen = ( int )strlen( msg ) + strlen( token );
     transport_write_u8( tpt, 1 );
     transport_write_u32( tpt, LUA_ERRRUN );

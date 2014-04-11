@@ -3,24 +3,13 @@
 
 #include "platform.h"
 #include "platform_conf.h"
-#include "type.h"
 #include "common.h"
-#include "elua_int.h"
 #include "utils.h"
 #include <stdio.h>
 
-// [TODO] when the new build system is ready, automatically add the
-// code below in platform_conf.h
-#if defined( BUILD_LUA_INT_HANDLERS ) || defined( BUILD_C_INT_HANDLERS )
-#define BUILD_INT_HANDLERS
-
-extern const elua_int_descriptor elua_int_table[ INT_ELUA_LAST ];
-
-#endif // #if defined( BUILD_LUA_INT_HANDLERS ) || defined( BUILD_C_INT_HANDLERS )
-
-#ifndef VTMR_NUM_TIMERS
-#define VTMR_NUM_TIMERS       0
-#endif // #ifndef VTMR_NUM_TIMERS
+#ifdef BUILD_INT_HANDLERS
+  extern const elua_int_descriptor elua_int_table[ INT_ELUA_LAST ];
+#endif // #ifdef BUILD_INT_HANDLERS
 
 #ifndef PLATFORM_HAS_SYSTIMER
 #warning This platform does not have a system timer. Your eLua image might not work as expected.
@@ -54,7 +43,7 @@ static volatile u8 vtmr_int_flag[ ( VTMR_NUM_TIMERS + 7 ) >> 3 ];
 #endif // #ifdef CMN_TIMER_INT_SUPPORT
 
 // This should be called from the platform's timer interrupt at VTMR_FREQ_HZ
-void cmn_virtual_timer_cb()
+void cmn_virtual_timer_cb(void)
 {
   unsigned i;
 #ifdef CMN_TIMER_INT_SUPPORT
@@ -168,7 +157,7 @@ static int vtmr_int_get_status( elua_int_resnum resnum )
 
 #else // #if VTMR_NUM_TIMERS > 0
 
-void cmn_virtual_timer_cb()
+void cmn_virtual_timer_cb(void)
 {
 }
 
@@ -177,13 +166,13 @@ void cmn_virtual_timer_cb()
 // ============================================================================
 // Actual timer functions
 
-int platform_timer_sys_available()
+int platform_timer_sys_available(void)
 {
   return SYSTIMER_SUPPORT;
 }
 
 #ifndef PLATFORM_HAS_SYSTIMER
-timer_data_type platform_timer_read_sys()
+timer_data_type platform_timer_read_sys(void)
 {
   return 0;
 }
@@ -316,7 +305,10 @@ timer_data_type platform_timer_get_diff_us( unsigned id, timer_data_type start, 
   freq = platform_timer_op( id, PLATFORM_TIMER_OP_GET_CLOCK, 0 );
   if( tstart > tend )
     tend += platform_timer_op( id, PLATFORM_TIMER_OP_GET_MAX_CNT, 0 ) + 1;
-  tstart = ( ( tend - tstart ) * 1000000 ) / freq;
+  if( freq == 1000000 )
+    tstart = tend - tstart;
+  else
+    tstart = ( ( tend - tstart ) * 1000000 ) / freq;
   return UMIN( tstart, PLATFORM_TIMER_SYS_MAX );
 }
 
@@ -331,7 +323,11 @@ int platform_timer_set_match_int( unsigned id, timer_data_type period_us, int ty
   if( id == PLATFORM_TIMER_SYS_ID )
     return PLATFORM_TIMER_INT_INVALID_ID;
   else
+#if INT_TMR_MATCH != ELUA_INT_INVALID_INTERRUPT
     return platform_s_timer_set_match_int( id, period_us, type );
+#else
+    return PLATFORM_TIMER_INT_INVALID_ID;
+#endif
 }
 
 int cmn_tmr_int_set_status( elua_int_resnum resnum, int status )
@@ -403,7 +399,6 @@ int platform_timer_set_match_int( unsigned id, timer_data_type period_us, int ty
 
 static u32 cmn_systimer_ticks_for_us;
 static volatile u64 cmn_systimer_counter;
-static volatile u8 cmn_systimer_toggle = 0;
 static u32 cmn_systimer_us_per_interrupt;
 
 void cmn_systimer_set_base_freq( u32 freq_hz )
@@ -421,44 +416,31 @@ void cmn_systimer_set_interrupt_period_us( u32 period )
   cmn_systimer_us_per_interrupt = period;
 }
 
-void cmn_systimer_periodic()
+void cmn_systimer_periodic(void)
 {
-  cmn_systimer_toggle ^= 1;
   cmn_systimer_counter += cmn_systimer_us_per_interrupt;
 }
 
-u64 cmn_systimer_last_crtsys = 0;
-u8 cmn_systimer_overflow = 0;
-timer_data_type cmn_systimer_get()
+timer_data_type cmn_systimer_get(void)
 {
-  u64 tempcnt, crtsys;
-  u8 tmptoggle;
-  do
+  u64 tempsys, tempcnt, crtsys;
+
+  tempsys = cmn_systimer_counter;
+  tempcnt = platform_timer_sys_raw_read();
+  while( ( crtsys = cmn_systimer_counter ) != tempsys )
   {
-    tmptoggle = cmn_systimer_toggle;
+    tempsys = crtsys;
     tempcnt = platform_timer_sys_raw_read();
-    crtsys = cmn_systimer_counter;
-  } while( platform_timer_sys_raw_read() < tempcnt || cmn_systimer_toggle != tmptoggle );
-
-  crtsys += tempcnt / cmn_systimer_ticks_for_us;
-  if( crtsys < cmn_systimer_last_crtsys && cmn_systimer_overflow == 0 )
-  {
-    while( crtsys < cmn_systimer_last_crtsys )
-      crtsys += cmn_systimer_us_per_interrupt;
   }
-
+  crtsys += tempcnt / cmn_systimer_ticks_for_us;
   if( crtsys > PLATFORM_TIMER_SYS_MAX ) // timer overflow
   {
-    crtsys %= PLATFORM_TIMER_SYS_MAX;
+    crtsys -= PLATFORM_TIMER_SYS_MAX;
     platform_timer_sys_disable_int();
-    cmn_systimer_counter = 0;
+    if( cmn_systimer_counter > PLATFORM_TIMER_SYS_MAX )
+      cmn_systimer_counter -= PLATFORM_TIMER_SYS_MAX;
     platform_timer_sys_enable_int();
-    cmn_systimer_overflow = 1;
   }
-  else
-    cmn_systimer_overflow = 0;
-
-  cmn_systimer_last_crtsys = crtsys;
   return ( timer_data_type )crtsys;
 }
 

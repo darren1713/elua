@@ -153,8 +153,22 @@ local menu =
       },
       { { "Building eLua", "Build de eLua" }, "building.html",
         {
+          { "Configuring the image", "configurator.html",
+            {
+              { "CPU", "configurator.html#config_cpu" },
+              { "Components", "configurator.html#config_components" },
+              { "Configuration", "configurator.html#config_config" },
+              { "Modules", "configurator.html#config_modules" },
+              { "Headers", "configurator.html#config_headers" },
+              { "Macros", "configurator.html#config_macros" },
+              { "CPU constants", "configurator.html#config_cpuconstants" },
+              { "Build options", "configurator.html#config_build" },
+              { "Customizing", "configurator.html#config_customize" },
+            },
+          },
           { "Building eLua in Linux", "building_unix.html" },
           { "Building eLua in Windows", "building_win.html" },
+          { "Building eLua in Macintosh OS/X", "building_macos.html" },
         },  
       },
     },
@@ -231,6 +245,8 @@ local menu =
         {
            { "lm3s", "modules_lm3s.html", "refman_ps_lm3s" },
            { "str9", "modules_str9.html", "refman_ps_str9" },
+           { "stm32", "modules_stm32.html", "refman_ps_stm32" },
+           { "stm32f4", "modules_stm32f4.html", "refman_ps_stm32f4" },
            { "mbed", "modules_mbed.html", "refman_ps_mbed" },
            { "mizar32", "modules_mizar32.html", "refman_ps_mizar32" },
         }

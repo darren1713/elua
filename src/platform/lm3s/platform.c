@@ -84,13 +84,30 @@
 // forward
 static void timers_init();
 static void uarts_init();
+
+#if NUM_SPI > 0
 static void spis_init();
+#endif
+
 static void pios_init();
+
+#if NUM_PWM > 0
 static void pwms_init();
+#endif
+
 static void eth_init();
+
+#ifdef BUILD_ADC
 static void adcs_init();
+#endif
+
+#ifdef BUILD_CAN
 static void cans_init();
+#endif
+
+#ifdef BUILD_USB_CDC
 static void usb_init();
+#endif
 
 int platform_init()
 {
@@ -104,8 +121,10 @@ int platform_init()
   // Setup PIO
   pios_init();
 
-  // Setup SSIs
+#if NUM_SPI > 0
+  // Setup SPIs
   spis_init();
+#endif
 
   // Setup UARTs
   uarts_init();
@@ -113,8 +132,10 @@ int platform_init()
   // Setup timers
   timers_init();
 
+#if NUM_PWM > 0
   // Setup PWMs
   pwms_init();
+#endif
 
 #ifdef BUILD_ADC
   // Setup ADCs
@@ -245,10 +266,21 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
 
 #if defined( BUILD_CAN )
 
-volatile u32 can_rx_flag = 0;
-volatile u32 can_tx_flag = 0;
-volatile u32 can_err_flag = 0;
-char can_tx_buf[8];
+// Speed used in INIT
+#ifndef CAN_INIT_SPEED
+#define CAN_INIT_SPEED	500000
+#endif
+
+// Message object for receiving
+#define CAN_MSG_OBJ_RX	1
+
+// Message object for transmitting
+#define CAN_MSG_OBJ_TX	2
+
+volatile u8 can_rx_flag = 0;
+volatile u8 can_tx_flag = 0;
+volatile u8 can_err_flag = 0;
+char can_tx_buf[PLATFORM_CAN_MAXLEN];
 tCANMsgObject can_msg_rx;
 
 // LM3S9Bxx MCU CAN seems to run off of system clock, LM3S8962 has 8 MHz clock
@@ -268,15 +300,15 @@ void CANIntHandler(void)
     can_err_flag = 1;
     can_tx_flag = 0;
   }
-  else if( status == 1 ) // Message receive
+  else if( status == CAN_MSG_OBJ_RX ) // Message receive
   {
-    CANIntClear(CAN0_BASE, 1);
+    CANIntClear(CAN0_BASE, CAN_MSG_OBJ_RX);
     can_rx_flag = 1;
     can_err_flag = 0;
   }
-  else if( status == 2 ) // Message send
+  else if( status == CAN_MSG_OBJ_TX ) // Message send
   {
-    CANIntClear(CAN0_BASE, 2);
+    CANIntClear(CAN0_BASE, CAN_MSG_OBJ_TX);
     can_tx_flag = 0;
     can_err_flag = 0;
   }
@@ -289,7 +321,7 @@ void cans_init( void )
 {
   MAP_SysCtlPeripheralEnable( SYSCTL_PERIPH_CAN0 ); 
   MAP_CANInit( CAN0_BASE );
-  CANBitRateSet(CAN0_BASE, LM3S_CAN_CLOCK, 500000);
+  CANBitRateSet(CAN0_BASE, LM3S_CAN_CLOCK, CAN_INIT_SPEED);
   MAP_CANIntEnable( CAN0_BASE, CAN_INT_MASTER | CAN_INT_ERROR | CAN_INT_STATUS );
   MAP_IntEnable(INT_CAN0);
   MAP_CANEnable(CAN0_BASE);
@@ -298,8 +330,8 @@ void cans_init( void )
   can_msg_rx.ulMsgID = 0;
   can_msg_rx.ulMsgIDMask = 0;
   can_msg_rx.ulFlags = MSG_OBJ_RX_INT_ENABLE | MSG_OBJ_USE_ID_FILTER;
-  can_msg_rx.ulMsgLen = 8;
-  MAP_CANMessageSet(CAN0_BASE, 1, &can_msg_rx, MSG_OBJ_TYPE_RX);
+  can_msg_rx.ulMsgLen = PLATFORM_CAN_MAXLEN;
+  MAP_CANMessageSet(CAN0_BASE, CAN_MSG_OBJ_RX, &can_msg_rx, MSG_OBJ_TYPE_RX);
 }
 
 
@@ -315,7 +347,7 @@ u32 platform_can_setup( unsigned id, u32 clock )
   return clock;
 }
 
-void platform_can_send( unsigned id, u32 canid, u8 idtype, u8 len, const u8 *data )
+int platform_can_send( unsigned id, u32 canid, u8 idtype, u8 len, const u8 *data )
 {
   tCANMsgObject msg_tx;
   const char *s = ( char * )data;
@@ -338,7 +370,9 @@ void platform_can_send( unsigned id, u32 canid, u8 idtype, u8 len, const u8 *dat
   DUFF_DEVICE_8( len,  *d++ = *s++ );
 
   can_tx_flag = 1;
-  CANMessageSet(CAN0_BASE, 2, &msg_tx, MSG_OBJ_TYPE_TX);
+  CANMessageSet(CAN0_BASE, CAN_MSG_OBJ_TX, &msg_tx, MSG_OBJ_TYPE_TX);
+
+  return PLATFORM_OK;
 }
 
 int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
@@ -347,7 +381,7 @@ int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
   if( can_rx_flag != 0 )
   {
     can_msg_rx.pucMsgData = data;
-    CANMessageGet(CAN0_BASE, 1, &can_msg_rx, 0);
+    CANMessageGet(CAN0_BASE, CAN_MSG_OBJ_RX, &can_msg_rx, 0);
     can_rx_flag = 0;
 
     *canid = ( u32 )can_msg_rx.ulMsgID;
@@ -359,11 +393,14 @@ int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
     return PLATFORM_UNDERFLOW;
 }
 
-#endif
+#endif // BUILD_CAN
+
 
 // ****************************************************************************
 // SPI
 // Same configuration on LM3S8962, LM3S6965, LM3S6918 and LM3S9B92 (2 SPI ports)
+
+#if NUM_SPI > 0
 
 // All possible LM3S SPIs defs
 // FIXME this anticipates support for a platform with 2 SPI port
@@ -440,6 +477,8 @@ void platform_spi_select( unsigned id, int is_select )
   is_select = is_select;
 }
 
+#endif // NUM_SPI > 0
+
 // ****************************************************************************
 // UART
 // Different configurations for LM3S8962, LM3S6918 (2 UARTs) and LM3S6965, LM3S9B92 (3 UARTs)
@@ -488,6 +527,10 @@ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int st
       config |= UART_CONFIG_PAR_EVEN;
     else if( parity == PLATFORM_UART_PARITY_ODD )
       config |= UART_CONFIG_PAR_ODD;
+    else if( parity == PLATFORM_UART_PARITY_MARK )
+      config |= UART_CONFIG_PAR_ONE;
+    else if( parity == PLATFORM_UART_PARITY_SPACE )
+      config |= UART_CONFIG_PAR_ZERO;
     else
       config |= UART_CONFIG_PAR_NONE;
 
@@ -501,12 +544,42 @@ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int st
 
 void platform_s_uart_send( unsigned id, u8 data )
 {
-  MAP_UARTCharPut( uart_base[ id ], data );
+#ifdef BUILD_USB_CDC
+  if( id == CDC_UART_ID )
+    USBBufferWrite( &g_sTxBuffer, &data, 1 );
+  else
+#endif
+    MAP_UARTCharPut( uart_base[ id ], data );
 }
+
+#ifdef BUILD_USB_CDC
+static int cdc_uart_recv( timer_data_type timeout )
+{
+  unsigned char data;
+  unsigned long read;
+
+  // Try to read one byte from buffer, if none available return -1 or
+  // retry if timeout
+  // FIXME: Respect requested timeout
+  do {
+    read = USBBufferRead(&g_sRxBuffer, &data, 1);
+  } while( read == 0 && timeout != 0 );
+
+  if( read == 0 )
+    return -1;
+  else
+    return data;
+}
+#endif
 
 int platform_s_uart_recv( unsigned id, timer_data_type timeout )
 {
   u32 base = uart_base[ id ];
+
+#ifdef BUILD_USB_CDC
+  if( id == CDC_UART_ID )
+    return cdc_uart_recv( timeout );
+#endif
 
   if( timeout == 0 )
     return MAP_UARTCharGetNonBlocking( base );
@@ -632,6 +705,8 @@ int platform_s_timer_set_match_int( unsigned id, timer_data_type period_us, int 
 // Similar on LM3S8962 and LM3S6965
 // LM3S6918 has no PWM
 
+#if NUM_PWM > 0
+
 // SYSCTL div data and actual div factors
 const static u32 pwm_div_ctl[] = { SYSCTL_PWMDIV_1, SYSCTL_PWMDIV_2, SYSCTL_PWMDIV_4, SYSCTL_PWMDIV_8, SYSCTL_PWMDIV_16, SYSCTL_PWMDIV_32, SYSCTL_PWMDIV_64 };
 const static u8 pwm_div_data[] = { 1, 2, 4, 8, 16, 32, 64 };
@@ -735,6 +810,8 @@ void platform_pwm_stop( unsigned id )
   MAP_PWMOutputState( PWM_BASE, 1 << id, false );
   MAP_PWMGenDisable( PWM_BASE, pwm_gens[ id >> 1 ] );
 }
+
+#endif // NUM_PWM > 0
 
 // *****************************************************************************
 // ADC specific functions and variables
@@ -1167,29 +1244,6 @@ static void usb_init()
   USBDCDCInit( 0, &g_sCDCDevice );
 }
 
-void platform_usb_cdc_send( u8 data )
-{
-  USBBufferWrite( &g_sTxBuffer, &data, 1 );
-}
-
-int platform_usb_cdc_recv( s32 timeout )
-{
-  unsigned char data;
-  unsigned long read;
-
-  // Try to read one byte from buffer, if none available return -1 or
-  // retry if timeout
-  // FIXME: Respect requested timeout
-  do {
-    read = USBBufferRead(&g_sRxBuffer, &data, 1);
-  } while( read == 0 && timeout != 0 );
-
-  if( read == 0 )
-    return -1;
-  else
-    return data;
-}
-
 unsigned long TxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue, void *pvMsgData)
 {
   // Which event was sent?
@@ -1356,56 +1410,4 @@ int platform_flash_erase_sector( u32 sector_id )
   return FlashErase( sector_id * INTERNAL_FLASH_SECTOR_SIZE ) == 0 ? PLATFORM_OK : PLATFORM_ERR;
 }
 #endif // #ifdef BUILD_WOFS
-
-// ****************************************************************************
-// Platform specific modules go here
-
-#if defined( ENABLE_DISP ) || defined( ENABLE_LM3S_GPIO )
-
-#define MIN_OPT_LEVEL 2
-#include "lrodefs.h"
-
-extern const LUA_REG_TYPE disp_map[];
-extern const LUA_REG_TYPE lm3s_pio_map[];
-
-const LUA_REG_TYPE platform_map[] =
-{
-#if LUA_OPTIMIZE_MEMORY > 0
-#ifdef ENABLE_DISP
-  { LSTRKEY( "disp" ), LROVAL( disp_map ) },
-#endif
-#ifdef ENABLE_LM3S_GPIO
-  { LSTRKEY( "pio" ), LROVAL( lm3s_pio_map ) },
-#endif
-#endif
-  { LNILKEY, LNILVAL }
-};
-
-LUALIB_API int luaopen_platform( lua_State *L )
-{
-#if LUA_OPTIMIZE_MEMORY > 0
-  return 0;
-#else // #if LUA_OPTIMIZE_MEMORY > 0
-  luaL_register( L, PS_LIB_TABLE_NAME, platform_map );
-
-  // Setup the new tables inside platform table
-  lua_newtable( L );
-  luaL_register( L, NULL, disp_map );
-  lua_setfield( L, -2, "disp" );
-  lua_newtable( L );
-  luaL_register( L, NULL, lm3s_pio_map );
-  lua_setfield( L, -2, "pio" );
-
-  return 1;
-#endif // #if LUA_OPTIMIZE_MEMORY > 0
-}
-
-#else // #if defined( ENABLE_DISP ) || defined( ENABLE_LM3S_GPIO )
-
-LUALIB_API int luaopen_platform( lua_State *L )
-{
-  return 0;
-}
-
-#endif // #if defined( ENABLE_DISP ) || defined( ENABLE_LM3S_GPIO )
 

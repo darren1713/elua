@@ -27,25 +27,9 @@
 #define SHELL_ALT_SPACE           '\x07'
 #define SHELL_MAX_ARGS            10
 
-// External shell function declaration
-#define SHELL_FUNC( func )        extern void func( int argc, char **argv )
 
 // Shell data
 char* shell_prog;
-
-// Extern implementations of shell functions
-SHELL_FUNC( shell_ls );
-SHELL_FUNC( shell_cp );
-SHELL_FUNC( shell_adv_mv );
-SHELL_FUNC( shell_adv_rm );
-SHELL_FUNC( shell_recv );
-SHELL_FUNC( shell_help );
-SHELL_FUNC( shell_cat );
-SHELL_FUNC( shell_lua );
-SHELL_FUNC( shell_ver );
-SHELL_FUNC( shell_mkdir );
-SHELL_FUNC( shell_wofmt );
-SHELL_FUNC( shell_worepack );
 
 // ----------------------------------------------------------------------------
 // Helpers
@@ -88,12 +72,20 @@ int shellh_ask_yes_no( const char *prompt )
 #endif
 
 // Dummy log function
+#ifdef __GNUC__
+static int shellh_dummy_printf( const char *fmt, ... ) __attribute__ ((format (printf, 1, 2)));
+#endif
+
 static int shellh_dummy_printf( const char *fmt, ... )
 {
   return 0;
 }
 
+#ifdef __GNUC__
+typedef int ( *p_logf )( const char *fmt, ... ) __attribute__ ((format (printf, 1, 2)));
+#else
 typedef int ( *p_logf )( const char *fmt, ... );
+#endif
 
 // Helper: copy one file to another file
 // Return 1 for success, 0 for error
@@ -366,14 +358,14 @@ const SHELL_COMMAND* shellh_execute_command( char* cmd, int interactive_mode )
 }
 
 // Execute the eLua "shell" in an infinite loop
-void shell_start()
+void shell_start( void )
 {
   char cmd[ SHELL_MAXSIZE + 1 ];
   const SHELL_COMMAND *pcmd;
 #ifdef BUILD_UIP
   int i;
 #endif
-  
+
   printf( SHELL_WELCOMEMSG, ELUA_STR_VERSION );
   while( 1 )
   {
@@ -403,7 +395,7 @@ void shell_start()
 }
 
 // Initialize the shell, returning 1 for OK and 0 for error
-int shell_init()
+int shell_init( void )
 {
   shell_prog = NULL;
   return 1;
@@ -411,12 +403,12 @@ int shell_init()
 
 #else // #ifdef BUILD_SHELL
 
-int shell_init()
+int shell_init( void )
 {
   return 0;
 }
 
-void shell_start()
+void shell_start( void )
 {
 }
 

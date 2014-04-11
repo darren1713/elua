@@ -281,6 +281,12 @@ void platform_int_init()
   WIU->PR = 0xFFFFFFFF;
   WIU->CTRL |= 2; 
 
+#ifdef BUILD_CAN
+  /* initialize the interrupt controller */
+  VIC_Config(CAN_ITLine, VIC_IRQ, p ++ );
+  /* enable global interrupt */
+  VIC_ITCmd(CAN_ITLine, ENABLE);
+#endif
 
 #ifdef INT_TMR_MATCH
   VIC_Config( TIM0_ITLine, VIC_IRQ, 5 );
@@ -296,7 +302,7 @@ void platform_int_init()
 
 // ****************************************************************************
 // Interrupt table
-// Must have a 1-to-1 correspondence with the interrupt enum in platform_conf.h!
+// Must have a 1-to-1 correspondence with the interrupt enum in platform_ints.h!
 
 const elua_int_descriptor elua_int_table[ INT_ELUA_LAST ] = 
 {

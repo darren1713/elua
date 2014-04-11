@@ -90,7 +90,11 @@
 //## Modified for eLua
 //## Defaults search modules path to our ROM File System
 #ifndef LUA_RPC
-#define LUA_PATH_DEFAULT  "/rfs/?.lua;/rfs/?.lc;/mmc/?.lua;/mmc/?.lc;/rom/?.lua;/rom/?.lc"
+
+#ifndef LUA_PATH_DEFAULT
+#define LUA_PATH_DEFAULT  "/rfs/?.lua;/rfs/?.lc;/mmc/?.lua;/mmc/?.lc;/wo/?.lua;/wo/?.lc;/rom/?.lua;/rom/?.lc;/semi/?.lua;/semi/?.lc;"
+#endif
+
 #define LUA_CPATH_DEFAULT ""
 #else // #ifndef LUA_RPC
 #define LUA_PATH_DEFAULT  \
@@ -107,7 +111,9 @@
 #define LUA_CDIR	LUA_ROOT "lib/lua/5.1/"
 
 #ifndef LUA_RPC
-#define LUA_PATH_DEFAULT  "/mmc/?.lua;/mmc/?.lc;/rom/?.lua;/rom/?.lc"
+#ifndef LUA_PATH_DEFAULT
+#define LUA_PATH_DEFAULT  "/mmc/?.lua;/mmc/?.lc;/wo/?.lua;/wo/?.lc;/rom/?.lua;/rom/?.lc;/semi/?.lua;/semi/?.lc;"
+#endif
 #define LUA_CPATH_DEFAULT ""
 #else // #ifndef LUA_RPC
 #define LUA_PATH_DEFAULT  \
@@ -878,7 +884,7 @@ typedef long int32_t;
 #define LUA_META_ROTABLES 
 #endif
 
-#if LUA_OPTIMIZE_MEMORY == 2 && LUA_USE_POPEN
+#if LUA_OPTIMIZE_MEMORY == 2 && defined(LUA_USE_POPEN)
 #error "Pipes not supported in aggresive optimization mode (LUA_OPTIMIZE_MEMORY=2)"
 #endif
 

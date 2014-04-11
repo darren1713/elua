@@ -1,9 +1,7 @@
 // Filesystem implementation
 #include "romfs.h"
-#include "type.h"
 #include <string.h>
 #include <errno.h>
-#include "devman.h"
 #include "romfiles.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -580,7 +578,7 @@ static FSDATA wofs_sim_fsdata =
 
 // WOFS formatting function
 // Returns 1 if OK, 0 for error
-int wofs_format()
+int wofs_format( void )
 {
   unsigned i;
 
@@ -1128,7 +1126,7 @@ int wofs_repack( void )
 #endif // #ifdef BUILD_WOFS
 
 // Initialize both ROMFS and WOFS as needed
-int romfs_init()
+int romfs_init( void )
 {
   unsigned i;
 
@@ -1174,7 +1172,7 @@ int romfs_init()
 
 #else // #if defined( BUILD_ROMFS ) || defined( BUILD_WOFS )
 
-int romfs_init()
+int romfs_init( void )
 {
   return dm_register( NULL, NULL, NULL );
 }

@@ -48,7 +48,7 @@ data_en =
   {
     { sig = "int #platform_pio_has_port#( unsigned port );",
       desc = [[Checks if the platform has the hardware port specified as argument. Implemented in %src/common.c%, it uses the $NUM_PIO$ macro that must be defined in the
-  platform's $platform_conf.h$ file (see @arch_overview.html#platforms@here@ for details). For example:</p>
+  platform's $cpu_xxx.h$ file (see @arch_overview.html#platforms@here@ for details). For example:</p>
   ~#define NUM_PIO   4      $// The platform has 4 hardware PIO ports$~<p> ]],
       args = "$port$ - the port ID",
       ret = "1 if the port exists, 0 otherwise",
@@ -70,6 +70,12 @@ data_en =
         "$pin$ - the pin number"
       },
       ret = "1 if the pin exists, 0 otherwise",
+    },
+
+    { sig = "int #platform_pio_get_num_pins#( unsigned port );",
+      desc = "Returns the number of pins for the specified port.",
+      args = "$port$ - the port number.",
+      ret = "The number of pins for the port."
     },
 
     { sig = "const char* #platform_pio_get_prefix#( unsigned port );",

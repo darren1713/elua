@@ -83,9 +83,9 @@ typedef struct
 #define romfs_fs_is_flag_set( p, f )  ( ( (p)->flags & ( f ) ) != 0 )
 
 // FS functions
-int romfs_init();
-int wofs_format();
-int wofs_repack();
+int romfs_init( void );
+int wofs_format( void );
+int wofs_repack( void );
 
 #ifdef ROMFS_SECURE_FILENAMES_WITH_CHAR
 void romfs_sec_lock();

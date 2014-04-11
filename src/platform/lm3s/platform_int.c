@@ -1,4 +1,4 @@
-// AVR32 interrupt support
+// lm3s interrupt support
 
 #include "platform_conf.h"
 #if defined( BUILD_C_INT_HANDLERS ) || defined( BUILD_LUA_INT_HANDLERS )
@@ -409,7 +409,7 @@ void platform_int_init()
 
 // ****************************************************************************
 // Interrupt table
-// Must have a 1-to-1 correspondence with the interrupt enum in platform_conf.h!
+// Must have a 1-to-1 correspondence with the interrupt enum in platform_ints.h!
 
 const elua_int_descriptor elua_int_table[ INT_ELUA_LAST ] = 
 {

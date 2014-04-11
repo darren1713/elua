@@ -7,19 +7,24 @@
 #define BUF_ENABLE
 #endif
 
-#ifdef BUILD_SERMUX
-#define NUM_TOTAL_UART  ( NUM_UART + SERMUX_NUM_VUART )
+#if defined( BUILD_USB_CDC )
+#define NUM_CDC_UART    1
 #else
-#define NUM_TOTAL_UART  ( NUM_UART )
+#define NUM_CDC_UART    0
 #endif
+
+#ifdef BUILD_SERMUX
+#define NUM_VUART_BUFS  SERMUX_NUM_VUART
+#else
+#define NUM_VUART_BUFS  0
+#endif
+
+#define NUM_TOTAL_UART  ( NUM_UART + NUM_VUART_BUFS + NUM_CDC_UART )
 
 #ifdef BUF_ENABLE
 
-#include "buf.h"
 #include "type.h"
-#include "platform.h"
 #include "utils.h"
-#include "sermux.h"
 #include <stdlib.h>
 #include <string.h>
 #include "elua_int.h"
@@ -59,12 +64,18 @@ static const buf_desc* buf_desc_array[ BUF_ID_TOTAL ] =
 #define WRITE16( p, x ) p = x
 
 // Helper: check 'resnum' (for virtual UARTs)
-// UART resource ID translation to buffer ID translation (for serial multiplexer support)
-#ifdef BUILD_SERMUX
+// UART resource ID translation to buffer ID translation (for serial multiplexer and CDC support)
+// Logical layout: physical UART buffers | virtual UART buffers | CDC uart buffers (the last two are optional)
+#if defined( BUILD_SERMUX ) || defined( BUILD_USB_CDC )
 static unsigned bufh_check_resnum( unsigned resid, unsigned resnum )
 {
-  if( resid == BUF_ID_UART && resnum >= SERMUX_SERVICE_ID_FIRST )
-    return resnum - SERMUX_SERVICE_ID_FIRST + NUM_UART;
+  if( ( resid == BUF_ID_UART ) && ( resnum >= SERMUX_SERVICE_ID_FIRST || resnum == CDC_UART_ID ) )
+  {
+    if( resnum == CDC_UART_ID )
+      return resnum - CDC_UART_ID + NUM_UART + NUM_VUART_BUFS;
+    else
+      return resnum - SERMUX_SERVICE_ID_FIRST + NUM_UART;
+  }
   else
     return resnum;
 }
@@ -126,7 +137,7 @@ int buf_write( unsigned resid, unsigned resnum, t_buf_data *data )
 
   if( pbuf->count >= BUF_REALSIZE( pbuf ) )
   {
-    fprintf( stderr, "[ERROR] Buffer overflow on resid=%d, resnum=%d!\n", resid, resnum );
+    fprintf( stderr, "[ERROR] Buffer overflow on resid=%d, resnum=%d, count=%d, realsize=%d!\n", resid, resnum, pbuf->count, BUF_REALSIZE( pbuf ) );
     return PLATFORM_ERR; 
   }
   DUFF_DEVICE_8( BUF_REALDSIZE( pbuf ),  *d++ = *s++ );

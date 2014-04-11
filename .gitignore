@@ -1,6 +1,7 @@
 .build/
 *.hex
 *.elf
+*.dfu
 *.o
 *.obj
 *.exe
@@ -11,6 +12,7 @@ inc/romfiles.h
 .sconf_temp/
 .sconsign.dblite
 config.log
+.DS_Store
 mux*
 rfs_server*
 doc/dist
@@ -19,8 +21,8 @@ inc/git_version.h
 *~
 *.*~
 luac.cross*
-elua_lualong_sim3u167.map
-GSatMicro/
-src/platform/sim3u1xx/FreakUSB
+boards/*.h
 sdcard.img
 core
+luarpc*
+*.map

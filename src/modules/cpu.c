@@ -1,6 +1,6 @@
 // Module for interfacing with CPU
 
-#include "lua.h"
+//#include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
 #include "platform.h"
@@ -12,6 +12,22 @@
 
 #define _C( x ) { #x, x }
 #include "platform_conf.h"
+
+#if defined( PLATFORM_CPU_CONSTANTS_INTS ) || defined( PLATFORM_CPU_CONSTANTS_PLATFORM ) || defined( PLATFORM_CPU_CONSTANTS_CONFIGURED )
+#define HAS_CPU_CONSTANTS
+#endif
+
+#if defined( HAS_CPU_CONSTANTS ) && !defined( PLATFORM_CPU_CONSTANTS_INTS )
+#define PLATFORM_CPU_CONSTANTS_INTS
+#endif
+
+#if defined( HAS_CPU_CONSTANTS ) && !defined( PLATFORM_CPU_CONSTANTS_PLATFORM )
+#define PLATFORM_CPU_CONSTANTS_PLATFORM
+#endif
+
+#if defined( HAS_CPU_CONSTANTS ) && !defined( PLATFORM_CPU_CONSTANTS_CONFIGURED )
+#define PLATFORM_CPU_CONSTANTS_CONFIGURED
+#endif
 
 #ifndef ELUA_CONF_LOCKDOWN
 
@@ -214,10 +230,12 @@ typedef struct
   u32 val;
 } cpu_const_t;
 
-#ifdef PLATFORM_CPU_CONSTANTS
-static const cpu_const_t cpu_constants[] =
+#ifdef HAS_CPU_CONSTANTS
+static const cpu_const_t cpu_constants[] = 
 {
-  PLATFORM_CPU_CONSTANTS,
+  PLATFORM_CPU_CONSTANTS_INTS
+  PLATFORM_CPU_CONSTANTS_PLATFORM
+  PLATFORM_CPU_CONSTANTS_CONFIGURED
   { NULL, 0 }
 };
 
@@ -237,7 +255,7 @@ static int cpu_mt_index( lua_State *L )
   }
   return 0;
 }
-#endif
+#endif // #ifdef HAS_CPU_CONSTANTS
 
 #ifdef BUILD_LUA_INT_HANDLERS
 
@@ -333,10 +351,10 @@ const LUA_REG_TYPE cpu_map[] =
   { LSTRKEY( "get_int_handler" ), LFUNCVAL( cpu_get_int_handler ) },
   { LSTRKEY( "get_int_flag" ), LFUNCVAL( cpu_get_int_flag) },
 #endif
-#if defined( PLATFORM_CPU_CONSTANTS ) && LUA_OPTIMIZE_MEMORY > 0
+#if defined( HAS_CPU_CONSTANTS ) && LUA_OPTIMIZE_MEMORY > 0
   { LSTRKEY( "__metatable" ), LROVAL( cpu_map ) },
 #endif
-#ifdef PLATFORM_CPU_CONSTANTS
+#ifdef HAS_CPU_CONSTANTS
   { LSTRKEY( "__index" ), LFUNCVAL( cpu_mt_index ) },
 #endif
   { LNILKEY, LNILVAL }
@@ -355,13 +373,13 @@ LUALIB_API int luaopen_cpu( lua_State *L )
 #else // #if LUA_OPTIMIZE_MEMORY > 0
   // Register methods
   luaL_register( L, AUXLIB_CPU, cpu_map );
-
-#ifdef PLATFORM_CPU_CONSTANTS
+  
+#ifdef HAS_CPU_CONSTANTS
   // Set table as its own metatable
   lua_pushvalue( L, -1 );
   lua_setmetatable( L, -2 );
-#endif // #ifdef PLATFORM_CPU_CONSTANTS
-
+#endif // #ifdef HAS_CPU_CONSTANTS
+  
   return 1;
 #endif // #if LUA_OPTIMIZE_MEMORY > 0
 }

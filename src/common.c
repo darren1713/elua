@@ -1,11 +1,9 @@
 // Common code for all backends
 
-#include "platform.h"
+#include "platform.h"		// platform_conf.h
 #include "platform_conf.h"
-#include "type.h"
 #include "genstd.h"
 #include "common.h"
-#include "buf.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,48 +12,17 @@
 #include "elua_adc.h"
 #include "term.h"
 #include "xmodem.h"
-#include "elua_int.h"
-#include "sermux.h"
 #include "lua.h"
 #include "lapi.h"
 #include "lauxlib.h"
 
-// [TODO] the new builder should automatically do this
-#if defined( BUILD_LUA_INT_HANDLERS ) || defined( BUILD_C_INT_HANDLERS )
-#define BUILD_INT_HANDLERS
-
-#ifndef INT_TMR_MATCH
-#define INT_TMR_MATCH         ELUA_INT_INVALID_INTERRUPT
-#endif
-
+#ifdef BUILD_INT_HANDLERS
 extern const elua_int_descriptor elua_int_table[ INT_ELUA_LAST ];
+#endif // #ifdef BUILD_INT_HANDLERS
 
-#endif // #if defined( BUILD_LUA_INT_HANDLERS ) || defined( BUILD_C_INT_HANDLERS )
-
-// [TODO] the new builder should automatically do this
-#ifndef VTMR_NUM_TIMERS
-#define VTMR_NUM_TIMERS       0
-#endif // #ifndef VTMR_NUM_TIMERS
-
-// [TODO] the new builder should automatically do this
 #ifndef CON_BUF_SIZE
 #define CON_BUF_SIZE          0
 #endif // #ifndef CON_BUF_SIZE
-
-// [TODO] the new builder should automatically do this
-#ifndef SERMUX_FLOW_TYPE
-#define SERMUX_FLOW_TYPE      PLATFORM_UART_FLOW_NONE
-#endif
-
-// [TODO] the new builder should automatically do this
-#ifndef CON_FLOW_TYPE
-#define CON_FLOW_TYPE         PLATFORM_UART_FLOW_NONE
-#endif
-
-// [TODO] the new builder should automatically do this
-#ifndef CON_TIMER_ID
-#define CON_TIMER_ID          PLATFORM_TIMER_SYS_ID
-#endif
 
 // ****************************************************************************
 // XMODEM support code
@@ -190,7 +157,7 @@ static int uart_recv( timer_data_type to )
   return platform_uart_recv( CON_UART_ID, CON_TIMER_ID, to );
 }
 
-void cmn_platform_init()
+void cmn_platform_init(void)
 {
 #ifdef BUILD_INT_HANDLERS
   platform_int_init();
@@ -210,19 +177,20 @@ void cmn_platform_init()
     platform_uart_set_buffer( i + SERMUX_SERVICE_ID_FIRST, bufsizes[ i ] );
 #endif // #ifdef BUILD_SERMUX
 
-#if defined( CON_UART_ID )
-  if( CON_UART_ID < SERMUX_SERVICE_ID_FIRST && ( CON_UART_ID != CDC_UART_ID ) )
-  {
-    // Setup console UART
-    platform_uart_setup( CON_UART_ID, CON_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );  
-    platform_uart_set_flow_control( CON_UART_ID, CON_FLOW_TYPE );
-    platform_uart_set_buffer( CON_UART_ID, CON_BUF_SIZE );
-  }
-#endif // #if defined( CON_UART_ID )
+#if defined( CON_UART_ID ) && ( CON_UART_ID < SERMUX_SERVICE_ID_FIRST ) && ( CON_UART_ID != CDC_UART_ID )
+  // Setup console UART
+  platform_uart_setup( CON_UART_ID, CON_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );  
+  platform_uart_set_flow_control( CON_UART_ID, CON_FLOW_TYPE );
+  platform_uart_set_buffer( CON_UART_ID, CON_BUF_SIZE );
+#endif // #if defined( CON_UART_ID ) && CON_UART_ID < SERMUX_SERVICE_ID_FIRST
+
+#if defined( BUILD_USB_CDC ) && defined( CDC_BUF_SIZE )
+  platform_uart_set_buffer( CDC_UART_ID, CDC_BUF_SIZE );
+#endif
 
   // Set the send/recv functions                          
   std_set_send_func( uart_send );
-  std_set_get_func( uart_recv );  
+  std_set_get_func( uart_recv );
 
 #ifdef BUILD_XMODEM  
   // Initialize XMODEM
@@ -240,7 +208,14 @@ void cmn_platform_init()
 
 int platform_pio_has_port( unsigned port )
 {
+#if defined( PIO_PINS_PER_PORT )
   return port < NUM_PIO;
+#elif defined( PIO_PIN_ARRAY )
+  const u8 pio_port_pins[] = PIO_PIN_ARRAY;
+  return port < NUM_PIO && pio_port_pins[ port ] != 0;
+#else
+  #error "You must define either PIO_PINS_PER_PORT of PIO_PIN_ARRAY in cpu header"
+#endif
 }
 
 const char* platform_pio_get_prefix( unsigned port )
@@ -259,7 +234,19 @@ int platform_pio_has_pin( unsigned port, unsigned pin )
   const u8 pio_port_pins[] = PIO_PIN_ARRAY;
   return port < NUM_PIO && pin < pio_port_pins[ port ];
 #else
-  #error "You must define either PIO_PINS_PER_PORT of PIO_PIN_ARRAY in platform_conf.h"
+  #error "You must define either PIO_PINS_PER_PORT of PIO_PIN_ARRAY in platform cpu.h"
+#endif
+}
+
+int platform_pio_get_num_pins( unsigned port )
+{
+#if defined( PIO_PINS_PER_PORT )
+  return PIO_PINS_PER_PORT;
+#elif defined( PIO_PIN_ARRAY )
+  const u8 pio_port_pins[] = PIO_PIN_ARRAY;
+  return pio_port_pins[ port ];
+#else
+  #error "You must define either PIO_PINS_PER_PORT of PIO_PIN_ARRAY in platform cpu.h"
 #endif
 }
 
@@ -291,7 +278,7 @@ int platform_pwm_exists( unsigned id )
 // ****************************************************************************
 // CPU functions
 
-u32 platform_cpu_get_frequency()
+u32 platform_cpu_get_frequency(void)
 {
   return CPU_FREQUENCY;
 }
@@ -351,14 +338,23 @@ void platform_adc_set_timer( unsigned id, u32 timer )
 
 extern char end[];
 
+// 'sim' and 'pc' have memory allocated dynamically at run time, as opposed to all
+// the other targets
+
+#if !defined( ELUA_BOARD_SIM ) && !defined( ELUA_BOARD_PC )
+#define ARRAYSPEC             static
+#else
+#define ARRAYSPEC
+#endif
+
 void* platform_get_first_free_ram( unsigned id )
 {
-  static void* mstart[] = MEM_START_ADDRESS;
+  ARRAYSPEC u32 mstart[] = MEM_START_ADDRESS;
   u32 p;
 
-  if( id >= sizeof( mstart ) / sizeof( void* ) )
+  if( id >= sizeof( mstart ) / sizeof( u32 ) )
     return NULL;
-  p = ( u32 )mstart[ id ];
+  p = mstart[ id ];
   if( p & ( MIN_ALIGN - 1 ) )
     p = ( ( p >> MIN_ALIGN_SHIFT ) + 1 ) << MIN_ALIGN_SHIFT;
   return ( void* )p;
@@ -366,12 +362,12 @@ void* platform_get_first_free_ram( unsigned id )
 
 void* platform_get_last_free_ram( unsigned id )
 {
-  static void* mend[] = MEM_END_ADDRESS;
+  ARRAYSPEC u32 mend[] = MEM_END_ADDRESS;
   u32 p;
 
-  if( id >= sizeof( mend ) / sizeof( void* ) )
+  if( id >= sizeof( mend ) / sizeof( u32 ) )
     return NULL;
-  p = ( u32 )mend[ id ];
+  p = mend[ id ];
   if( p & ( MIN_ALIGN - 1 ) )
     p = ( ( p >> MIN_ALIGN_SHIFT ) - 1 ) << MIN_ALIGN_SHIFT;
   return ( void* )p;
@@ -520,7 +516,7 @@ u32 platform_flash_get_sector_of_address( u32 addr )
   return flashh_find_sector( addr, NULL, NULL );
 }
 
-u32 platform_flash_get_num_sectors()
+u32 platform_flash_get_num_sectors(void)
 {
 #ifdef INTERNAL_FLASH_SECTOR_SIZE
   return INTERNAL_FLASH_SIZE / INTERNAL_FLASH_SECTOR_SIZE;
