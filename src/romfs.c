@@ -723,7 +723,7 @@ int bit_array_set( u8* arr, u32 bitnum, u8 value )
   int byte = bitnum / 8;
   int bit = bitnum % 8;
 
-  if( byte >= ( platform_flash_get_num_sectors() / 8 ) )
+  if( byte >= ( ( platform_flash_get_num_sectors() + ( 8 - 1 ) ) / 8 ) )
     return 0;
 
   if( value > 0)
@@ -739,7 +739,7 @@ int bit_array_get( u8* arr, u32 bitnum )
   int byte = bitnum / 8;
   int bit = bitnum % 8;
 
-  if( byte >= ( platform_flash_get_num_sectors() / 8 ) )
+  if( byte >= ( ( platform_flash_get_num_sectors() + ( 8 - 1 ) ) / 8 ) )
     return -1;
 
   return ( ( arr[byte] & ( u8 )( 1 << bit ) ) > 0 );
@@ -752,7 +752,7 @@ int bit_array_get_lowest( u8* arr )
   int bit;
   u8 value;
 
-  for( byte = 0; byte < ( platform_flash_get_num_sectors() / 8 ); byte++ )
+  for( byte = 0; byte < ( ( platform_flash_get_num_sectors() + ( 8 - 1 ) ) / 8 ); byte++ )
   {
     if( arr[ byte ] )
     {
@@ -776,7 +776,7 @@ int bit_array_get_highest( u8* arr )
   int bit;
   u8 value;
 
-  for( byte = ( platform_flash_get_num_sectors() / 8 ) - 1; byte >= 0; byte-- )
+  for( byte = ( ( platform_flash_get_num_sectors() + ( 8 - 1 ) ) / 8 ) - 1; byte >= 0; byte-- )
   {
     if( arr[ byte ] )
     {
@@ -835,7 +835,7 @@ int wofs_repack_init_spare_sectors( u8* freed_sectors, u32* lowest_spare )
   int i;
 
   // Clear freed sector list
-  for( i = 0; i < ( platform_flash_get_num_sectors() / 8 ); i++ )
+  for( i = 0; i < ( ( platform_flash_get_num_sectors() + ( 8 - 1 ) ) / 8 ); i++ )
     freed_sectors[ i ] = 0;
 
   // Find the last wector we've written into
@@ -861,7 +861,7 @@ int wofs_repack_init_spare_sectors( u8* freed_sectors, u32* lowest_spare )
 int wofs_repack( void )
 {
   FSDATA *pdata = &wofs_fsdata;
-  u8 freed_sectors[ platform_flash_get_num_sectors() / 8 ];
+  u8 freed_sectors[ ( platform_flash_get_num_sectors() + ( 8 - 1 ) ) / 8 ];
   u32 startf, endf, last_endf;
   u32 sstart, send, snum_startf, snum_endf, snum_startf2, snum_endf2;
   u32 snum_tmp_sect, sstart_tmp_sect;
