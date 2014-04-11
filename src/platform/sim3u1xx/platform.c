@@ -211,7 +211,7 @@ void mySystemInit(void)
 
 }
 
-#if defined( ELUA_BOARD_GSBRD )
+#if defined( ELUA_BOARD_GSATMICRO )
 int external_power()
 {
   //check USB DC 3.9 or HVDC 3.8
@@ -295,7 +295,7 @@ void reset_parameters()
 
 void wake_init( void )
 {
-#if defined( ELUA_BOARD_GSBRD )
+#if defined( ELUA_BOARD_GSATMICRO )
 
   //Determine if we had a power failure, voltage dropout, or reset button pressed
   //The pre-generated code for SI32_RSTSRC_A_get_last_reset_source is incorrect and does
@@ -526,7 +526,7 @@ void clk_init( void )
   // Set system clock to AHB divider frequency
   SystemCoreClock = 5000000;
 #endif
-#if defined( ELUA_BOARD_GSBRD )
+#if defined( ELUA_BOARD_GSATMICRO )
   SI32_CLKCTRL_A_enable_apb_to_modules_0(SI32_CLKCTRL_0,
                                          SI32_CLKCTRL_A_APBCLKG0_PB0 |
                                          SI32_CLKCTRL_A_APBCLKG0_USART0 |
@@ -983,7 +983,7 @@ static void gTIMER1_enter_auto_reload_config(void)
 
 void pios_init( void )
 {
-#if defined( ELUA_BOARD_GSBRD )
+#if defined( ELUA_BOARD_GSATMICRO )
   // SI32_PBCFG_A_unlock_ports(SI32_PBCFG_0);
 
   // // PB0 Setup
@@ -1200,7 +1200,7 @@ void pios_init( void )
 #endif
   }
 
-#else //#if defined( ELUA_BOARD_GSBRD )
+#else //#if defined( ELUA_BOARD_GSATMICRO )
   // Set up prinf pin
   //SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_1, 0x00000008);
 

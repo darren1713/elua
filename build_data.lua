@@ -114,7 +114,8 @@ local platform_list =
   stm32f4 = { cpus =  { 'STM32F407VG', 'STM32F407ZG' }, arch = 'cortexm' },
   avr32 = { cpus = { 'AT32UC3A0128', 'AT32UC3A0256', 'AT32UC3A0512', 'AT32UC3B0256' }, arch = 'avr32' },
   lpc24xx = { cpus = { 'LPC2468' }, arch = 'arm' },
-  lpc17xx = { cpus = { 'LPC1768' }, arch = 'cortexm' }
+  lpc17xx = { cpus = { 'LPC1768' }, arch = 'cortexm' },
+  sim3u1xx = { cpus = { 'SIM3U167' }, arch = 'cortexm' }
 }
 
 -- Returns the platform of a given CPU

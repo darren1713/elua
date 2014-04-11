@@ -66,6 +66,7 @@ SHELL_FUNC( shell_lua );
 SHELL_FUNC( shell_ver );
 SHELL_FUNC( shell_mkdir );
 SHELL_FUNC( shell_wofmt );
+SHELL_FUNC( shell_worepack );
 
 #endif // #ifndef __SHELL_H__
 
