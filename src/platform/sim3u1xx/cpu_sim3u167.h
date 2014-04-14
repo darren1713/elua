@@ -10,27 +10,27 @@
 extern unsigned platform_get_console_uart( void );
 
 #define EXTERNAL_CONSOLE
-
-#if defined( BUILD_USB_CDC )
-  #if defined( EXTERNAL_CONSOLE )
-    #define CON_VIRTUAL_ID 255
-    #define CON_UART_ID CON_VIRTUAL_ID
-  #else
-    #define CON_UART_ID         ( platform_get_console_uart() )
-    #define CON_UART_ID_HW_UART  0
-  #endif
-#else
-  #if defined( EXTERNAL_CONSOLE )
-    #define CON_VIRTUAL_ID 255
-    #define CON_UART_ID CON_VIRTUAL_ID
-  #else
-    #if defined( ELUA_BOARD_SIM3U1XXBDK )
-      #define CON_UART_ID           2
-    #else
-      #define CON_UART_ID           0
-    #endif
-  #endif
-#endif
+#define CON_VIRTUAL_ID 255
+// #if defined( BUILD_USB_CDC )
+//   #if defined( EXTERNAL_CONSOLE )
+//     #define CON_VIRTUAL_ID 255
+//     #define CON_UART_ID CON_VIRTUAL_ID
+//   #else
+//     #define CON_UART_ID         ( platform_get_console_uart() )
+//     #define CON_UART_ID_HW_UART  0
+//   #endif
+// #else
+//   #if defined( EXTERNAL_CONSOLE )
+//     #define CON_VIRTUAL_ID 255
+//     #define CON_UART_ID CON_VIRTUAL_ID
+//   #else
+//     #if defined( ELUA_BOARD_SIM3U1XXBDK )
+//       #define CON_UART_ID           2
+//     #else
+//       #define CON_UART_ID           0
+//     #endif
+//   #endif
+// #endif
 
 // Number of resources (0 if not available/not implemented)
 #define NUM_PIO               5
@@ -57,7 +57,7 @@ u32 cmsis_get_cpu_frequency();
 #define PIO_PIN_ARRAY     { 16, 16, 15, 12, 6 }
 
 // Internal memory data
-#define SRAM_ORIGIN                        0x20000000
+#define SRAM_ORIGIN                      0x20000000
 #define SRAM_SIZE                        0x8000
 #define INTERNAL_RAM1_FIRST_FREE         end
 #define INTERNAL_RAM1_LAST_FREE          ( void* )( SRAM_ORIGIN + SRAM_SIZE - STACK_SIZE_TOTAL - 1 )

@@ -111,6 +111,10 @@ local default_platform_conf = {
   pre_generate_section = function() return true end,
 }
 
+local default_extra_conf  = {
+  get_extra_modules = function() end,
+}
+
 -- Sanity code
 -- These are more checks added to the generated header file
 -- Some of these are the result of pure paranoia. Nevertheless, they seem to work.
@@ -224,6 +228,11 @@ function compile_board( fname, boardname )
     plconf = require( "src.platform." .. platform .. ".build_config" )
   end
 
+  local extraconf = default_extra_conf
+  if utils.is_file( utils.concat_path{ comp.extras, 'build_config.lua' } ) then
+    extraconf = require( comp.extras .. ".build_config" )
+  end
+
   -- Read platform specific components/configs
   plconf.add_platform_components( components, boardname, desc.cpu )
   plconf.add_platform_configs( configs, boardname, desc.cpu )
@@ -275,6 +284,7 @@ function compile_board( fname, boardname )
   header = header .. sanity_code
 
   -- Generate module configuration
+  mgen.add_extra_modules(extraconf.get_extra_modules())
   gen, err = mgen.gen_module_list( desc, plconf, platform, boardname )
   if not gen then return false, err end
   header = header .. gen

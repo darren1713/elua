@@ -23,7 +23,6 @@ return {
   },
   modules = {
     generic = { 'all', "-spi", "-pwm", "-can", "-net" },
-    platform = 'all',
   },
 }
 
