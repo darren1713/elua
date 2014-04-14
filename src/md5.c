@@ -25,7 +25,7 @@ These notices must be retained in any copies of any part of this
 documentation and/or software.
 */
 
-//#include <memory.h>
+#include <string.h>
 #include "md5.h"
 
 void MD5Open(MD5 *md5)

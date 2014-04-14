@@ -28,7 +28,7 @@ const char shell_help_ls[] = "[<path>] [-R]\n"
   "  [-c]: compute checksums\n";
 const char shell_help_summary_ls[] = "lists files and directories";
 
-md5_digest(const char* dir, const char* fname)
+int md5_digest(const char* dir, const char* fname)
 {
   char *path = (char *)alloca( sizeof( char* )*( strlen(dir) + strlen(fname) + 2 ) );
   char buffer[64];
@@ -49,6 +49,10 @@ md5_digest(const char* dir, const char* fname)
       printf("%02x", digest[i]);
     fclose(fp);
   }
+  else
+    return 0;
+
+  return 1;
 }
 
 // 'ls' and 'dir' handler
