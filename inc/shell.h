@@ -6,7 +6,7 @@
 #include "type.h"
 
 #if !defined(SHELL_WELCOMEMSG)
-#define SHELL_WELCOMEMSG                "\neLua %s  Copyright (C) 2007-2011 www.eluaproject.net\n"
+#define SHELL_WELCOMEMSG                "\neLua %s  Copyright (C) 2007-2013 www.eluaproject.net\n"
 #endif
 #if !defined(SHELL_PROMPT)
 #define SHELL_PROMPT                    "eLua# "
