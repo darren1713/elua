@@ -1317,6 +1317,10 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
 // ****************************************************************************
 // UART section
 
+#ifdef BUILD_USB_CDC
+static void sim3_usb_cdc_send( u8 data );
+static int sim3_usb_cdc_recv( s32 timeout );
+#endif
 
 static SI32_UART_A_Type* const uart[] = { SI32_UART_0, SI32_UART_1 };
 static SI32_USART_A_Type* const usart[] = { SI32_USART_0, SI32_USART_1 };
@@ -1329,6 +1333,9 @@ static SI32_USART_A_Type* const usart[] = { SI32_USART_0, SI32_USART_1 };
 
 u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int stopbits )
 {
+  if( id == CDC_UART_ID )
+    return 0;
+
   if( id < 2 )
   {
     SI32_USART_A_enter_full_duplex_mode( uart[ id ] );
@@ -1470,6 +1477,11 @@ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int st
 
 void platform_s_uart_send( unsigned id, u8 data )
 {
+#ifdef BUILD_USB_CDC
+  if( id == CDC_UART_ID )
+    sim3_usb_cdc_send( data );
+  else
+#endif
   if( id < 2 )
   {
     // Block if the output buffer is full
@@ -1491,6 +1503,11 @@ void platform_s_uart_send( unsigned id, u8 data )
 
 int platform_s_uart_recv( unsigned id, timer_data_type timeout )
 {
+#ifdef BUILD_USB_CDC
+  if( id == CDC_UART_ID )
+    return sim3_usb_cdc_recv( timeout );
+  else
+#endif
   if( id < 2 )
   {
     if( timeout == 0 )
@@ -2618,7 +2635,7 @@ unsigned platform_get_console_uart( void )
   return CON_UART_ID;
 }
 
-void platform_usb_cdc_send( u8 data )
+void sim3_usb_cdc_send( u8 data )
 {
   usb_pcb_t *pcb = usb_pcb_get();
 
@@ -2633,7 +2650,7 @@ void platform_usb_cdc_send( u8 data )
     usb_poll();//ep_write(EP_1);
 }
 
-int platform_usb_cdc_recv( s32 timeout )
+int sim3_usb_cdc_recv( s32 timeout )
 {
   usb_pcb_t *pcb = usb_pcb_get();
 
