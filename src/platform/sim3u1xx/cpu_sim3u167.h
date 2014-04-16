@@ -175,6 +175,7 @@ extern unsigned console_cdc_active;
 //#define PCB_V7_CHARGER_NPN
 
 #define BLUETOOTH_ENABLE_TDI_DTR
+#define BLUETOOTH_ENABLE_TDO_DSR
 #define BLUETOOTH_POWEREDWHILESLEEPING
 //#define REBOOT_AT_END_OF_SLEEP
 //define DEBUG_I2C

@@ -1029,6 +1029,12 @@ void pios_init( void )
   SI32_PBSTD_A_set_pins_digital_input( SI32_PBSTD_1, 1 << 4 );
 #endif
 
+#if defined( BLUETOOTH_ENABLE_TDO_DSR )
+  SI32_PBCFG_A_disable_jtag(SI32_PBCFG_0);
+  SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 1 << 3 );
+  SI32_PBSTD_A_write_pins_high(SI32_PBSTD_1, 1 << 3 );
+#endif
+
   // Analog Pins (1.14 & 1.15)
   SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_1, 0xC000);
   SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_1, 0xC000);
@@ -2318,6 +2324,10 @@ void myPB_enter_off_config()
     SI32_PBSTD_A_write_pins_high( SI32_PBSTD_1, 0x0080 );
     SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_0, 1 << 12);
     SI32_PBSTD_A_write_pins_high( SI32_PBSTD_0, 1 << 12 );
+#if defined( BLUETOOTH_ENABLE_TDO_DSR )
+    SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 1 << 3);
+    SI32_PBSTD_A_write_pins_high(SI32_PBSTD_1, 1 << 3 );
+#endif
     SI32_PBSTD_A_set_pins_digital_input( SI32_PBSTD_0, ( (1 << 11) | (1 << 13) ));
   }
 #endif
