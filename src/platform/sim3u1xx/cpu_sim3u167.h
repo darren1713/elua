@@ -9,7 +9,6 @@
 
 extern unsigned platform_get_console_uart( void );
 
-#define EXTERNAL_CONSOLE
 #define CON_VIRTUAL_ID 255
 // #if defined( BUILD_USB_CDC )
 //   #if defined( EXTERNAL_CONSOLE )
