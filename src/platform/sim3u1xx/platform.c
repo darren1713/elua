@@ -50,14 +50,14 @@
 int wake_reason = WAKE_UNKNOWN;
 
 // Watchdog timer
-#define EARLY_WARNING_DELAY_MS        500   // Will result in approx a 1 s
+#define PLATFORM_EARLY_WARNING_DELAY_MS        500   // Will result in approx a 1 s
                                              // periodic early warning interrupt
 
-#define RESET_DELAY_MS                3000  // Will result in approx a 2 s
+#define PLATFORM_RESET_DELAY_MS                3000  // Will result in approx a 2 s
                                             // reset delay (if early warning isn't captured)
 
-#define EARLY_WARNING_THRESHOLD       (uint32_t)((16400*EARLY_WARNING_DELAY_MS)/1000)
-#define RESET_THRESHOLD               (uint32_t)((16400*RESET_DELAY_MS)/1000)
+#define PLATFORM_EARLY_WARNING_THRESHOLD       (uint32_t)((16400*PLATFORM_EARLY_WARNING_DELAY_MS)/1000)
+#define PLATFORM_RESET_THRESHOLD               (uint32_t)((16400*PLATFORM_RESET_DELAY_MS)/1000)
 
 #ifdef EXTRA_SLEEP_HOOK
 extern void extras_sleep_hook( int seconds );
@@ -499,9 +499,9 @@ int platform_init()
   SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
   SI32_WDTIMER_A_reset_counter (SI32_WDTIMER_0);
   while(SI32_WDTIMER_A_is_threshold_update_pending(SI32_WDTIMER_0));
-  SI32_WDTIMER_A_set_early_warning_threshold (SI32_WDTIMER_0, EARLY_WARNING_THRESHOLD);
+  SI32_WDTIMER_A_set_early_warning_threshold (SI32_WDTIMER_0, PLATFORM_EARLY_WARNING_THRESHOLD);
   while(SI32_WDTIMER_A_is_threshold_update_pending(SI32_WDTIMER_0));
-  SI32_WDTIMER_A_set_reset_threshold (SI32_WDTIMER_0, RESET_THRESHOLD);
+  SI32_WDTIMER_A_set_reset_threshold (SI32_WDTIMER_0, PLATFORM_RESET_THRESHOLD);
 
 #if 1 //Option to disable Watchdog Timer
   // Enable Watchdog Timer
