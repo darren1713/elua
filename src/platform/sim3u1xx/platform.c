@@ -187,7 +187,7 @@ void WDTIMER0_IRQHandler(void)
     if ((SI32_WDTIMER_A_is_early_warning_interrupt_pending(SI32_WDTIMER_0) &
         SI32_WDTIMER_A_is_early_warning_interrupt_enabled(SI32_WDTIMER_0)))
     {
-      SI32_WDTIMER_A_reset_counter(SI32_WDTIMER_0); 
+      SI32_WDTIMER_A_reset_counter(SI32_WDTIMER_0);
       SI32_WDTIMER_A_clear_early_warning_interrupt(SI32_WDTIMER_0);
     }
 }
@@ -212,15 +212,22 @@ void mySystemInit(void)
 }
 
 #if defined( ELUA_BOARD_GSATMICRO )
+
+int usb_power()
+{
+  return ( int )SI32_VREG_A_is_vbus_valid( SI32_VREG_0 );
+}
+
 int external_power()
 {
   //check USB DC 3.9 or HVDC 3.8
   if( ( SI32_PBSTD_A_read_pins( PIN_HV_BANK ) & ( PIN_HV_PIN ) ) ||
-      ( SI32_VREG_A_is_vbus_valid( SI32_VREG_0 ) ) )
+      ( usb_power() ) )
     return 1;
   else
     return 0;
 }
+
 int external_buttons()
 {
 #if defined( PCB_V7 ) || defined( PCB_V8 )
@@ -248,7 +255,7 @@ int external_io()
     int val = SI32_PBSTD_A_read_pins( SI32_PBSTD_1 ) & ( 1 << 14 );
     if(rram_read_bit(RRAM_BIT_WAKE_ON_INPUT1_POLARITY) == WAKE_ON_INPUT1_POLARITY_POSITIVE)
     {
-      if(val) return 1; 
+      if(val) return 1;
     } else {
       if(!val) return 1;
     }
@@ -258,7 +265,7 @@ int external_io()
     int val = SI32_PBSTD_A_read_pins( SI32_PBSTD_1 ) & ( 1 << 15 );
     if(rram_read_bit(RRAM_BIT_WAKE_ON_INPUT2_POLARITY) == WAKE_ON_INPUT2_POLARITY_POSITIVE)
     {
-      if(val) return 1; 
+      if(val) return 1;
     } else {
       if(!val) return 1;
     }
@@ -332,12 +339,12 @@ void wake_init( void )
       if(rram_read_bit(RRAM_BIT_POWEROFF) == POWEROFF_MODE_ACTIVE)
       {
         rram_write_int(RRAM_INT_SLEEPTIME, SLEEP_FOREVER); //will wakeup in 68 years
-      } 
+      }
       else if(rram_read_bit(RRAM_BIT_STORAGE_MODE) == STORAGE_MODE_ACTIVE)
       {
         //Sleep forever, in storage mode. Power button will wakeup device
         rram_write_int(RRAM_INT_SLEEPTIME, SLEEP_FOREVER); //will wakeup in 68 years
-      } 
+      }
 
       if(external_buttons() || external_power() )
       {
@@ -368,14 +375,14 @@ void wake_init( void )
   else if (((reset_status & SI32_RSTSRC_A_RESETFLAG_PORRF_MASK) == SI32_RSTSRC_A_RESETFLAG_PORRF_SET_U32)
     ||  ((reset_status & SI32_RSTSRC_A_RESETFLAG_VMONRF_MASK) == SI32_RSTSRC_A_RESETFLAG_VMONRF_SET_U32)
     ||  ((reset_status & SI32_RSTSRC_A_RESETFLAG_PINRF_MASK) == SI32_RSTSRC_A_RESETFLAG_PINRF_SET_U32)
-    ||  ((pmu_status & SI32_PMU_A_STATUS_PORF_MASK) == SI32_PMU_A_STATUS_PORF_SET_U32) 
+    ||  ((pmu_status & SI32_PMU_A_STATUS_PORF_MASK) == SI32_PMU_A_STATUS_PORF_SET_U32)
     ||  ((pmu_wake_status & SI32_PMU_A_WAKESTATUS_RSTWF_MASK) == SI32_PMU_A_WAKESTATUS_RSTWF_SET_U32)
     ||  ((reset_status & SI32_RSTSRC_A_RESETFLAG_WDTRF_MASK) == SI32_RSTSRC_A_RESETFLAG_WDTRF_SET_U32) )
   {
     if((pmu_wake_status & SI32_PMU_A_WAKESTATUS_RSTWF_MASK) == SI32_PMU_A_WAKESTATUS_RSTWF_SET_U32)
       wake_reason = WAKE_RESETPIN;
     if((reset_status & SI32_RSTSRC_A_RESETFLAG_WDTRF_MASK) == SI32_RSTSRC_A_RESETFLAG_WDTRF_SET_U32)
-      wake_reason = WAKE_WATCHDOG;    
+      wake_reason = WAKE_WATCHDOG;
     else if((pmu_status & SI32_PMU_A_STATUS_PWAKEF_MASK) == 0) //Check for pin wake NOTE: SiLabs headers are wrong, this bit is backwards per the manual...
       wake_reason = WAKE_WAKEPIN;
     else
@@ -625,7 +632,8 @@ void SecondsTick_Handler()
       cmn_int_handler( INT_BOOT, 0 );
       //printf("wakeup %i\n", load_lua_string("wakeup();\n"));
     }
-    if( ( ( !external_power() && !external_buttons() && !external_io()) && !bluetooth_connected() ) || ( rram_read_bit(RRAM_BIT_SLEEP_WHEN_POWERED) == SLEEP_WHEN_POWERED_ACTIVE ) )
+    if( ( ( !external_power() && !external_buttons() && !external_io()) && !bluetooth_connected() ) ||
+        ( ( rram_read_bit(RRAM_BIT_SLEEP_WHEN_POWERED) == SLEEP_WHEN_POWERED_ACTIVE ) && !usb_power() ) )
     {
       printf("no power %i\n", rram_read_int(RRAM_INT_SLEEPTIME));
       if(sleep_delay > 0)
@@ -633,7 +641,7 @@ void SecondsTick_Handler()
       else
         sim3_pmu_pm9( rram_read_int(RRAM_INT_SLEEPTIME) );
     }
-    //else if(rram_read_int(RRAM_INT_SLEEPTIME) != SLEEP_FOREVER && 
+    //else if(rram_read_int(RRAM_INT_SLEEPTIME) != SLEEP_FOREVER &&
     //  ( ( ( rram_read_int(RRAM_INT_SLEEPTIME) % 300 ) == 0 ) || rram_read_int(RRAM_INT_SLEEPTIME) < 5 ) )
     //  printf("powered %i\n", rram_read_int(RRAM_INT_SLEEPTIME));
   }
@@ -651,7 +659,7 @@ void SecondsTick_Handler()
 
 static u8 seconds_tick_pending = 0;
 void TIMER0H_IRQHandler(void)
-{ 
+{
 #if defined( BUILD_USB_CDC )
   usb_pcb_t *pcb = usb_pcb_get();
   //Check if USB is powered. It will not actually TX/RX unless enumerated though
@@ -748,7 +756,7 @@ u8 led_mask = 0x00;
 #endif
 
 void TIMER1H_IRQHandler(void)
-{ 
+{
   led_ticks=((led_ticks+1) & 0x0F);
   if(!led_ticks)
   {
@@ -903,7 +911,7 @@ int led_get_mode(int led)
     {
       if(led_mode_ptr[led] == led_cled_ptr[i])
         return i;
-    }    
+    }
   }
   return -1;
 }
@@ -933,7 +941,7 @@ static void gTIMER0_enter_auto_reload_config(void)
   SI32_CLKCTRL_A_enable_apb_to_modules_0(SI32_CLKCTRL_0,
     SI32_CLKCTRL_A_APBCLKG0_TIMER0CEN_ENABLED_U32);
 
-  // INITIALIZE TIMER  
+  // INITIALIZE TIMER
   SI32_TIMER_A_initialize (SI32_TIMER_0, 0x00, 0x00, 0x00, 0x00);
   SI32_TIMER_A_select_single_timer_mode (SI32_TIMER_0);
   SI32_TIMER_A_select_high_clock_source_apb_clock (SI32_TIMER_0);
@@ -941,7 +949,7 @@ static void gTIMER0_enter_auto_reload_config(void)
 
   // Set overflow frequency to SYSTICKHZ
   SI32_TIMER_A_write_capture (SI32_TIMER_0, (unsigned) -(cmsis_get_cpu_frequency()/SYSTICKHZ));
-  SI32_TIMER_A_write_count (SI32_TIMER_0, (unsigned) -(cmsis_get_cpu_frequency()/SYSTICKHZ));  
+  SI32_TIMER_A_write_count (SI32_TIMER_0, (unsigned) -(cmsis_get_cpu_frequency()/SYSTICKHZ));
 
   // Run Timer
   SI32_TIMER_A_start_high_timer(SI32_TIMER_0);
@@ -958,7 +966,7 @@ static void gTIMER1_enter_auto_reload_config(void)
   SI32_CLKCTRL_A_enable_apb_to_modules_0(SI32_CLKCTRL_0,
     SI32_CLKCTRL_A_APBCLKG0_TIMER1CEN_ENABLED_U32);
 
-  // INITIALIZE TIMER  
+  // INITIALIZE TIMER
   SI32_TIMER_A_initialize (SI32_TIMER_1, 0x00, 0x00, 0x00, 0x00);
   SI32_TIMER_A_select_single_timer_mode (SI32_TIMER_1);
   SI32_TIMER_A_select_high_clock_source_apb_clock (SI32_TIMER_1);
@@ -966,7 +974,7 @@ static void gTIMER1_enter_auto_reload_config(void)
 
   // Set overflow frequency to SYSTICKHZ
   SI32_TIMER_A_write_capture (SI32_TIMER_1, (unsigned) -(cmsis_get_cpu_frequency()/LEDTICKHZ));
-  SI32_TIMER_A_write_count (SI32_TIMER_1, (unsigned) -(cmsis_get_cpu_frequency()/LEDTICKHZ));  
+  SI32_TIMER_A_write_count (SI32_TIMER_1, (unsigned) -(cmsis_get_cpu_frequency()/LEDTICKHZ));
 
   // Run Timer
   SI32_TIMER_A_start_high_timer(SI32_TIMER_1);
@@ -1190,7 +1198,7 @@ void pios_init( void )
       SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x08 );
 #endif
   }
-  else 
+  else
   {
 #if defined( PCB_V7 ) || defined( PCB_V8 )
   #if defined( PCB_V8 )
@@ -1688,10 +1696,10 @@ void platform_adc_stop( unsigned id )
 {
   elua_adc_ch_state *s = adc_get_ch_state( id );
   elua_adc_dev_state *d = adc_get_dev_state( 0 );
-  
+
   s->op_pending = 0;
   INACTIVATE_CHANNEL(d, id);
-  
+
   // If there are no more active channels, stop the sequencer
   if( d->ch_active == 0 )
   {
@@ -1717,7 +1725,7 @@ void SARADC1_IRQHandler( void )
     SI32_SARADC_A_disable_accumulator( SI32_ADC );
 
     d->seq_ctr = 0;
-    
+
     // Update smoothing and/or write to buffer if needed
     while( d->seq_ctr < d->seq_len )
     {
@@ -1726,7 +1734,7 @@ void SARADC1_IRQHandler( void )
       d->sample_buf[ s->id ] = ( u16 )( SI32_SARADC_A_read_data( SI32_ADC ) / 16 );
       //printf("Value: %d\n", d->sample_buf[ d->seq_ctr ] );
       s->value_fresh = 1; // Mark sample as fresh
-      
+
       // Fill in smoothing buffer until warmed up
       if ( s->logsmoothlen > 0 && s->smooth_ready == 0)
         adc_smooth_data( s->id );
@@ -1742,17 +1750,17 @@ void SARADC1_IRQHandler( void )
       // If we have the number of requested samples, stop sampling
       if ( adc_samples_available( s->id ) >= s->reqsamples && s->freerunning == 0 )
         platform_adc_stop( s->id );
-      
+
       d->seq_ctr++;
     }
     d->seq_ctr = 0;
-    
+
     // Only attempt to refresh sequence order if still running
     // This allows us to "cache" an old sequence if all channels
     // finish at the same time
     if ( d->running == 1 )
       adc_update_dev_sequence( 0 );
-    
+
     if ( d->clocked == 0 && d->running == 1 )
     {
       SI32_SARADC_A_enable_burst_mode(SI32_ADC);
@@ -1783,7 +1791,7 @@ static void adcs_init()
   SI32_SARADC_A_select_sar_clock_divider( SI32_ADC, ( div_round_closest( 2 * cmsis_get_cpu_frequency(), ADC_CLK )  - 1 ) );
 
   SI32_SARADC_A_select_output_packing_mode_lower_halfword_only( SI32_ADC );
-  
+
   SI32_SARADC_A_select_start_of_conversion_source( SI32_ADC, SI32_SARADC_A_CONTROL_SCSEL_ADCNT0_VALUE );
 
   SI32_SARADC_A_select_burst_mode_clock_apb_clock( SI32_ADC );
@@ -1826,7 +1834,7 @@ static void adcs_init()
 u32 platform_adc_set_clock( unsigned id, u32 frequency )
 {
   elua_adc_dev_state *d = adc_get_dev_state( 0 );
-    
+
   // if ( frequency > 0 )
   // {
   //   //d->clocked = 1;
@@ -1838,23 +1846,23 @@ u32 platform_adc_set_clock( unsigned id, u32 frequency )
     // Conversion will run back-to-back until required samples are acquired
     SI32_SARADC_A_select_start_of_conversion_source( SI32_ADC, SI32_SARADC_A_CONTROL_SCSEL_ADCNT0_VALUE );
   // }
-    
+
   return frequency;
 }
 
 
 int platform_adc_update_sequence( )
-{  
+{
   elua_adc_dev_state *d = adc_get_dev_state( 0 );
-  
+
   SI32_SARADC_A_disable_module(SI32_ADC);
-  
+
   // NOTE: seq ctr should have an incrementer that will wrap appropriately..
-  d->seq_ctr = 0; 
+  d->seq_ctr = 0;
   while( d->seq_ctr < d->seq_len )
   {
 
-    SI32_SARADC_A_select_timeslot_channel( SI32_ADC, d->seq_ctr, 
+    SI32_SARADC_A_select_timeslot_channel( SI32_ADC, d->seq_ctr,
                                            adc_ctls[ d->ch_state[ d->seq_ctr ]->id ] );
 
     SI32_SARADC_A_select_timeslot_channel_character_group( SI32_ADC, d->seq_ctr, 0 );
@@ -1863,19 +1871,19 @@ int platform_adc_update_sequence( )
   // Set sequence end
   SI32_SARADC_A_select_timeslot_channel( SI32_ADC, d->seq_ctr, 31 );
   d->seq_ctr = 0;
-  
+
 
   // // ENABLE MODULE
   SI32_SARADC_A_enable_module(SI32_ADC);
-      
+
   return PLATFORM_OK;
 }
 
 
 int platform_adc_start_sequence()
-{ 
+{
   elua_adc_dev_state *d = adc_get_dev_state( 0 );
-  
+
   if( d->running != 1 )
   {
     adc_update_dev_sequence( 0 );
@@ -1901,7 +1909,7 @@ int platform_adc_start_sequence()
       SI32_SARADC_A_start_conversion( SI32_ADC );
     }
   }
-  
+
   return PLATFORM_OK;
 }
 
@@ -2340,7 +2348,7 @@ void myPB_enter_off_config()
   SI32_PBSTD_A_set_pins_digital_input( SI32_PBSTD_2, 0x0002 );
   SI32_PBSTD_A_set_pins_digital_input( SI32_PBSTD_3, 1 << 9 );
 #endif
-  
+
   SI32_PBHD_A_set_pins_push_pull_output( SI32_PBHD_4, 0x00 );
   SI32_PBHD_A_set_pins_low_drive_strength(SI32_PBHD_4, 0x3F);
   SI32_PBHD_A_disable_bias( SI32_PBHD_4 );
@@ -2371,7 +2379,8 @@ void sim3_pmu_pm9( unsigned seconds )
   //u8 i;
   led_set_mode(LED_COLOR_PWR, LED_FADEDOWN, 10);
 
-  if(seconds != TRICK_TO_REBOOT_WITHOUT_DFU_MODE && external_power() && rram_read_bit(RRAM_BIT_SLEEP_WHEN_POWERED) == SLEEP_WHEN_POWERED_DISABLED)
+  if( ( seconds != TRICK_TO_REBOOT_WITHOUT_DFU_MODE ) && external_power() &&
+      ( ( rram_read_bit(RRAM_BIT_SLEEP_WHEN_POWERED) == SLEEP_WHEN_POWERED_DISABLED ) || usb_power() ) )
   {
     //printf("Unit is powered, no PM9\n");
     wake_reason = WAKE_POWERCONNECTED;
@@ -2423,7 +2432,7 @@ void sim3_pmu_pm9( unsigned seconds )
 
   // Enter Sleep Mode
   myPB_enter_off_config();
-  
+
   //VMON0_enter_power_9_mode_from_normal_power_mode();
   SI32_VMON_A_disable_vdd_supply_monitor(SI32_VMON_0);
 
@@ -2433,7 +2442,7 @@ void sim3_pmu_pm9( unsigned seconds )
 
   //VREG0_enter_power_9_mode_from_normal_power_mode();
   SI32_VREG_A_enter_suspend_mode(SI32_VREG_0);
-  SI32_VREG_A_disable_band_gap(SI32_VREG_0); 
+  SI32_VREG_A_disable_band_gap(SI32_VREG_0);
   RSTSRC0_enter_power_9_mode_from_normal_power_mode();
 
   //Reset RTC Timer and clear any interrupts
@@ -2449,7 +2458,7 @@ void sim3_pmu_pm9( unsigned seconds )
   SI32_PMU_A_enable_rtc0_alarm_wake_event(SI32_PMU_0);
 
   //Enable WAKE setup
-#if defined( PCB_V7 ) || defined( PCB_V8 )  
+#if defined( PCB_V7 ) || defined( PCB_V8 )
   //PB2.1
   SI32_PMU_A_set_pin_wake_events( SI32_PMU_0, (1 << 4), (1 << 4) );
 #else
@@ -2655,7 +2664,7 @@ void sim3_usb_cdc_send( u8 data )
   }
   if(usb_buf_space(EP_1) == 0)
       return;
-    
+
   if(usb_buf_write(EP_1, (U8)data) == 0)
     usb_poll();//ep_write(EP_1);
 }
