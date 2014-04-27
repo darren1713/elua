@@ -94,10 +94,27 @@ static void gTIMER1_enter_auto_reload_config(void);
 
 static SI32_PBSTD_A_Type* const port_std[] = { SI32_PBSTD_0, SI32_PBSTD_1, SI32_PBSTD_2, SI32_PBSTD_3 };
 
-// http://stackoverflow.com/a/18067292/105950
-int div_round_closest(const int n, const int d)
+
+// Reference: http://stackoverflow.com/q/2422712/105950
+int div_round_closest( const int numerator, const int denominator )
 {
-  return ((n < 0) ^ (d < 0)) ? ((n - d/2)/d) : ((n + d/2)/d);
+  if( ( ( numerator >= 0 ) && ( denominator >= 0 ) ) ||
+      ( ( numerator <  0 ) && ( denominator <  0 ) ) )
+ {
+    // Both are positive or negative, positive result
+    if( denominator == 0 )
+      return INT_MAX;
+    else
+      return ( numerator + denominator / 2 ) / denominator;
+  }
+  else
+  {
+    // One is postive the other is negative, negative result
+    if( denominator == 0 )
+      return INT_MIN;
+    else
+      return ( numerator - denominator / 2 ) / denominator;
+  }
 }
 
 void hard_fault_handler_c(unsigned int * hardfault_args)
