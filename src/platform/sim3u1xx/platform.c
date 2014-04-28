@@ -1160,7 +1160,7 @@ void pios_init( void )
   //Setup PB4.2 to HIGH to turn on mosfets for bat charger!
   SI32_PBHD_A_set_pins_push_pull_output( SI32_PBHD_4, 0x003F );
   SI32_PBHD_A_disable_pullup_resistors( SI32_PBHD_4 );
-  SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x3F );
+  SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x3B );
 
   SI32_PBHD_A_set_pins_low_drive_strength(SI32_PBHD_4, 0x3F);
 
