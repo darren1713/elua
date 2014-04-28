@@ -227,6 +227,7 @@ void led_set_mode(int led, int mode, int cycles);
 int led_get_mode(int led);
 void led_set_mask( u8 mask );
 void led_cache_mode(int led, int mode );
+void led_set_background(int led, u8 bkgnd);
 
 #undef SHELL_WELCOMEMSG
 #define SHELL_WELCOMEMSG "\nGSatMicro %s\n"
