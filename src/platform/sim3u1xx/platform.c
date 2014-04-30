@@ -1118,12 +1118,12 @@ void pios_init( void )
   //PB3.9 is usb voltage detection
   SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_3, 0x00000300);
   //PB3.11 5V on/off
+
+  SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_3, ( u32 ) 1 << 11);
 #if defined( PCB_V8 )
   SI32_PBSTD_A_write_pins_low(SI32_PBSTD_3, ( u32 ) 1 << 11 ); //Set 5V regulator off
-  SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_3, ( u32 ) 1 << 11);
 #else
   SI32_PBSTD_A_write_pins_high(SI32_PBSTD_3, ( u32 ) 1 << 11 ); //Set 5V regulator off
-  SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_3, ( u32 ) 1 << 11);
 #endif
   // PB2.1 is wakeup
   SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_2, 0x00000002);
