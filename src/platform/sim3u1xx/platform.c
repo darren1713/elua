@@ -50,11 +50,9 @@
 int wake_reason = WAKE_UNKNOWN;
 
 // Watchdog timer
-#define PLATFORM_EARLY_WARNING_DELAY_MS        500   // Will result in approx a 1 s
-                                             // periodic early warning interrupt
+#define PLATFORM_EARLY_WARNING_DELAY_MS        500   // ms, periodic early warning interrupt
 
-#define PLATFORM_RESET_DELAY_MS                3000  // Will result in approx a 2 s
-                                            // reset delay (if early warning isn't captured)
+#define PLATFORM_RESET_DELAY_MS                3000 // ms, reset delay (if early warning isn't captured)
 
 #define PLATFORM_EARLY_WARNING_THRESHOLD       (uint32_t)((16400*PLATFORM_EARLY_WARNING_DELAY_MS)/1000)
 #define PLATFORM_RESET_THRESHOLD               (uint32_t)((16400*PLATFORM_RESET_DELAY_MS)/1000)
