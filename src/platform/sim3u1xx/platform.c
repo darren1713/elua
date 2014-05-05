@@ -1188,12 +1188,12 @@ void pios_init( void )
 #endif
 #endif
 
-#if defined( PCB_V7 ) || defined( PCB_V8 )
-  // PB4.4 high to power RS232 and I2C
-  SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x10 );
-  // PB4.4 high to power RS232 and I2C
-  SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x10 );
-#endif
+// #if defined( PCB_V7 ) || defined( PCB_V8 )
+//   // PB4.4 high to power RS232 and I2C
+//   SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x10 );
+//   // PB4.4 high to power RS232 and I2C
+//   SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x10 );
+// #endif
 
   // SI32_PBHD_A_select_pchannel_current_limit(SI32_PBHD_4, 0);
   // SI32_PBHD_A_enable_pin_current_limit( SI32_PBHD_4, 0x3F );
