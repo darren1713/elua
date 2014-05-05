@@ -486,7 +486,7 @@ int platform_init()
 #endif
 
   // Set the Systick as the highest priority, then uarts, then the rest
-  NVIC_SetPriority(SysTick_IRQn, (1 << __NVIC_PRIO_BITS) - 1);
+  NVIC_SetPriority(SysTick_IRQn, 0);
   for(i=WDTIMER0_IRQn;i<=VREG0LOW_IRQn;i++)
   {
     switch(i)
