@@ -285,17 +285,14 @@ int external_io()
       if(!val) return 1;
     }
   }
-#if defined( BLUETOOTH_ENABLE_TDI_DTR )
-  if( platform_pio_op( 1, 1 << 4, PLATFORM_IO_PIN_GET ) )
-    return 1;
-#endif
 #endif
   return 0;
 }
 int bluetooth_connected()
 {
 #if defined( BLUETOOTH_ENABLE_TDI_DTR )
-  if( platform_pio_op( 1, 1 << 4, PLATFORM_IO_PIN_GET ) )
+  if( ( rram_read_bit(RRAM_BIT_BLUETOOTH_WAKE) == BLUETOOTH_WAKE_ACTIVE ) &&
+      ( platform_pio_op( 1, 1 << 4, PLATFORM_IO_PIN_GET ) ) )
     return 1;
 #endif
   return 0;
