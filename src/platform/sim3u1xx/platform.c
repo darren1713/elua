@@ -1083,7 +1083,7 @@ void pios_init( void )
 #endif
 
 #if defined( PCB_V8 )
-  SI32_PBSTD_A_write_pins_high(SI32_PBSTD_0, 0x3F0 ); //Set external LEDS 0-4 off
+  SI32_PBSTD_A_write_pins_low(SI32_PBSTD_0, 0x3F0 ); //Set external LEDS 0-4 off
   SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_0, 0x3F0); //Set external LEDS 0-4 as outputs
 #endif
 
