@@ -26,7 +26,7 @@ typedef int ( *p_term_translate )( int );
 // Exported functions
 
 // Terminal initialization
-void term_init( unsigned lines, unsigned cols, p_term_out term_out_func, 
+void term_init( unsigned lines, unsigned cols, p_term_out term_out_func,
                 p_term_in term_in_func, p_term_translate term_translate_func );
 
 // Terminal output functions
@@ -43,6 +43,9 @@ void term_putch( u8 ch );
 void term_putstr( const char* str, unsigned size );
 unsigned term_get_cx(void);
 unsigned term_get_cy(void);
+void term_savepos();
+void term_restorepos();
+void term_setscroll( unsigned start, unsigned end );
 
 #define TERM_KEYCODES\
   _D( KC_UP ),\
@@ -66,7 +69,7 @@ unsigned term_get_cy(void);
   _D( KC_CTRL_K ),\
   _D( KC_DEL ),\
   _D( KC_UNKNOWN )
-  
+
 // Terminal input functions
 // Keyboard codes
 #define _D( x ) x
