@@ -336,7 +336,18 @@ void wake_init( void )
       wake_reason = WAKE_WAKEPIN;
 
       //Put the remaining sleep time back into rram_reg[0]
-      rram_write_int(RRAM_INT_SLEEPTIME, rram_read_int(RRAM_INT_SLEEPTIME) + rtc_remaining);
+      if(rram_read_bit(RRAM_BIT_POWEROFF) == POWEROFF_MODE_ACTIVE)
+      {
+        rram_write_int(RRAM_INT_SLEEPTIME, SLEEP_FOREVER); //will wakeup in 68 years
+      }
+      else if(rram_read_bit(RRAM_BIT_STORAGE_MODE) == STORAGE_MODE_ACTIVE)
+      {
+        //Sleep forever, in storage mode. Power button will wakeup device
+        rram_write_int(RRAM_INT_SLEEPTIME, SLEEP_FOREVER); //will wakeup in 68 years
+      }
+      else
+        rram_write_int(RRAM_INT_SLEEPTIME, rram_read_int(RRAM_INT_SLEEPTIME) + rtc_remaining);
+
 
 #ifdef EXTRA_SLEEP_HOOK
       //pass negative time to notify early wakeup
@@ -2422,7 +2433,9 @@ void sim3_pmu_pm9( unsigned seconds )
 
   // SET ALARM FOR now+s
   // RTC running at 16.384Khz so there are 16384 cycles/sec)
-  if(rram_read_bit(RRAM_BIT_STORAGE_MODE) == STORAGE_MODE_ACTIVE)
+  // Don't permanently go into storage mode when on power
+  if( ( rram_read_bit(RRAM_BIT_STORAGE_MODE) == STORAGE_MODE_ACTIVE ) &&
+      !external_power() )
   {
     //Sleep forever, in storage mode. Power button will wakeup device
     rram_write_int(RRAM_INT_SLEEPTIME,  0);
