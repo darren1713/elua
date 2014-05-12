@@ -372,6 +372,7 @@ struct lua_Debug {
 
 int lua_main( int argc, char **argv );
 int lua_command_enqueue( const char * buf );
+int c_command_enqueue( void (*command)() );
 
 /******************************************************************************
 * Copyright (C) 1994-2008 Lua.org, PUC-Rio.  All rights reserved.

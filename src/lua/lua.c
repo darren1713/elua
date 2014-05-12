@@ -233,6 +233,25 @@ int spin_vm( lua_State *L )
 // }
 
 static char * lua_command_buf = NULL;
+static void (*c_command)() = NULL;
+
+int c_command_enqueue( void (*command)() )
+{
+  if( c_command != NULL )
+    return -1;
+
+  c_command = command;
+}
+
+int c_command_run( void )
+{
+  if( c_command != NULL )
+  {
+    c_command();
+    c_command = NULL;
+  }
+
+}
 
 int lua_command_enqueue( const char * buf )
 {
@@ -376,6 +395,7 @@ int slip_readline(lua_State *L, char *b, const char *p)
     else
     {
       lua_command_run(L);
+      c_command_run();
       spin_vm(L);
     }
     // {
