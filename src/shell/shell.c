@@ -366,7 +366,11 @@ void shell_start( void )
   int i;
 #endif
 
+#if defined( SHELL_WELCOMEMSG_EXTRA )
+  printf( SHELL_WELCOMEMSG_EXTRA  );
+#endif
   printf( SHELL_WELCOMEMSG, ELUA_STR_VERSION );
+
   while( 1 )
   {
     while( linenoise_getline( LINENOISE_ID_SHELL, cmd, SHELL_MAXSIZE - 1, SHELL_PROMPT ) == -1 )
