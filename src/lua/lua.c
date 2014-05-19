@@ -241,6 +241,7 @@ int c_command_enqueue( void (*command)() )
     return -1;
 
   c_command = command;
+  return 0;
 }
 
 int c_command_run( void )
@@ -251,6 +252,7 @@ int c_command_run( void )
     c_command = NULL;
   }
 
+  return 0;
 }
 
 int lua_command_enqueue( const char * buf )
