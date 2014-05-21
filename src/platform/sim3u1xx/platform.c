@@ -907,7 +907,17 @@ void led_cache_mode(int led, int mode )
 
 void led_set_mask( u8 mask )
 {
+#if defined ( MEMBRANE_V1 )
   led_mask = mask;
+#else
+  // Module Board LED numbers
+  led_mask = 0;
+  led_mask |= ( ( mask && 1 ) << 3 ); // GPS
+  led_mask |= ( ( mask && 1 << 1 ) << 3 ); // MSG
+  led_mask |= ( ( mask && 1 << 2 ) >> 1 ); // PWR
+  led_mask |= ( ( mask && 1 << 3 ) >> 3 ); // SAT
+  led_mask |= ( ( mask && 1 << 4 ) >> 2 ); // ALRM
+#endif
 }
 
 void led_set_background(int led, u8 bkgnd)
