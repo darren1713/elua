@@ -886,8 +886,6 @@ int wofs_repack( void )
     return 0;
   }
 
-  mysrand( platform_timer_read( PLATFORM_TIMER_SYS_ID ) );
-
   // Check filesystem and mark spare sectors as freed
   if( !wofs_repack_init_spare_sectors( freed_sectors, &lowest_spare ) )
     return 0;
@@ -912,11 +910,13 @@ int wofs_repack( void )
   if( ret == -1 )
   {
 #if defined( WOFS_REPACK_DEBUG )
-    printf("No need to repack.");
+    printf("No need to repack.\n");
 #endif
     romfs_fs_set_flag( pdata, ROMFS_FS_FLAG_READY_READ | ROMFS_FS_FLAG_READY_WRITE );
     return 1;
   }
+
+  mysrand( platform_timer_read( PLATFORM_TIMER_SYS_ID ) );
 
   while( ret != -1 ) // while we haven't hit the end of the FS
   {
