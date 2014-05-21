@@ -85,7 +85,7 @@ typedef struct
 // FS functions
 int romfs_init( void );
 int wofs_format( void );
-int wofs_repack( void );
+int wofs_repack( u32 threshold );
 
 #ifdef ROMFS_SECURE_FILENAMES_WITH_CHAR
 void romfs_sec_lock();

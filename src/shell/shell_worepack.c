@@ -26,7 +26,7 @@ void shell_worepack( int argc, char **argv )
     return;
   }
   printf( "Repacking ..." );
-  if( !wofs_repack() )
+  if( !wofs_repack( 255 ) )
   {
     printf( "\ni*** ERROR ***: unable to repack the internal flash. WOFS might be compromised.\n" );
     printf( "It is advised to re-flash the eLua image.\n" );

@@ -869,7 +869,7 @@ int wofs_repack_init_spare_sectors( u8* freed_sectors, u32* lowest_spare )
 }
 
 // Returns 1 if OK, 0 for error
-int wofs_repack( void )
+int wofs_repack( u32 threshold )
 {
   FSDATA *pdata = &wofs_fsdata;
   u8 freed_sectors[ ( platform_flash_get_num_sectors() + ( 8 - 1 ) ) / 8 ];
@@ -889,6 +889,14 @@ int wofs_repack( void )
   // Check filesystem and mark spare sectors as freed
   if( !wofs_repack_init_spare_sectors( freed_sectors, &lowest_spare ) )
     return 0;
+
+  if( ( ( lowest_spare + threshold + 1 ) < platform_flash_get_num_sectors() )  )
+  {
+#if defined( WOFS_REPACK_DEBUG )
+    printf("Spare sectors: %lu.\n", platform_flash_get_num_sectors() - ( lowest_spare + 1 ) );
+#endif
+    return 1;
+  }
 
   // Mark FS as unwriteable/unreadable while we work on it
   romfs_fs_clear_flag( pdata, ROMFS_FS_FLAG_READY_WRITE | ROMFS_FS_FLAG_READY_READ );
