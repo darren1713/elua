@@ -231,6 +231,7 @@ int led_get_mode(int led);
 void led_set_mask( u8 mask );
 void led_cache_mode(int led, int mode );
 void led_set_background(int led, u8 bkgnd);
+int external_power( void );
 
 #define SHELL_WELCOMEMSG_EXTRA "\nGSatMicro http://gsat.us/"
 
