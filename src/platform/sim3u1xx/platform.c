@@ -335,10 +335,23 @@ void wake_init( void )
       //Wakeup from WAKE pins, just reset reg[0] so we stay awake
       wake_reason = WAKE_WAKEPIN;
 
+      if( rram_read_bit( RRAM_BIT_TEMP_STORAGE_MODE ) == TEMP_STORAGE_MODE_ACTIVE )
+      {
+        if( !external_power() )
+        {
+          rram_write_int( RRAM_INT_SLEEPTIME, SLEEP_FOREVER ); //will wakeup in 68 years
+        }
+        else
+        {
+          // If external power, clear bat preservation mode
+          rram_write_bit( RRAM_BIT_TEMP_STORAGE_MODE, TEMP_STORAGE_MODE_DISABLED );
+          rram_write_int( RRAM_INT_SLEEPTIME, 0 );
+        }
+      }
       //Put the remaining sleep time back into rram_reg[0]
-      if( ( rram_read_bit(RRAM_BIT_POWEROFF) == POWEROFF_MODE_ACTIVE ) &&
-          ( rram_read_bit(RRAM_BIT_CHECKIN) == CHECKIN_MODE_DISABLED ) &&
-          ( rram_read_bit(RRAM_BIT_SOS) == SOS_MODE_DISABLED ) )
+      else if( ( rram_read_bit(RRAM_BIT_POWEROFF) == POWEROFF_MODE_ACTIVE ) &&
+               ( rram_read_bit(RRAM_BIT_CHECKIN) == CHECKIN_MODE_DISABLED ) &&
+               ( rram_read_bit(RRAM_BIT_SOS) == SOS_MODE_DISABLED ) )
       {
         rram_write_int(RRAM_INT_SLEEPTIME, SLEEP_FOREVER); //will wakeup in 68 years
       }
@@ -361,9 +374,21 @@ void wake_init( void )
     }
     else
     {
-      if( ( rram_read_bit(RRAM_BIT_POWEROFF) == POWEROFF_MODE_ACTIVE ) &&
-          ( rram_read_bit(RRAM_BIT_CHECKIN) == CHECKIN_MODE_DISABLED ) &&
-          ( rram_read_bit(RRAM_BIT_SOS) == SOS_MODE_DISABLED ) )
+      if( rram_read_bit( RRAM_BIT_TEMP_STORAGE_MODE) == TEMP_STORAGE_MODE_ACTIVE )
+      {
+        if( !external_power() )
+        {
+          rram_write_int( RRAM_INT_SLEEPTIME, SLEEP_FOREVER ); //will wakeup in 68 years
+        }
+        else
+        {
+          // If external power, clear bat preservation mode
+          rram_write_bit( RRAM_BIT_TEMP_STORAGE_MODE, TEMP_STORAGE_MODE_DISABLED );
+        }
+      }
+      else if( ( rram_read_bit(RRAM_BIT_POWEROFF) == POWEROFF_MODE_ACTIVE ) &&
+               ( rram_read_bit(RRAM_BIT_CHECKIN) == CHECKIN_MODE_DISABLED ) &&
+               ( rram_read_bit(RRAM_BIT_SOS) == SOS_MODE_DISABLED ) )
       {
         rram_write_int(RRAM_INT_SLEEPTIME, SLEEP_FOREVER); //will wakeup in 68 years
       }
@@ -2373,7 +2398,8 @@ void myPB_enter_off_config()
   SI32_PBSTD_A_write_pins_low( SI32_PBSTD_0, 0xC000 );
 #ifdef BLUETOOTH_POWEREDWHILESLEEPING
   //Set bluetooth pins to analog high...
-  if( rram_read_bit(RRAM_BIT_STORAGE_MODE) == STORAGE_MODE_DISABLED )
+  if( ( rram_read_bit( RRAM_BIT_STORAGE_MODE ) == STORAGE_MODE_DISABLED ) &&
+      ( rram_read_bit( RRAM_BIT_TEMP_STORAGE_MODE ) == TEMP_STORAGE_MODE_DISABLED ) )
   {
     SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 0x0080);
     SI32_PBSTD_A_write_pins_high( SI32_PBSTD_1, 0x0080 );
@@ -2448,7 +2474,8 @@ void sim3_pmu_pm9( unsigned seconds )
   // SET ALARM FOR now+s
   // RTC running at 16.384Khz so there are 16384 cycles/sec)
   // Don't permanently go into storage mode when on power
-  if( ( rram_read_bit(RRAM_BIT_STORAGE_MODE) == STORAGE_MODE_ACTIVE ) &&
+  if( ( rram_read_bit( RRAM_BIT_STORAGE_MODE ) == STORAGE_MODE_ACTIVE ) &&
+      ( rram_read_bit( RRAM_BIT_TEMP_STORAGE_MODE ) == TEMP_STORAGE_MODE_ACTIVE ) &&
       !external_power() )
   {
     //Sleep forever, in storage mode. Power button will wakeup device
