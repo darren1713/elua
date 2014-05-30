@@ -2098,6 +2098,8 @@ int platform_i2c_send_address( unsigned id, u16 address, int direction )
     printf("A CONTROL = %lx\n",  i2cs[ id ]->CONTROL.U32 );
 #endif
 
+    i2c_timeout_timer = I2C_TIMEOUT_SYSTICKS;
+
     while( SI32_I2C_A_is_start_interrupt_pending( i2cs[ id ] ) == 0 &&
       i2c_timeout_timer );
     if( i2c_timeout_timer == 0 )
