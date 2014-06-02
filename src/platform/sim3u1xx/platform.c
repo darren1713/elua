@@ -62,7 +62,7 @@ extern void extras_sleep_hook( int seconds );
 #endif
 
 //I2C
-#define I2C_TIMEOUT_SYSTICKS 3
+#define I2C_TIMEOUT_SYSTICKS 10
 static volatile int i2c_timeout_timer = I2C_TIMEOUT_SYSTICKS;
 
 #if defined( PCB_V7 ) || defined( PCB_V8 )
