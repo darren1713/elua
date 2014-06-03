@@ -2001,38 +2001,37 @@ static SI32_I2C_A_Type* const i2cs[] = { SI32_I2C_0, SI32_I2C_1 };
 
 u32 platform_i2c_setup( unsigned id, u32 speed )
 {
-  u32 timer_bytes = ( (1 << 20 ) - ( ( 25 * speed ) / 1000 ) ) / 16;
+  u32 i2c_clock = cmsis_get_cpu_frequency();
+  u32 scl_timer_bytes = ( ( 1 << 20 ) - ( ( 25 * i2c_clock ) / 1000 ) ) / 16;
+  u32 i2c_clock_per_cycle = ( ( ( i2c_clock / 2 + ( speed - 1 ) ) / speed ) );
 
-  SI32_I2C_A_set_scaler_value( i2cs[ id ], 64 - div_round_closest( cmsis_get_cpu_frequency(), speed ) );
+  SI32_I2C_A_set_scaler_value( i2cs[ id ], 0x3F );
 
-  // Set low period for 60 us
-  SI32_I2C_A_set_scl_low_period_reload( SI32_I2C_0, 256 - ( ( 60 * speed ) / 1e6 ) );
-
-  // Set high period for 40 us
-  SI32_I2C_A_set_timer1_reload( SI32_I2C_0, 256 - ( (40 * speed ) / 1e6 ) );
+  SI32_I2C_A_set_scl_low_period_reload( i2cs[ id ], 256 - i2c_clock_per_cycle );
+  SI32_I2C_A_set_timer1_reload( i2cs[ id ], 256 - i2c_clock_per_cycle );
 
   // // configure bus free timeouts
-  // SI32_I2C_A_set_timer0_u8 (SI32_I2C_0, 0x00);
-  // SI32_I2C_A_set_timer0_reload (SI32_I2C_0, 0x01);
+  // SI32_I2C_A_set_timer0_u8 ( i2cs[ id ] , 0x00);
+  // SI32_I2C_A_set_timer0_reload ( i2cs[ id ] , 0x01);
 
   // set SETUP time to non-zero value for repeated starts to function correctly
-  SI32_I2C_A_set_extended_data_setup_time(SI32_I2C_0, 0x01);
+  SI32_I2C_A_set_extended_data_setup_time( i2cs[ id ] , 0x01 );
 
   // Configure SCL low timeouts (25 ms)
-  SI32_I2C_A_set_timer2_reload(SI32_I2C_0, timer_bytes & 0xFF );
-  SI32_I2C_A_set_timer3_reload(SI32_I2C_0, ( timer_bytes >> 8 ) & 0xFF );
+  SI32_I2C_A_set_timer2_reload( i2cs[ id ], scl_timer_bytes & 0xFF );
+  SI32_I2C_A_set_timer3_reload( i2cs[ id ], ( scl_timer_bytes >> 8 ) & 0xFF );
 
   // ENABLE MODULE
   SI32_I2C_A_enable_module( i2cs[ id ] );
 
-  NVIC_ClearPendingIRQ(I2C0_IRQn);
-  NVIC_EnableIRQ(I2C0_IRQn);
+  NVIC_ClearPendingIRQ( I2C0_IRQn );
+  NVIC_EnableIRQ( I2C0_IRQn );
 
-  SI32_I2C_A_enable_timer3_interrupt(SI32_I2C_0);
-  SI32_I2C_A_enable_arblost_interrupt(SI32_I2C_0);
+  SI32_I2C_A_enable_timer3_interrupt( i2cs[ id ] );
+  SI32_I2C_A_enable_arblost_interrupt( i2cs[ id ] );
 
   // Return actual speed
-  return cmsis_get_cpu_frequency() / ( 64 - SI32_I2C_A_get_scaler_value( i2cs[ id ] ) );
+  return i2c_clock / ( ( i2c_clock_per_cycle ) * 2 );
 }
 
 void platform_i2c_send_start( unsigned id )
