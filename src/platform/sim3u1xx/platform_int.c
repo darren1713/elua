@@ -76,14 +76,14 @@ void I2C0_IRQHandler(void)
   if ( SI32_I2C_A_is_timer3_interrupt_pending( SI32_I2C_0 ) &&
        SI32_I2C_A_is_timer3_interrupt_enabled( SI32_I2C_0 ) )
   {
-    printf("SCLOW");
+    //printf("SCLOW");
     SI32_I2C_A_reset_module( SI32_I2C_0 );
   }
   if ( SI32_I2C_A_is_arblost_interrupt_pending( SI32_I2C_0 ) &
        SI32_I2C_A_is_arblost_interrupt_enabled( SI32_I2C_0 ) )
   {
-    // Nothing for now
-    printf("ALOST");
+    // Just clear arb lost interrupt
+    //printf("ALOST");
     SI32_I2C_A_clear_arblost_interrupt( SI32_I2C_0 );
   }
 }
