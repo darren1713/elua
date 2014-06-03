@@ -62,7 +62,7 @@ extern void extras_sleep_hook( int seconds );
 #endif
 
 //I2C
-#define I2C_TIMEOUT_SYSTICKS 10
+#define I2C_TIMEOUT_SYSTICKS 3
 static volatile int i2c_timeout_timer = I2C_TIMEOUT_SYSTICKS;
 
 #if defined( PCB_V7 ) || defined( PCB_V8 )
@@ -2001,16 +2001,36 @@ static SI32_I2C_A_Type* const i2cs[] = { SI32_I2C_0, SI32_I2C_1 };
 
 u32 platform_i2c_setup( unsigned id, u32 speed )
 {
-  SI32_I2C_A_set_scaler_value( i2cs[ id ], div_round_closest( cmsis_get_cpu_frequency(), speed ) );
+  SI32_I2C_A_set_scaler_value( i2cs[ id ], 64 - div_round_closest( cmsis_get_cpu_frequency(), speed ) );
+
+  // Set low period for 60 us
+  SI32_I2C_A_set_scl_low_period_reload( SI32_I2C_0, 256 - ( ( 60 * speed ) / 1e6 ) );
+
+  // Set high period for 40 us
+  SI32_I2C_A_set_timer1_reload( SI32_I2C_0, 256 - ( (40 * speed ) / 1e6 ) );
+
+  // // configure bus free timeouts
+  // SI32_I2C_A_set_timer0_u8 (SI32_I2C_0, 0x00);
+  // SI32_I2C_A_set_timer0_reload (SI32_I2C_0, 0x01);
 
   // set SETUP time to non-zero value for repeated starts to function correctly
   SI32_I2C_A_set_extended_data_setup_time(SI32_I2C_0, 0x01);
 
+  // Configure SCL low timeouts (25 ms)
+  SI32_I2C_A_set_timer2_reload(SI32_I2C_0, 0x00);
+  SI32_I2C_A_set_timer3_reload(SI32_I2C_0, 0x7B);
+
   // ENABLE MODULE
   SI32_I2C_A_enable_module( i2cs[ id ] );
 
+  NVIC_ClearPendingIRQ(I2C0_IRQn);
+  NVIC_EnableIRQ(I2C0_IRQn);
+
+  SI32_I2C_A_enable_timer3_interrupt(SI32_I2C_0);
+  SI32_I2C_A_enable_arblost_interrupt(SI32_I2C_0);
+
   // Return actual speed
-  return cmsis_get_cpu_frequency() / SI32_I2C_A_get_scaler_value( i2cs[ id ] );
+  return cmsis_get_cpu_frequency() / ( 64 - SI32_I2C_A_get_scaler_value( i2cs[ id ] ) );
 }
 
 void platform_i2c_send_start( unsigned id )
@@ -2110,15 +2130,10 @@ int platform_i2c_send_address( unsigned id, u16 address, int direction )
       return 0;
     }
 
-    //SI32_I2C_A_set_slave_address_7_bit( i2cs[ id ] );
     SI32_I2C_A_clear_start( i2cs[ id ] );
-
-    SI32_I2C_A_write_data( i2cs[ id ] , ( address << 1 ) | (direction == PLATFORM_I2C_DIRECTION_TRANSMITTER ?  I2C_WRITE : I2C_READ) );
     SI32_I2C_A_set_byte_count( i2cs[ id ] , 1);
+    SI32_I2C_A_write_data( i2cs[ id ] , ( address << 1 ) | (direction == PLATFORM_I2C_DIRECTION_TRANSMITTER ?  I2C_WRITE : I2C_READ) );
     SI32_I2C_A_arm_tx( i2cs[ id ] );
-
-    SI32_I2C_A_clear_tx_interrupt( i2cs[ id ] ); //JEFF TESTING!!
-    SI32_I2C_A_clear_ack_interrupt( i2cs[ id ] );
     SI32_I2C_A_clear_start_interrupt( i2cs[ id ] );
 
     i2c_timeout_timer = I2C_TIMEOUT_SYSTICKS;
@@ -2137,11 +2152,8 @@ int platform_i2c_send_address( unsigned id, u16 address, int direction )
     acktmp = ( u8 )SI32_I2C_A_is_ack_received( i2cs[ id ] );
 
     SI32_I2C_A_clear_ack_interrupt( i2cs[ id ] );
-
-    if( direction == PLATFORM_I2C_DIRECTION_RECEIVER )
-    {
-      SI32_I2C_A_clear_tx_interrupt( i2cs[ id ] );
-    }
+    SI32_I2C_A_clear_tx_interrupt( i2cs[ id ] );
+    
 #if defined( DEBUG_I2C )
     printf("A CONTROL = %lx %d\n",  i2cs[ id ]->CONTROL.U32, acktmp );
 #endif
@@ -2204,7 +2216,6 @@ int platform_i2c_recv_byte( unsigned id, int ack )
 #if defined( DEBUG_I2C )
     printf("R CONTROL = %lx\n",  i2cs[ id ]->CONTROL.U32 );
 #endif
-
     SI32_I2C_A_set_byte_count( i2cs[ id ] , 1);
     SI32_I2C_A_arm_rx( i2cs[ id ] );
 
@@ -2245,7 +2256,7 @@ int platform_i2c_recv_byte( unsigned id, int ack )
     printf("R CONTROL = %lx\n",  i2cs[ id ]->CONTROL.U32 );
 #endif
 
-      return ( u8 )tmpdata;
+    return ( u8 )tmpdata;
   }
   else
   {
