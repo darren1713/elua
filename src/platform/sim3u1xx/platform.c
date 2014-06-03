@@ -2001,6 +2001,8 @@ static SI32_I2C_A_Type* const i2cs[] = { SI32_I2C_0, SI32_I2C_1 };
 
 u32 platform_i2c_setup( unsigned id, u32 speed )
 {
+  u32 timer_bytes = ( (1 << 20 ) - ( ( 25 * speed ) / 1000 ) ) / 16;
+
   SI32_I2C_A_set_scaler_value( i2cs[ id ], 64 - div_round_closest( cmsis_get_cpu_frequency(), speed ) );
 
   // Set low period for 60 us
@@ -2017,8 +2019,8 @@ u32 platform_i2c_setup( unsigned id, u32 speed )
   SI32_I2C_A_set_extended_data_setup_time(SI32_I2C_0, 0x01);
 
   // Configure SCL low timeouts (25 ms)
-  SI32_I2C_A_set_timer2_reload(SI32_I2C_0, 0x00);
-  SI32_I2C_A_set_timer3_reload(SI32_I2C_0, 0x7B);
+  SI32_I2C_A_set_timer2_reload(SI32_I2C_0, timer_bytes & 0xFF );
+  SI32_I2C_A_set_timer3_reload(SI32_I2C_0, ( timer_bytes >> 8 ) & 0xFF );
 
   // ENABLE MODULE
   SI32_I2C_A_enable_module( i2cs[ id ] );
