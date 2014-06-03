@@ -2053,7 +2053,7 @@ void platform_i2c_send_start( unsigned id )
   while( SI32_I2C_A_is_start_interrupt_pending( i2cs[ id ] ) == 0 &&
          i2c_timeout_timer );
 
-  if( i2c_timeout_timer == 0 )
+  if( !SI32_I2C_A_is_start_interrupt_pending( i2cs[ id ] ) )
   {
 #if defined( DEBUG_I2C )
     printf("BEG TIMEOUT\n");
@@ -2089,7 +2089,7 @@ void platform_i2c_send_stop( unsigned id )
     while( SI32_I2C_A_is_stop_interrupt_pending( i2cs[ id ] ) == 0 &&
       i2c_timeout_timer );
 
-    if( i2c_timeout_timer == 0 )
+    if( !SI32_I2C_A_is_stop_interrupt_pending( i2cs[ id ] ) )
       return;
 
     SI32_I2C_A_clear_stop( i2cs[ id ] );
@@ -2124,7 +2124,8 @@ int platform_i2c_send_address( unsigned id, u16 address, int direction )
 
     while( SI32_I2C_A_is_start_interrupt_pending( i2cs[ id ] ) == 0 &&
       i2c_timeout_timer );
-    if( i2c_timeout_timer == 0 )
+
+    if( !SI32_I2C_A_is_start_interrupt_pending( i2cs[ id ] ) )
     {
 #if defined( DEBUG_I2C )
       printf("I2C TIMEOUT\n");
@@ -2143,7 +2144,7 @@ int platform_i2c_send_address( unsigned id, u16 address, int direction )
     while( SI32_I2C_A_is_tx_interrupt_pending( i2cs[ id ] ) == 0 &&
       i2c_timeout_timer );
 
-    if( i2c_timeout_timer == 0 )
+    if( !SI32_I2C_A_is_tx_interrupt_pending( i2cs[ id ] ) )
     {
 #if defined( DEBUG_I2C )
       printf("I2C TIMEOUT2\n");
@@ -2188,7 +2189,7 @@ int platform_i2c_send_byte( unsigned id, u8 data )
     while( SI32_I2C_A_is_tx_interrupt_pending( i2cs[ id ] ) == 0 &&
       i2c_timeout_timer );
 
-    if( i2c_timeout_timer == 0 )
+    if( !SI32_I2C_A_is_tx_interrupt_pending( i2cs[ id ] ) )
       return 0;
 
     SI32_I2C_A_clear_ack_interrupt( i2cs[ id ] );
@@ -2231,7 +2232,7 @@ int platform_i2c_recv_byte( unsigned id, int ack )
     while( SI32_I2C_A_is_ack_interrupt_pending( i2cs[ id ] ) == 0 &&
       i2c_timeout_timer );
 
-    if( i2c_timeout_timer == 0 )
+    if( !SI32_I2C_A_is_ack_interrupt_pending( i2cs[ id ] ) )
       return 0;
 
     if( ack )
@@ -2246,7 +2247,7 @@ int platform_i2c_recv_byte( unsigned id, int ack )
     while( SI32_I2C_A_is_rx_interrupt_pending( i2cs[ id ] ) == 0 &&
       i2c_timeout_timer );
 
-    if( i2c_timeout_timer == 0 )
+    if( !SI32_I2C_A_is_rx_interrupt_pending( i2cs[ id ] ) )
       return 0;
 
     tmpdata = SI32_I2C_A_read_data( i2cs[ id ] );
