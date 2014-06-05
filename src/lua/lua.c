@@ -255,6 +255,14 @@ int c_command_run( void )
   return 0;
 }
 
+int c_command_pending ( void )
+{
+  if( c_command != NULL )
+    return 1;
+  else
+    return 0;
+}
+
 int lua_command_enqueue( const char * buf )
 {
   u32 lua_command_len = 0;
@@ -276,6 +284,7 @@ int lua_command_enqueue( const char * buf )
 
 int lua_command_run( lua_State *L )
 {
+
   if( lua_command_buf != NULL )
   {
     int error = luaL_loadbuffer(L, lua_command_buf, strlen( lua_command_buf ), "=queue") || lua_pcall(L, 0, 0, 0);
@@ -290,6 +299,14 @@ int lua_command_run( lua_State *L )
     return error;
   }
   return 0;
+}
+
+int lua_command_pending ( void )
+{
+  if( lua_command_buf != NULL )
+    return 1;
+  else
+    return 0;
 }
 
 #if defined( LUA_RPC )
