@@ -717,13 +717,22 @@ void TIMER0H_IRQHandler(void)
   //Check if USB is powered. It will not actually TX/RX unless enumerated though
   if( SI32_VREG_A_is_vbus_valid( SI32_VREG_0 ) )
   {
+    if( pcb->connected == false)
+    {
+      SI32_USB_A_enable_internal_pull_up( SI32_USB_0 );
+    }
     console_cdc_active = 1;
     pcb->connected = true;
   }
   else
   {
+    if( pcb->connected == true )
+    {
+      SI32_USB_A_disable_internal_pull_up( SI32_USB_0 );
+    }
     console_cdc_active = 0;
     pcb->connected = false;
+    pcb->flags = 0;
   }
 
   if( console_cdc_active )
