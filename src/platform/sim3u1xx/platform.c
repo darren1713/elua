@@ -2351,6 +2351,8 @@ void sim3_pmu_reboot( void )
   SI32_USB_A_disable_internal_pull_up( SI32_USB_0 );
   reset_parameters();
 
+  platform_timer_sys_delay( 200e3 );
+
   SI32_RSTSRC_A_generate_software_reset( SI32_RSTSRC_0 );
 }
 
@@ -2534,6 +2536,7 @@ void sim3_pmu_pm9( unsigned seconds )
   NVIC_DisableIRQ(USB0_IRQn);
   SI32_USB_A_disable_module(SI32_USB_0);
   SI32_USB_A_disable_internal_pull_up( SI32_USB_0 );
+  platform_timer_sys_delay( 200e3 );
 
   // Enter Sleep Mode
   myPB_enter_off_config();
