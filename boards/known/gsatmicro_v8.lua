@@ -1,5 +1,8 @@
 -- gsatmicro build configuration
 
+addm("PCB_V8")
+addm( "MEMBRANE_V1" )
+
 return {
   cpu = 'sim3u167',
   components = {
@@ -25,4 +28,3 @@ return {
     generic = { 'all', "-spi", "-pwm", "-can", "-net" },
   },
 }
-
