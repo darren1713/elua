@@ -946,11 +946,11 @@ void led_set_mask( u8 mask )
 #else
   // Module Board LED numbers
   led_mask = 0;
-  led_mask |= ( ( mask && 1 ) << 3 ); // GPS
-  led_mask |= ( ( mask && 1 << 1 ) << 3 ); // MSG
-  led_mask |= ( ( mask && 1 << 2 ) >> 1 ); // PWR
-  led_mask |= ( ( mask && 1 << 3 ) >> 3 ); // SAT
-  led_mask |= ( ( mask && 1 << 4 ) >> 2 ); // ALRM
+  led_mask |= ( ( mask & 1 ) << 3 ); // GPS
+  led_mask |= ( ( mask & 1 << 1 ) << 3 ); // MSG
+  led_mask |= ( ( mask & 1 << 2 ) >> 1 ); // PWR
+  led_mask |= ( ( mask & 1 << 3 ) >> 3 ); // SAT
+  led_mask |= ( ( mask & 1 << 4 ) >> 2 ); // ALRM
 #endif
 }
 
