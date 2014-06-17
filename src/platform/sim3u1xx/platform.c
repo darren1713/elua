@@ -681,6 +681,7 @@ void SecondsTick_Handler()
       //Normally we would run the startup script, but fix memory leaks first...
       //printf("startup %i\n", load_lua_function("autorun"));
       //printf("wakeup\n");
+      reset_seconds_awake();
       cmn_int_handler( INT_BOOT, 0 );
       //printf("wakeup %i\n", load_lua_string("wakeup();\n"));
     }
