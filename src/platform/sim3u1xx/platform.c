@@ -684,7 +684,7 @@ void SecondsTick_Handler()
       cmn_int_handler( INT_BOOT, 0 );
       //printf("wakeup %i\n", load_lua_string("wakeup();\n"));
     }
-    if( ( ( !external_power() && !external_buttons() && !external_io()) && !bluetooth_connected() && !lua_command_pending() && !c_command_pending() ) ||
+    if( ( ( !external_power() && !external_buttons() && !external_io()) && !bluetooth_connected() && !lua_command_pending() && !extras_op_pending() && !c_command_pending() ) ||
         ( ( rram_read_bit(RRAM_BIT_SLEEP_WHEN_POWERED) == SLEEP_WHEN_POWERED_ACTIVE ) && !usb_power() ) )
     {
       printf("no power %i\n", rram_read_int(RRAM_INT_SLEEPTIME));
