@@ -148,6 +148,8 @@ typedef enum {
   WAITTOSLEEP = 1
 } ok_to_sleep_enum;
 extern int ok_to_sleep();
+void reset_seconds_awake( void );
+u8 extras_op_pending( void );
 #define TRICK_TO_REBOOT_WITHOUT_DFU_MODE 0xFFFFFFFF
 #define SLEEP_FOREVER 0x7FFFFFFF
 void sim3_pmu_pm9( unsigned seconds );
