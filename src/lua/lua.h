@@ -371,7 +371,7 @@ struct lua_Debug {
 /* }====================================================================== */
 
 int lua_main( int argc, char **argv );
-int lua_command_enqueue( const char * buf );
+int lua_command_enqueue( const char * buf, size_t len );
 int c_command_enqueue( void (*command)() );
 int lua_command_pending( void );
 int c_command_pending( void );

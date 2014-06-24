@@ -263,21 +263,18 @@ int c_command_pending ( void )
     return 0;
 }
 
-int lua_command_enqueue( const char * buf )
+int lua_command_enqueue( const char * buf, size_t len )
 {
-  u32 lua_command_len = 0;
-
   if( lua_command_buf != NULL )
     return -1;
 
-  lua_command_len = strlen( buf ) + 1;
-  lua_command_buf = ( char * )malloc( sizeof( char ) * lua_command_len );
+  lua_command_buf = ( char * )malloc( sizeof( char ) * len + 1 );
 
   if( lua_command_buf == NULL )
     return -1;
 
-  memcpy( lua_command_buf, buf, lua_command_len - 1 );
-  lua_command_buf[ lua_command_len - 1 ] = 0;
+  memcpy( lua_command_buf, buf, len );
+  lua_command_buf[ len ] = 0;
 
   return 0;
 }
