@@ -554,7 +554,7 @@ int platform_init()
   adcs_init();
 #endif
 
-  wake_init();
+
 
 #if defined( BUILD_USB_CDC )
 
@@ -570,6 +570,8 @@ int platform_init()
 
   // Common platform initialization code
   cmn_platform_init();
+
+  wake_init();
 
 #if defined( INT_SYSINIT )
     cmn_int_handler( INT_SYSINIT, 0 );
