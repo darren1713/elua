@@ -29,16 +29,18 @@ documentation and/or software.
 #ifndef H__MD5
 #define H__MD5
 
-typedef unsigned long UINT4;
+#include <stdint.h>
+
+typedef uint32_t UINT4;
 
 typedef struct
 {
   UINT4 state[4];
   UINT4 count[2];
-  unsigned char buffer[64];
+  unsigned char *buffer;
 } MD5;
 
-void MD5Open(MD5 *);
+int MD5Open(MD5 *);
 void MD5Digest(MD5 *, const void *, unsigned int);
 void MD5Close(MD5 *, unsigned char[16]);
 

@@ -25,10 +25,19 @@ These notices must be retained in any copies of any part of this
 documentation and/or software.
 */
 
+#include <stdlib.h>
 #include <string.h>
+
 #include "md5.h"
 
-void MD5Open(MD5 *md5)
+const static unsigned char PADDING[64] =
+{
+  0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+};
+
+int MD5Open(MD5 *md5)
 {
   md5->count[0] = md5->count[1] = 0;
   /* Load magic initialization constants.*/
@@ -36,6 +45,12 @@ void MD5Open(MD5 *md5)
   md5->state[1] = 0xefcdab89;
   md5->state[2] = 0x98badcfe;
   md5->state[3] = 0x10325476;
+  /* alloc buffer, saving stack space */
+  md5->buffer = (unsigned char *)malloc( 64 );
+  if( md5->buffer != NULL )
+    return 1;
+  else
+    return 0;
 }
 
 /* Constants for MD5Transform routine. */
@@ -191,6 +206,8 @@ static void MD5Transform(UINT4 state[4], const unsigned char block[64])
 void MD5Digest(MD5 *md5, const void *input, unsigned int inputLen)
 {
   unsigned int i, index, partLen;
+  if( md5->buffer == NULL )
+    return;
   /* Compute number of bytes mod 64 */
   index = (unsigned int)((md5->count[0] >> 3) & 0x3F);
   /* Update number of bits */
@@ -227,12 +244,7 @@ void MD5Close(MD5 *md5, unsigned char digest[16])
 {
   unsigned char bits[8];
   unsigned int index, padLen;
-  static unsigned char PADDING[64] =
-  {
-    0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-  };
+
   /* Save number of bits */
   ENCODE(bits, md5->count[0]);
   ENCODE(bits+4, md5->count[1]);
@@ -247,7 +259,12 @@ void MD5Close(MD5 *md5, unsigned char digest[16])
   ENCODE(digest+4, md5->state[1]);
   ENCODE(digest+8, md5->state[2]);
   ENCODE(digest+12, md5->state[3]);
-  /* Zeroize sensitive information. */
+
+  /* Zeroize sensitive information and cleanup. */
+  if( md5->buffer != NULL )
+  {
+    memset(md5->buffer, 0, 64);
+    free(md5->buffer);
+  }
   memset(md5, 0, sizeof(MD5));
 }
-
