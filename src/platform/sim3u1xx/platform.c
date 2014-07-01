@@ -2507,7 +2507,6 @@ void sim3_pmu_pm9( unsigned seconds )
   // RTC running at 16.384Khz so there are 16384 cycles/sec)
   // Don't permanently go into storage mode when on power
   if( ( rram_read_bit( RRAM_BIT_STORAGE_MODE ) == STORAGE_MODE_ACTIVE ) &&
-      ( rram_read_bit( RRAM_BIT_TEMP_STORAGE_MODE ) == TEMP_STORAGE_MODE_ACTIVE ) &&
       !external_power() )
   {
     //Sleep forever, in storage mode. Power button will wakeup device
