@@ -337,7 +337,7 @@ void wake_init( void )
 
       if( rram_read_bit( RRAM_BIT_TEMP_STORAGE_MODE ) == TEMP_STORAGE_MODE_ACTIVE )
       {
-        if( !external_power() )
+        if( !external_power() && ( bat_abovethresh() < 1 ) )
         {
           rram_write_int( RRAM_INT_SLEEPTIME, SLEEP_FOREVER ); //will wakeup in 68 years
         }
@@ -346,6 +346,7 @@ void wake_init( void )
           // If external power, clear bat preservation mode
           rram_write_bit( RRAM_BIT_TEMP_STORAGE_MODE, TEMP_STORAGE_MODE_DISABLED );
           rram_write_int( RRAM_INT_SLEEPTIME, 0 );
+
         }
       }
       //Put the remaining sleep time back into rram_reg[0]
@@ -376,7 +377,7 @@ void wake_init( void )
     {
       if( rram_read_bit( RRAM_BIT_TEMP_STORAGE_MODE) == TEMP_STORAGE_MODE_ACTIVE )
       {
-        if( !external_power() )
+        if( !external_power() && ( bat_abovethresh() < 1 ) )
         {
           rram_write_int( RRAM_INT_SLEEPTIME, SLEEP_FOREVER ); //will wakeup in 68 years
         }
@@ -405,13 +406,13 @@ void wake_init( void )
         //the appropriate script when it reaches zero
         wake_reason = WAKE_POWERCONNECTED;
       }
-      if( external_io() )
+      else if( external_io() )
       {
         wake_reason = WAKE_IO;
         //Don't auto-sleep for some period of seconds
         sleep_delay = 5;
       }
-      if( bluetooth_connected() )
+      else if( bluetooth_connected() )
       {
         wake_reason = WAKE_BLUETOOTH;
         //Don't auto-sleep for some period of seconds
@@ -497,33 +498,7 @@ int platform_init()
   rtc_remaining = (SI32_RTC_A_read_alarm0(SI32_RTC_0)-SI32_RTC_A_read_setcap(SI32_RTC_0))/16384;
   rtc_init();
 
-#ifdef BUILD_ADC
-  // Setup ADCs
-  adcs_init();
-#endif
-
-#if defined( BUILD_USB_CDC )
-
-  usb_init();
-  hw_init();
-
-  // init the class driver here
-  cdc_init();
-
-  // register the rx handler function with the cdc
-  cdc_reg_rx_handler(NULL);
-#endif //defined( BUILD_USB_CDC )
-
-  wake_init();
-
-  // Common platform initialization code
-  cmn_platform_init();
-
-#if defined( INT_SYSINIT )
-    cmn_int_handler( INT_SYSINIT, 0 );
-#endif
-
-  // Set the Systick as the highest priority, then uarts, then the rest
+    // Set the Systick as the highest priority, then uarts, then the rest
   NVIC_SetPriority(SysTick_IRQn, 0);
   for(i=WDTIMER0_IRQn;i<=VREG0LOW_IRQn;i++)
   {
@@ -572,6 +547,32 @@ int platform_init()
   SI32_WDTIMER_A_enable_early_warning_interrupt(SI32_WDTIMER_0);
   SI32_RSTSRC_A_enable_watchdog_timer_reset_source(SI32_RSTSRC_0);
   NVIC_EnableIRQ(WDTIMER0_IRQn);
+#endif
+
+#ifdef BUILD_ADC
+  // Setup ADCs
+  adcs_init();
+#endif
+
+  wake_init();
+
+#if defined( BUILD_USB_CDC )
+
+  usb_init();
+  hw_init();
+
+  // init the class driver here
+  cdc_init();
+
+  // register the rx handler function with the cdc
+  cdc_reg_rx_handler(NULL);
+#endif //defined( BUILD_USB_CDC )
+
+  // Common platform initialization code
+  cmn_platform_init();
+
+#if defined( INT_SYSINIT )
+    cmn_int_handler( INT_SYSINIT, 0 );
 #endif
 
   return PLATFORM_OK;
@@ -2438,6 +2439,10 @@ void myPB_enter_off_config()
     SI32_PBSTD_A_write_pins_high(SI32_PBSTD_1, 1 << 3 );
 #endif
     SI32_PBSTD_A_set_pins_digital_input( SI32_PBSTD_0, ( (1 << 11) | (1 << 13) ));
+  }
+  else
+  {
+    rram_write_bit(RRAM_BIT_BLUETOOTH_WAKE, BLUETOOTH_WAKE_DISABLED);
   }
 #endif
 
