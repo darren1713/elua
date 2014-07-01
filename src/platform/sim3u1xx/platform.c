@@ -384,6 +384,7 @@ void wake_init( void )
         {
           // If external power, clear bat preservation mode
           rram_write_bit( RRAM_BIT_TEMP_STORAGE_MODE, TEMP_STORAGE_MODE_DISABLED );
+          rram_write_int( RRAM_INT_SLEEPTIME, 0 );
         }
       }
       else if( ( rram_read_bit(RRAM_BIT_POWEROFF) == POWEROFF_MODE_ACTIVE ) &&
