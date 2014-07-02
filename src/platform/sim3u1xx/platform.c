@@ -373,6 +373,7 @@ void wake_init( void )
       //Don't auto-sleep for some period of seconds
       sleep_delay = 5;
     }
+    // Not a pin wake or reset pin
     else
     {
       if( rram_read_bit( RRAM_BIT_TEMP_STORAGE_MODE) == TEMP_STORAGE_MODE_ACTIVE )
