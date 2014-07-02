@@ -2493,6 +2493,8 @@ void sim3_pmu_pm9( unsigned seconds )
   {
     //printf("Unit is powered, no PM9\n");
     wake_reason = WAKE_POWERCONNECTED;
+    led_set_mode(LED_COLOR_GPS, LED_OFF, 255 );
+    led_set_mode(LED_COLOR_SAT, LED_OFF, 255 );
     rram_write_int(RRAM_INT_SLEEPTIME, seconds);
     return;
   }
