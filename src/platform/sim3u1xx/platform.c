@@ -17,6 +17,7 @@
 #include "lrotable.h"
 #include "buf.h"
 #include "sermux.h"
+#include "romfs.h"
 
 // Platform includes
 #include "sim3u1xx.h"
