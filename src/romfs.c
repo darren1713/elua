@@ -868,6 +868,18 @@ int wofs_repack_init_spare_sectors( u8* freed_sectors, u32* lowest_spare )
   return 1;
 }
 
+int wofs_free_sectors( void )
+{
+  u32 lowest_spare;
+  u8 freed_sectors[ ( platform_flash_get_num_sectors() + ( 8 - 1 ) ) / 8 ];
+
+  // Check filesystem and mark spare sectors as freed
+  if( !wofs_repack_init_spare_sectors( freed_sectors, &lowest_spare ) )
+    return 0;
+
+  return ( platform_flash_get_num_sectors() - ( lowest_spare + 1 ) );
+}
+
 // Returns 1 if OK, 0 for error
 int wofs_repack( u32 threshold )
 {
