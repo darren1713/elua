@@ -264,13 +264,13 @@ void PMATCH_IRQHandler(void)
       if( SI32_PBSTD_A_read_pins(port_std[ match_config[i].port ]) & (1<<(match_config[i].pin)) )
       {
         port_std[match_config[i].port]->PM_CLR = (1<<(match_config[i].pin));
-        printf("%i:%i DOWN\n",match_config[i].port, match_config[i].pin);
+        //printf("%i:%i DOWN\n",match_config[i].port, match_config[i].pin);
         button_down(match_config[i].port, match_config[i].pin);
       }
       else
       {
         port_std[match_config[i].port]->PM_SET = (1<<(match_config[i].pin));
-        printf("%i:%i UP\n",match_config[i].port, match_config[i].pin);
+        //printf("%i:%i UP\n",match_config[i].port, match_config[i].pin);
         button_up(match_config[i].port, match_config[i].pin);
       }
     }
