@@ -43,12 +43,16 @@
   static buf_desc buf_desc_adc [ 0 ];
 #endif
 
+static buf_desc buf_desc_rng [ 1 ];
+
+
 // NOTE: the order of descriptors here MUST match the order of the BUF_ID_xx
 // enum in inc/buf.h
 static const buf_desc* buf_desc_array[ BUF_ID_TOTAL ] = 
 {
   buf_desc_uart,
-  buf_desc_adc
+  buf_desc_adc,
+  buf_desc_rng
 };
 
 // Helper macros

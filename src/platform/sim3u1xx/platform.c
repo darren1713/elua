@@ -51,7 +51,7 @@
 int wake_reason = WAKE_UNKNOWN;
 
 // Watchdog timer
-#define PLATFORM_EARLY_WARNING_DELAY_MS        500   // ms, periodic early warning interrupt
+#define PLATFORM_EARLY_WARNING_DELAY_MS        1000   // ms, periodic early warning interrupt
 
 #define PLATFORM_RESET_DELAY_MS                3000 // ms, reset delay (if early warning isn't captured)
 
@@ -93,6 +93,8 @@ static void gTIMER1_enter_auto_reload_config(void);
 
 static SI32_PBSTD_A_Type* const port_std[] = { SI32_PBSTD_0, SI32_PBSTD_1, SI32_PBSTD_2, SI32_PBSTD_3 };
 
+
+timer_data_type last_wdt_time, cur_wdt_time = 0;
 
 // Reference: http://stackoverflow.com/q/2422712/105950
 int div_round_closest( const int numerator, const int denominator )
@@ -200,11 +202,26 @@ void HardFault_Handler(void)
 
 void WDTIMER0_IRQHandler(void)
 {
+  u8 rng_tmp, rng_drain;
     if ((SI32_WDTIMER_A_is_early_warning_interrupt_pending(SI32_WDTIMER_0) &
         SI32_WDTIMER_A_is_early_warning_interrupt_enabled(SI32_WDTIMER_0)))
     {
       SI32_WDTIMER_A_reset_counter(SI32_WDTIMER_0);
       SI32_WDTIMER_A_clear_early_warning_interrupt(SI32_WDTIMER_0);
+      cur_wdt_time = platform_timer_read( PLATFORM_TIMER_SYS_ID );
+      rng_tmp = platform_timer_get_diff_us( PLATFORM_TIMER_SYS_ID, last_wdt_time, cur_wdt_time ) % 256;
+
+      if( buf_is_enabled( BUF_ID_RNG, 0 ) )
+      {
+        // Burn off old entropy if unused
+        if( buf_get_count( BUF_ID_RNG, 0 ) == buf_get_size( BUF_ID_RNG, 0 ) )
+          buf_read(BUF_ID_RNG, 0, ( t_buf_data* )&rng_drain );
+
+        buf_write(BUF_ID_RNG, 0, ( t_buf_data* )&rng_tmp );
+      }
+
+      last_wdt_time = cur_wdt_time;
+
     }
 }
 
@@ -532,6 +549,9 @@ int platform_init()
   // Enable Timer 1
   gTIMER1_enter_auto_reload_config();
 
+
+  buf_set( BUF_ID_RNG, 0, BUF_SIZE_32, BUF_DSIZE_U8 );
+
   // Setup Watchdog Timer
   SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
   SI32_WDTIMER_A_reset_counter (SI32_WDTIMER_0);
@@ -559,7 +579,6 @@ int platform_init()
 
 
 #if defined( BUILD_USB_CDC )
-
   usb_init();
   hw_init();
 
