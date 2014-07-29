@@ -2519,7 +2519,11 @@ void sim3_pmu_pm9( unsigned seconds )
     wake_reason = WAKE_POWERCONNECTED;
     led_set_mode(LED_COLOR_GPS, LED_OFF, 255 );
     led_set_mode(LED_COLOR_SAT, LED_OFF, 255 );
-    rram_write_int(RRAM_INT_SLEEPTIME, seconds);
+    if( seconds > 0 )
+      rram_write_int(RRAM_INT_SLEEPTIME, seconds);
+    else
+      rram_write_int(RRAM_INT_SLEEPTIME, 1);
+
     return;
   }
   if( lua_command_pending() || c_command_pending() )
