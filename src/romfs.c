@@ -457,7 +457,8 @@ static struct dm_dirent* romfs_readdir_r( struct _reent *r, void *d, void *pdata
     
     if( (( u64 )off + ( u64 )ROMFS_SIZE_LEN + ( u64 )pent->fsize) > ( u64 )pfsdata->max_size )
     {
-      if( romfs_fs_is_flag_set( pfsdata, ROMFS_FS_FLAG_READY_WRITE ) )
+      if( romfs_fs_is_flag_set( pfsdata, ROMFS_FS_FLAG_READY_WRITE ) &&
+          !( romfs_fs_is_flag_set( pfsdata, ROMFS_FS_FLAG_WRITING ) && ( u64 )pent->fsize == 0xFFFFFFFF ) )
       {
         fprintf(stderr, "[ERROR] File too long, making filesystem readonly\n");
         romfs_fs_clear_flag( pfsdata, ROMFS_FS_FLAG_READY_WRITE );
