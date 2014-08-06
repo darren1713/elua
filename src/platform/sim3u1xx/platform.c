@@ -74,6 +74,24 @@ static volatile int i2c_timeout_timer = I2C_TIMEOUT_SYSTICKS;
 #define PIN_HV_PIN ( 1 << 7 )
 #endif
 
+#if defined( PCB_V7 ) || ( PCB_V8 )
+  #define PIN_VCC_BANK 4
+  #define PIN_VCC_PIN ( ( u32 ) 1 << 5 )
+  #define PIN_NRST_BANK 3
+  #define PIN_NRST_PIN ( ( u32 ) 1 << 10 )
+  #define PIN_ONOFF_BANK 0
+  #define PIN_ONOFF_PIN ( ( u32 ) 1 << 1 )
+#else
+  #define PIN_VCC_BANK 4
+  #define PIN_VCC_PIN ( ( u32 ) 1 << 5 )
+  #define PIN_VANT_BANK 4
+  #define PIN_VANT_PIN ( ( u32 ) 1 << 4 )
+  #define PIN_NRST_BANK 3
+  #define PIN_NRST_PIN ( ( u32 ) 1 << 10 )
+  #define PIN_ONOFF_BANK 3
+  #define PIN_ONOFF_PIN ( ( u32 ) 1 << 9 )
+#endif
+
 int rram_reg[RRAM_SIZE] __attribute__((section(".sret")));
 static int rtc_remaining = 0;
 static u8 sleep_delay = 0;
@@ -1133,6 +1151,8 @@ void pios_init( void )
   // SI32_PBCFG_A_enable_crossbar_1(SI32_PBCFG_0);
 
 
+
+
   SI32_PBCFG_A_unlock_ports(SI32_PBCFG_0);
 
   // PB0 Setup
@@ -1233,6 +1253,7 @@ void pios_init( void )
   SI32_PBCFG_A_enable_crossbar_1(SI32_PBCFG_0);
 
 
+
   // Setup PBHD4
   SI32_PBCFG_A_unlock_ports(SI32_PBCFG_0);
   SI32_PBHD_A_write_pblock(SI32_PBHD_4, 0x00);
@@ -1254,7 +1275,10 @@ void pios_init( void )
   //Setup PB4.2 to HIGH to turn on mosfets for bat charger!
   SI32_PBHD_A_set_pins_push_pull_output( SI32_PBHD_4, 0x003F );
   SI32_PBHD_A_disable_pullup_resistors( SI32_PBHD_4 );
-  SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x3B );
+  if( rram_read_bit( RRAM_BIT_GPS_HIBERNATE_WHILE_SLEEPING ) == GPS_HIBERNATE_WHILE_SLEEPING_ACTIVE )
+    SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x1B );
+  else
+    SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x3B );
 
   SI32_PBHD_A_set_pins_low_drive_strength(SI32_PBHD_4, 0x3F);
 
@@ -2408,6 +2432,9 @@ void myPMU_enter_sleep(void)
 void VREG0_vbus_invalid_handler(void)
 {
 }
+
+
+
 void myPB_enter_off_config()
 {
    // all ports hi-z (analog)
@@ -2449,6 +2476,8 @@ void myPB_enter_off_config()
   //SI32_PBCFG_A_write_xbar0h(SI32_PBCFG_0,0x00000000);
   //SI32_PBCFG_A_write_xbar0l(SI32_PBCFG_0,0x00000000);
 
+
+
   //Set I2C pins to analog float...
   SI32_PBSTD_A_set_pins_analog( SI32_PBSTD_0, 0x0000C000);
   SI32_PBSTD_A_write_pins_low( SI32_PBSTD_0, 0xC000 );
@@ -2473,6 +2502,8 @@ void myPB_enter_off_config()
   }
 #endif
 
+
+
   //Set 5V pin to analog high...
   SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 0x00000200);
   SI32_PBSTD_A_write_pins_low( SI32_PBSTD_1, 0x0200 );
@@ -2488,7 +2519,18 @@ void myPB_enter_off_config()
   SI32_PBHD_A_disable_pin_current_limit( SI32_PBHD_4, 0x3F );
   SI32_PBHD_A_set_pins_digital_input( SI32_PBHD_4, 0x3F );
   SI32_PBHD_A_disable_pullup_resistors( SI32_PBHD_4 );
-  SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x3F );
+
+  if( ( rram_read_bit( RRAM_BIT_GPS_HIBERNATE_WHILE_SLEEPING ) == GPS_HIBERNATE_WHILE_SLEEPING_ACTIVE ) &&
+      ( rram_read_bit( RRAM_BIT_STORAGE_MODE ) == STORAGE_MODE_DISABLED ) &&
+      ( rram_read_bit( RRAM_BIT_TEMP_STORAGE_MODE ) == TEMP_STORAGE_MODE_DISABLED ) )
+  {
+    SI32_PBHD_A_set_pins_push_pull_output( SI32_PBHD_4, 0x20 );
+    SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x1F );
+    SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x20 );
+  }
+  else
+    SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x3F );
+
 
 #if defined( PCB_V7 ) || defined( PCB_V8 )
 #if defined( PCB_V7_CHARGER_NPN ) || defined( PCB_V8 )
