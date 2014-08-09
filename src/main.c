@@ -71,6 +71,10 @@ void boot_rpc( void )
 extern void extras_init();
 #endif
 
+#ifdef EXTRA_AUTORUN_EXIT_HOOK
+extern void extras_exit();
+#endif
+
 int main( void )
 {
   int i;
@@ -118,6 +122,10 @@ int main( void )
       break; // autoruns only the first found
     }
   }
+
+#ifdef EXTRA_AUTORUN_EXIT_HOOK
+  extras_exit();
+#endif
 
 #ifdef ELUA_BOOT_RPC
   boot_rpc();
