@@ -2568,7 +2568,8 @@ void sim3_pmu_pm9( unsigned seconds )
 
     return;
   }
-  if( lua_command_pending() || c_command_pending() )
+  if( ( seconds != TRICK_TO_REBOOT_WITHOUT_DFU_MODE ) &&
+      ( lua_command_pending() || c_command_pending() ) )
   {
     wake_reason = WAKE_PENDINGOP;
     rram_write_int(RRAM_INT_SLEEPTIME, seconds);
