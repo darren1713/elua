@@ -787,15 +787,15 @@ void TIMER0H_IRQHandler(void)
   usb_poll();
 #endif
 
-#if defined( INT_SYSTICK )
-  cmn_int_handler( INT_SYSTICK, 0 );
-#endif
-
   if(seconds_tick_pending)
   {
     SecondsTick_Handler();
     seconds_tick_pending = 0;
   }
+
+#if defined( INT_SYSTICK )
+  cmn_int_handler( INT_SYSTICK, 0 );
+#endif
 
   // Clear the interrupt flag
   SI32_TIMER_A_clear_high_overflow_interrupt(SI32_TIMER_0);
@@ -2570,6 +2570,7 @@ void sim3_pmu_pm9( unsigned seconds )
   }
   if( lua_command_pending() || c_command_pending() )
   {
+    wake_reason = WAKE_PENDINGOP;
     rram_write_int(RRAM_INT_SLEEPTIME, seconds);
     return;
   }
