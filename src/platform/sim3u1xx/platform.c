@@ -741,6 +741,44 @@ void SecondsTick_Handler()
       else
         sim3_pmu_pm9( rram_read_int(RRAM_INT_SLEEPTIME) );
     }
+    else
+    {
+      if( lua_command_pending() )
+      {
+        //printf("lua command pending\n");
+        wake_reason = WAKE_PENDINGOP;
+      }
+      if( extras_op_pending() )
+      {
+        //printf("extras op pending\n");
+        wake_reason = WAKE_PENDINGOP;
+      }
+      if( c_command_pending() )
+      {
+        //printf("c command pending\n");
+        wake_reason = WAKE_PENDINGOP;
+      }
+      if( external_buttons() )
+      {
+        //printf("external buttons\n");
+        wake_reason = WAKE_POWERCONNECTED;
+      }
+      if( external_io() )
+      {
+        //printf("external io\n");
+        wake_reason = WAKE_IO;
+      }
+      if( bluetooth_connected() )
+      {
+        //printf("bluetooth connected\n");
+        wake_reason = WAKE_BLUETOOTH;
+      }
+      if( external_power() )
+      {
+        //printf("external power\n");
+        wake_reason = WAKE_POWERCONNECTED;
+      }
+    }
     //else if(rram_read_int(RRAM_INT_SLEEPTIME) != SLEEP_FOREVER &&
     //  ( ( ( rram_read_int(RRAM_INT_SLEEPTIME) % 300 ) == 0 ) || rram_read_int(RRAM_INT_SLEEPTIME) < 5 ) )
     //  printf("powered %i\n", rram_read_int(RRAM_INT_SLEEPTIME));
@@ -2569,7 +2607,7 @@ void sim3_pmu_pm9( unsigned seconds )
     return;
   }
   if( ( seconds != TRICK_TO_REBOOT_WITHOUT_DFU_MODE ) &&
-      ( lua_command_pending() || c_command_pending() ) )
+      ( lua_command_pending() || c_command_pending() || extras_op_pending() ) )
   {
     wake_reason = WAKE_PENDINGOP;
     rram_write_int(RRAM_INT_SLEEPTIME, seconds);
