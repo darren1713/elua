@@ -95,6 +95,7 @@ static volatile int i2c_timeout_timer = I2C_TIMEOUT_SYSTICKS;
 int rram_reg[RRAM_SIZE] __attribute__((section(".sret")));
 static int rtc_remaining = 0;
 static u8 sleep_delay = 0;
+static u8 pending_op_timeout = 0;
 
 void sim3_pmu_reboot( void );
 void sim3_pmu_reboot_nodfu( void );
@@ -733,7 +734,7 @@ void SecondsTick_Handler()
       //printf("wakeup %i\n", load_lua_string("wakeup();\n"));
     }
     if( ( !external_power() || ( ( rram_read_bit(RRAM_BIT_SLEEP_WHEN_POWERED) == SLEEP_WHEN_POWERED_ACTIVE ) && !usb_power() ) ) && 
-        !external_buttons() && !external_io() && !bluetooth_connected() && !lua_command_pending() && !extras_op_pending() && !c_command_pending() )
+        !external_buttons() && !external_io() && !bluetooth_connected() && pending_op_timeout == 0 )
     {
       printf("no power %i\n", rram_read_int(RRAM_INT_SLEEPTIME));
       if(sleep_delay > 0)
@@ -780,6 +781,12 @@ void SecondsTick_Handler()
         wake_reason = WAKE_POWERCONNECTED;
       }
     }
+    if( pending_op_timeout > 0 )
+    {
+      printf("pending op %i\n", pending_op_timeout);
+      pending_op_timeout--;
+    }
+
     //else if(rram_read_int(RRAM_INT_SLEEPTIME) != SLEEP_FOREVER &&
     //  ( ( ( rram_read_int(RRAM_INT_SLEEPTIME) % 300 ) == 0 ) || rram_read_int(RRAM_INT_SLEEPTIME) < 5 ) )
     //  printf("powered %i\n", rram_read_int(RRAM_INT_SLEEPTIME));
@@ -2561,14 +2568,18 @@ void myPB_enter_off_config()
 
   if( ( rram_read_bit( RRAM_BIT_GPS_HIBERNATE_WHILE_SLEEPING ) == GPS_HIBERNATE_WHILE_SLEEPING_ACTIVE ) &&
       ( rram_read_bit( RRAM_BIT_STORAGE_MODE ) == STORAGE_MODE_DISABLED ) &&
-      ( rram_read_bit( RRAM_BIT_TEMP_STORAGE_MODE ) == TEMP_STORAGE_MODE_DISABLED ) )
+      ( rram_read_bit( RRAM_BIT_TEMP_STORAGE_MODE ) == TEMP_STORAGE_MODE_DISABLED ) &&
+      ( rram_read_bit( RRAM_BIT_POWEROFF ) == POWEROFF_MODE_DISABLED ) )
   {
     SI32_PBHD_A_set_pins_push_pull_output( SI32_PBHD_4, 0x20 );
     SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x1F );
     SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x20 );
   }
   else
+  {
+    rram_write_bit(RRAM_BIT_GPS_HIBERNATE_WHILE_SLEEPING, GPS_HIBERNATE_WHILE_SLEEPING_DISABLED);
     SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x3F );
+  }
 
 
 #if defined( PCB_V7 ) || defined( PCB_V8 )
@@ -2612,6 +2623,7 @@ void sim3_pmu_pm9( unsigned seconds )
       ( lua_command_pending() || c_command_pending() || extras_op_pending() ) )
   {
     wake_reason = WAKE_PENDINGOP;
+    pending_op_timeout = 10;
     rram_write_int(RRAM_INT_SLEEPTIME, seconds);
     return;
   }
