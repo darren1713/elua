@@ -732,8 +732,8 @@ void SecondsTick_Handler()
       cmn_int_handler( INT_BOOT, 0 );
       //printf("wakeup %i\n", load_lua_string("wakeup();\n"));
     }
-    if( ( ( !external_power() && !external_buttons() && !external_io()) && !bluetooth_connected() && !lua_command_pending() && !extras_op_pending() && !c_command_pending() ) ||
-        ( ( rram_read_bit(RRAM_BIT_SLEEP_WHEN_POWERED) == SLEEP_WHEN_POWERED_ACTIVE ) && !usb_power() ) )
+    if( ( !external_power() || ( ( rram_read_bit(RRAM_BIT_SLEEP_WHEN_POWERED) == SLEEP_WHEN_POWERED_ACTIVE ) && !usb_power() ) ) && 
+        !external_buttons() && !external_io() && !bluetooth_connected() && !lua_command_pending() && !extras_op_pending() && !c_command_pending() )
     {
       printf("no power %i\n", rram_read_int(RRAM_INT_SLEEPTIME));
       if(sleep_delay > 0)
@@ -773,7 +773,8 @@ void SecondsTick_Handler()
         //printf("bluetooth connected\n");
         wake_reason = WAKE_BLUETOOTH;
       }
-      if( external_power() )
+      if( ( ( rram_read_bit(RRAM_BIT_SLEEP_WHEN_POWERED) == SLEEP_WHEN_POWERED_ACTIVE ) && usb_power() ) ||
+          ( ( rram_read_bit(RRAM_BIT_SLEEP_WHEN_POWERED) == SLEEP_WHEN_POWERED_DISABLED ) && external_power() ) )
       {
         //printf("external power\n");
         wake_reason = WAKE_POWERCONNECTED;
@@ -2591,14 +2592,15 @@ void sim3_pmu_pm9( unsigned seconds )
 {
   //u8 i;
   led_set_mode(LED_COLOR_PWR, LED_FADEDOWN, 10);
+  led_set_mode(LED_COLOR_GPS, LED_OFF, 255 );
+  led_set_mode(LED_COLOR_SAT, LED_OFF, 255 );
 
   if( ( seconds != TRICK_TO_REBOOT_WITHOUT_DFU_MODE ) && external_power() &&
       ( ( rram_read_bit(RRAM_BIT_SLEEP_WHEN_POWERED) == SLEEP_WHEN_POWERED_DISABLED ) || usb_power() ) )
   {
     //printf("Unit is powered, no PM9\n");
     wake_reason = WAKE_POWERCONNECTED;
-    led_set_mode(LED_COLOR_GPS, LED_OFF, 255 );
-    led_set_mode(LED_COLOR_SAT, LED_OFF, 255 );
+
     if( seconds > 0 )
       rram_write_int(RRAM_INT_SLEEPTIME, seconds);
     else
