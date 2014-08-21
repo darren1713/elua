@@ -438,11 +438,15 @@ void wake_init( void )
         rram_write_int(RRAM_INT_SLEEPTIME, SLEEP_FOREVER); //will wakeup in 68 years
       }
 
-      if(external_buttons() || external_power() )
+      if( external_power() )
       {
         //Continue on as normal. The timer will count down rram_reg and execute
         //the appropriate script when it reaches zero
         wake_reason = WAKE_POWERCONNECTED;
+      }
+      else if( external_buttons() )
+      {
+        wake_reason = WAKE_WAKEPIN;
       }
       else if( external_io() )
       {
@@ -766,7 +770,7 @@ void SecondsTick_Handler()
       if( external_buttons() )
       {
         //printf("external buttons\n");
-        wake_reason = WAKE_POWERCONNECTED;
+        wake_reason = WAKE_WAKEPIN;
       }
       if( external_io() )
       {
@@ -2610,28 +2614,69 @@ void sim3_pmu_pm9( unsigned seconds )
   led_set_mode(LED_COLOR_GPS, LED_OFF, 255 );
   led_set_mode(LED_COLOR_SAT, LED_OFF, 255 );
 
-  if( ( seconds != TRICK_TO_REBOOT_WITHOUT_DFU_MODE ) && external_power() &&
-      ( ( rram_read_bit(RRAM_BIT_SLEEP_WHEN_POWERED) == SLEEP_WHEN_POWERED_DISABLED ) || usb_power() ) )
+  if( seconds != TRICK_TO_REBOOT_WITHOUT_DFU_MODE )
   {
-    //printf("Unit is powered, no PM9\n");
-    wake_reason = WAKE_POWERCONNECTED;
 
-    if( seconds > 0 )
-      rram_write_int(RRAM_INT_SLEEPTIME, seconds);
-    else
-      rram_write_int(RRAM_INT_SLEEPTIME, 1);
+    if( external_power() &&
+        ( ( rram_read_bit(RRAM_BIT_SLEEP_WHEN_POWERED) == SLEEP_WHEN_POWERED_DISABLED ) || usb_power() ) )
+    {
+      //printf("Unit is powered, no PM9\n");
+      wake_reason = WAKE_POWERCONNECTED;
 
-    return;
+      if( seconds > 0 )
+        rram_write_int(RRAM_INT_SLEEPTIME, seconds);
+      else
+        rram_write_int(RRAM_INT_SLEEPTIME, 1);
+
+      return;
+    }
+    else if( lua_command_pending() || c_command_pending() || extras_op_pending() )
+    {
+      wake_reason = WAKE_PENDINGOP;
+      pending_op_timeout = 10;
+
+      if( seconds > 0 )
+        rram_write_int(RRAM_INT_SLEEPTIME, seconds);
+      else
+        rram_write_int(RRAM_INT_SLEEPTIME, 1);
+      
+      return;
+    }
+    else if( external_buttons() )
+    {
+      wake_reason = WAKE_WAKEPIN;
+
+      if( seconds > 0 )
+        rram_write_int(RRAM_INT_SLEEPTIME, seconds);
+      else
+        rram_write_int(RRAM_INT_SLEEPTIME, 1);
+      
+      return;
+    }
+    else if( external_io() )
+    {
+      wake_reason = WAKE_IO;
+
+      if( seconds > 0 )
+        rram_write_int(RRAM_INT_SLEEPTIME, seconds);
+      else
+        rram_write_int(RRAM_INT_SLEEPTIME, 1);
+      
+      return;
+    }
+    else if( bluetooth_connected() )
+    {
+      wake_reason = WAKE_BLUETOOTH;
+
+      if( seconds > 0 )
+        rram_write_int(RRAM_INT_SLEEPTIME, seconds);
+      else
+        rram_write_int(RRAM_INT_SLEEPTIME, 1);
+
+      return;
+    }
   }
-  if( ( seconds != TRICK_TO_REBOOT_WITHOUT_DFU_MODE ) &&
-      ( lua_command_pending() || c_command_pending() || extras_op_pending() ) )
-  {
-    wake_reason = WAKE_PENDINGOP;
-    pending_op_timeout = 10;
-    rram_write_int(RRAM_INT_SLEEPTIME, seconds);
-    return;
-  }
-  if(seconds == TRICK_TO_REBOOT_WITHOUT_DFU_MODE)
+  else
     seconds = 1;
 
   // GET CURRENT TIMER VALUE INTO SETCAP
