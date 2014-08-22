@@ -96,6 +96,7 @@ int rram_reg[RRAM_SIZE] __attribute__((section(".sret")));
 static int rtc_remaining = 0;
 static u8 sleep_delay = 0;
 static u8 pending_op_timeout = 0;
+static u8 pending_op_used = 0;
 
 void sim3_pmu_reboot( void );
 void sim3_pmu_reboot_nodfu( void );
@@ -734,6 +735,7 @@ void SecondsTick_Handler()
       //printf("startup %i\n", load_lua_function("autorun"));
       //printf("wakeup\n");
       reset_seconds_awake();
+      pending_op_used = 0;
       cmn_int_handler( INT_BOOT, 0 );
       //printf("wakeup %i\n", load_lua_string("wakeup();\n"));
     }
@@ -789,7 +791,7 @@ void SecondsTick_Handler()
         wake_reason = WAKE_POWERCONNECTED;
       }
     }
-    if( pending_op_timeout > 0 )
+    if( pending_op_timeout > 0 && wake_reason == WAKE_PENDINGOP )
     {
       printf("pending op %i\n", pending_op_timeout);
       pending_op_timeout--;
@@ -2630,10 +2632,16 @@ void sim3_pmu_pm9( unsigned seconds )
 
       return;
     }
-    else if( lua_command_pending() || c_command_pending() || extras_op_pending() )
+    else if( ( lua_command_pending() || c_command_pending() || extras_op_pending() ) && !pending_op_used )
     {
       wake_reason = WAKE_PENDINGOP;
-      pending_op_timeout = 10;
+
+      if( rram_read_bit(RRAM_BIT_BLUETOOTH_PAIRABLE) )
+        pending_op_timeout = 70;
+      else
+        pending_op_timeout = 10;
+
+      pending_op_used = 1;
 
       if( seconds > 0 )
         rram_write_int(RRAM_INT_SLEEPTIME, seconds);
