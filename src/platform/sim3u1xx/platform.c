@@ -2633,11 +2633,7 @@ void sim3_pmu_pm9( unsigned seconds )
     {
       wake_reason = WAKE_PENDINGOP;
 
-      if( rram_read_bit(RRAM_BIT_BLUETOOTH_PAIRABLE) )
-        pending_op_timeout = 70;
-      else
-        pending_op_timeout = 10;
-
+      pending_op_timeout = 70;
       pending_op_used = 1;
 
       if( seconds > 0 )
