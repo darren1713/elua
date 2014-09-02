@@ -390,13 +390,13 @@ void wake_init( void )
       //Put the remaining sleep time back into rram_reg[0]
       else if( ( rram_read_bit(RRAM_BIT_POWEROFF) == POWEROFF_MODE_ACTIVE ) &&
                ( rram_read_bit(RRAM_BIT_CHECKIN) == CHECKIN_MODE_DISABLED ) &&
-               ( rram_read_bit(RRAM_BIT_SOS) == SOS_MODE_DISABLED ) )
+               ( rram_read_bit(RRAM_BIT_ALERT) == ALERT_MODE_DISABLED ) )
       {
         rram_write_int(RRAM_INT_SLEEPTIME, SLEEP_FOREVER); //will wakeup in 68 years
       }
       else if( ( rram_read_bit(RRAM_BIT_STORAGE_MODE) == STORAGE_MODE_ACTIVE ) &&
                ( rram_read_bit(RRAM_BIT_CHECKIN) == CHECKIN_MODE_DISABLED ) &&
-               ( rram_read_bit(RRAM_BIT_SOS) == SOS_MODE_DISABLED ) )
+               ( rram_read_bit(RRAM_BIT_ALERT) == ALERT_MODE_DISABLED ) )
       {
         //Sleep forever, in storage mode. Power button will wakeup device
         rram_write_int(RRAM_INT_SLEEPTIME, SLEEP_FOREVER); //will wakeup in 68 years
@@ -431,13 +431,13 @@ void wake_init( void )
       }
       else if( ( rram_read_bit(RRAM_BIT_POWEROFF) == POWEROFF_MODE_ACTIVE ) &&
                ( rram_read_bit(RRAM_BIT_CHECKIN) == CHECKIN_MODE_DISABLED ) &&
-               ( rram_read_bit(RRAM_BIT_SOS) == SOS_MODE_DISABLED ) )
+               ( rram_read_bit(RRAM_BIT_ALERT) == ALERT_MODE_DISABLED ) )
       {
         rram_write_int(RRAM_INT_SLEEPTIME, SLEEP_FOREVER); //will wakeup in 68 years
       }
       else if( ( rram_read_bit(RRAM_BIT_STORAGE_MODE) == STORAGE_MODE_ACTIVE ) &&
                ( rram_read_bit(RRAM_BIT_CHECKIN) == CHECKIN_MODE_DISABLED ) &&
-               ( rram_read_bit(RRAM_BIT_SOS) == SOS_MODE_DISABLED ) )
+               ( rram_read_bit(RRAM_BIT_ALERT) == ALERT_MODE_DISABLED ) )
       {
         //Sleep forever, in storage mode. Power button will wakeup device
         rram_write_int(RRAM_INT_SLEEPTIME, SLEEP_FOREVER); //will wakeup in 68 years
@@ -2697,7 +2697,7 @@ void sim3_pmu_pm9( unsigned seconds )
   // Don't permanently go into storage mode when on power
   if( ( rram_read_bit( RRAM_BIT_STORAGE_MODE ) == STORAGE_MODE_ACTIVE ) &&
       ( rram_read_bit( RRAM_BIT_CHECKIN ) == CHECKIN_MODE_DISABLED ) &&
-      ( rram_read_bit( RRAM_BIT_SOS ) == SOS_MODE_DISABLED ) &&
+      ( rram_read_bit( RRAM_BIT_ALERT ) == ALERT_MODE_DISABLED ) &&
       !external_power()  )
   {
     //Sleep forever, in storage mode. Power button will wakeup device
