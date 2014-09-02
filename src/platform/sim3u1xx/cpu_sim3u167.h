@@ -157,6 +157,7 @@ int bat_abovethresh( void );
 #define TRICK_TO_REBOOT_WITHOUT_DFU_MODE 0xFFFFFFFF
 #define SLEEP_FOREVER 0x7FFFFFFF
 void sim3_pmu_pm9( unsigned seconds );
+void watchdog_counter_set( u16 value );
 
 // Support for Compiling with & without rotables
 #ifdef LUA_OPTIMIZE_MEMORY

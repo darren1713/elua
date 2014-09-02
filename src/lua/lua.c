@@ -418,6 +418,7 @@ int slip_readline(lua_State *L, char *b, const char *p)
       extras_event_loop();
 #endif
       spin_vm(L);
+      watchdog_counter_set( 10 );
     }
     // {
     //   char * data;

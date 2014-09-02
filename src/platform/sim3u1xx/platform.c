@@ -220,14 +220,27 @@ void HardFault_Handler(void)
   );
 }
 
+volatile u16 wdt_reset_counter = 10;
+
+void watchdog_counter_set( u16 value )
+{
+  wdt_reset_counter = value;
+}
+
 void WDTIMER0_IRQHandler(void)
 {
   u8 rng_tmp, rng_drain;
     if ((SI32_WDTIMER_A_is_early_warning_interrupt_pending(SI32_WDTIMER_0) &
         SI32_WDTIMER_A_is_early_warning_interrupt_enabled(SI32_WDTIMER_0)))
     {
-      SI32_WDTIMER_A_reset_counter(SI32_WDTIMER_0);
-      SI32_WDTIMER_A_clear_early_warning_interrupt(SI32_WDTIMER_0);
+      if( wdt_reset_counter > 0 )
+      {
+        SI32_WDTIMER_A_reset_counter( SI32_WDTIMER_0 );
+        SI32_WDTIMER_A_clear_early_warning_interrupt( SI32_WDTIMER_0 );
+
+        wdt_reset_counter--;
+      }
+
       cur_wdt_time = platform_timer_read( PLATFORM_TIMER_SYS_ID );
       rng_tmp = platform_timer_get_diff_us( PLATFORM_TIMER_SYS_ID, last_wdt_time, cur_wdt_time ) % 256;
 
@@ -551,6 +564,9 @@ int platform_init()
   {
     switch(i)
     {
+      case WDTIMER0_IRQn:
+        NVIC_SetPriority(i, (1 << __NVIC_PRIO_BITS) - 5);
+        break;
       case UART0_IRQn:
       case UART1_IRQn:
       case USB0_IRQn:
