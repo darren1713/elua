@@ -220,7 +220,7 @@ void HardFault_Handler(void)
   );
 }
 
-volatile u16 wdt_reset_counter = 10;
+volatile u16 wdt_reset_counter = 20;
 
 void watchdog_counter_set( u16 value )
 {
