@@ -19,6 +19,7 @@
 #define INT_CONTENTION       ( ELUA_INT_FIRST_ID + 11 )
 #define INT_SYSINIT          ( ELUA_INT_FIRST_ID + 12 )
 #define INT_UART_BUF_HALF_FULL ( ELUA_INT_FIRST_ID + 13 )
-#define INT_ELUA_LAST        INT_UART_BUF_HALF_FULL
+#define INT_TICKSECOND       ( ELUA_INT_FIRST_ID + 14 )
+#define INT_ELUA_LAST        INT_TICKSECOND
 
 #endif // #ifndef __PLATFORM_INTS_H__

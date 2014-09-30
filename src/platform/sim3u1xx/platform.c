@@ -828,6 +828,8 @@ void SecondsTick_Handler()
          rtc_remaining  );
     firstSecond = 0;
   }
+
+  cmn_int_handler( INT_TICKSECOND, 0 );
 }
 
 static u8 seconds_tick_pending = 0;
