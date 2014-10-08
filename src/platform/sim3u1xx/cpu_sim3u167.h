@@ -131,6 +131,18 @@ u32 cmsis_get_cpu_frequency();
 #define RRAM_BIT_GPS_HIBERNATE_WHILE_SLEEPING 53
 #define GPS_HIBERNATE_WHILE_SLEEPING_ACTIVE 1
 #define GPS_HIBERNATE_WHILE_SLEEPING_DISABLED 0
+#define RRAM_BIT_INPUT1_LAST_STATE 54
+#define INPUT1_LAST_STATE_LOW 0
+#define INPUT1_LAST_STATE_HIGH 1
+#define RRAM_BIT_INPUT2_LAST_STATE 55
+#define INPUT2_LAST_STATE_LOW 0
+#define INPUT2_LAST_STATE_HIGH 1
+#define RRAM_BIT_INPUT1_TRIGGERED 56
+#define INPUT1_UNTRIGGERED 0
+#define INPUT1_TRIGGERED 1
+#define RRAM_BIT_INPUT2_TRIGGERED 57
+#define INPUT2_UNTRIGGERED 0
+#define INPUT2_TRIGGERED 1
 
 #define RRAM_INT_X_Z 4
 #define RRAM_INT_Y_Z 5
@@ -155,9 +167,9 @@ extern int ok_to_sleep();
 void reset_seconds_awake( void );
 u8 extras_op_pending( void );
 int bat_abovethresh( void );
-#define TRICK_TO_REBOOT_WITHOUT_DFU_MODE 0xFFFFFFFF
+#define TRICK_TO_REBOOT_WITHOUT_DFU_MODE -1
 #define SLEEP_FOREVER 0x7FFFFFFF
-void sim3_pmu_pm9( unsigned seconds );
+void sim3_pmu_pm9( int seconds );
 void watchdog_counter_set( u16 value );
 
 // Support for Compiling with & without rotables

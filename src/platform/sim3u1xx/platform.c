@@ -94,7 +94,7 @@ static volatile int i2c_timeout_timer = I2C_TIMEOUT_SYSTICKS;
 
 int rram_reg[RRAM_SIZE] __attribute__((section(".sret")));
 static int rtc_remaining = 0;
-static u8 sleep_delay = 0;
+static u8 sleep_delay = 5;
 static u8 pending_op_timeout = 0;
 static u8 pending_op_used = 0;
 
@@ -313,32 +313,74 @@ int external_buttons()
     return 0;
 #endif
 }
-int external_io()
+int external_io_check()
 {
+  int ret = 0;
 #if defined( PCB_V7 ) || defined( PCB_V8 )
   if(rram_read_bit(RRAM_BIT_WAKE_ON_INPUT1) == WAKE_ON_INPUT1_ACTIVE)
   {
-    int val = SI32_PBSTD_A_read_pins( SI32_PBSTD_1 ) & ( 1 << 14 );
-    if(rram_read_bit(RRAM_BIT_WAKE_ON_INPUT1_POLARITY) == WAKE_ON_INPUT1_POLARITY_POSITIVE)
+    int val = adc_get_single_sample( 0 );
+    if( val >= 0 )
     {
-      if(val) return 1;
-    } else {
-      if(!val) return 1;
+      if(rram_read_bit(RRAM_BIT_WAKE_ON_INPUT1_POLARITY) == WAKE_ON_INPUT1_POLARITY_POSITIVE)
+      {
+        if(val > 2500 && rram_read_bit( RRAM_BIT_INPUT1_LAST_STATE ) ==  INPUT1_LAST_STATE_LOW)
+        {
+          rram_write_bit(RRAM_BIT_INPUT1_TRIGGERED, INPUT1_TRIGGERED);
+          ret = 1;
+        }
+      } else {
+        if(val < 800 && rram_read_bit( RRAM_BIT_INPUT1_LAST_STATE ) ==  INPUT1_LAST_STATE_HIGH)
+        {
+          rram_write_bit(RRAM_BIT_INPUT1_TRIGGERED, INPUT1_TRIGGERED);
+          ret = 1;
+        }
+      }
+
+      if( val > 2500 )
+        rram_write_bit(RRAM_BIT_INPUT1_LAST_STATE, INPUT1_LAST_STATE_HIGH);
+      if( val < 800 )
+        rram_write_bit(RRAM_BIT_INPUT1_LAST_STATE, INPUT1_LAST_STATE_LOW);
     }
+
   }
   if(rram_read_bit(RRAM_BIT_WAKE_ON_INPUT2) == WAKE_ON_INPUT2_ACTIVE)
   {
-    int val = SI32_PBSTD_A_read_pins( SI32_PBSTD_1 ) & ( 1 << 15 );
-    if(rram_read_bit(RRAM_BIT_WAKE_ON_INPUT2_POLARITY) == WAKE_ON_INPUT2_POLARITY_POSITIVE)
+    int val = adc_get_single_sample( 1 );
+    if( val >= 0 )
     {
-      if(val) return 1;
-    } else {
-      if(!val) return 1;
+      if(rram_read_bit(RRAM_BIT_WAKE_ON_INPUT2_POLARITY) == WAKE_ON_INPUT2_POLARITY_POSITIVE)
+      {
+        if(val > 2500 && rram_read_bit( RRAM_BIT_INPUT2_LAST_STATE ) ==  INPUT2_LAST_STATE_LOW)
+        {
+          rram_write_bit(RRAM_BIT_INPUT2_TRIGGERED, INPUT2_TRIGGERED);
+          ret = 1;
+        }
+      } else {
+        if(val < 800 && rram_read_bit( RRAM_BIT_INPUT2_LAST_STATE ) ==  INPUT2_LAST_STATE_HIGH)
+        {
+          rram_write_bit(RRAM_BIT_INPUT2_TRIGGERED, INPUT2_TRIGGERED);
+          ret = 1;
+        }
+      }
+
+      if( val > 2500 )
+        rram_write_bit(RRAM_BIT_INPUT2_LAST_STATE, INPUT2_LAST_STATE_HIGH);
+      if( val < 800 )
+        rram_write_bit(RRAM_BIT_INPUT2_LAST_STATE, INPUT2_LAST_STATE_LOW);
     }
   }
 #endif
-  return 0;
+  return ret;
 }
+
+int external_io()
+{
+  return ( rram_read_bit(RRAM_BIT_INPUT2_TRIGGERED) == INPUT2_TRIGGERED ) || 
+         ( rram_read_bit(RRAM_BIT_INPUT1_TRIGGERED) == INPUT1_TRIGGERED );
+}
+
+
 int bluetooth_connected()
 {
 #if defined( BLUETOOTH_ENABLE_TDI_DTR )
@@ -403,13 +445,15 @@ void wake_init( void )
       //Put the remaining sleep time back into rram_reg[0]
       else if( ( rram_read_bit(RRAM_BIT_POWEROFF) == POWEROFF_MODE_ACTIVE ) &&
                ( rram_read_bit(RRAM_BIT_CHECKIN) == CHECKIN_MODE_DISABLED ) &&
-               ( rram_read_bit(RRAM_BIT_ALERT) == ALERT_MODE_DISABLED ) )
+               ( rram_read_bit(RRAM_BIT_ALERT) == ALERT_MODE_DISABLED ) &&
+               ( rram_read_bit(RRAM_BIT_ALERT_SINGLE ) == ALERT_MODE_SINGLE_DISABLED ) )
       {
         rram_write_int(RRAM_INT_SLEEPTIME, SLEEP_FOREVER); //will wakeup in 68 years
       }
       else if( ( rram_read_bit(RRAM_BIT_STORAGE_MODE) == STORAGE_MODE_ACTIVE ) &&
                ( rram_read_bit(RRAM_BIT_CHECKIN) == CHECKIN_MODE_DISABLED ) &&
-               ( rram_read_bit(RRAM_BIT_ALERT) == ALERT_MODE_DISABLED ) )
+               ( rram_read_bit(RRAM_BIT_ALERT) == ALERT_MODE_DISABLED ) &&
+               ( rram_read_bit(RRAM_BIT_ALERT_SINGLE ) == ALERT_MODE_SINGLE_DISABLED ) )
       {
         //Sleep forever, in storage mode. Power button will wakeup device
         rram_write_int(RRAM_INT_SLEEPTIME, SLEEP_FOREVER); //will wakeup in 68 years
@@ -444,13 +488,15 @@ void wake_init( void )
       }
       else if( ( rram_read_bit(RRAM_BIT_POWEROFF) == POWEROFF_MODE_ACTIVE ) &&
                ( rram_read_bit(RRAM_BIT_CHECKIN) == CHECKIN_MODE_DISABLED ) &&
-               ( rram_read_bit(RRAM_BIT_ALERT) == ALERT_MODE_DISABLED ) )
+               ( rram_read_bit(RRAM_BIT_ALERT) == ALERT_MODE_DISABLED ) &&
+               ( rram_read_bit(RRAM_BIT_ALERT_SINGLE ) == ALERT_MODE_SINGLE_DISABLED ) )
       {
         rram_write_int(RRAM_INT_SLEEPTIME, SLEEP_FOREVER); //will wakeup in 68 years
       }
       else if( ( rram_read_bit(RRAM_BIT_STORAGE_MODE) == STORAGE_MODE_ACTIVE ) &&
                ( rram_read_bit(RRAM_BIT_CHECKIN) == CHECKIN_MODE_DISABLED ) &&
-               ( rram_read_bit(RRAM_BIT_ALERT) == ALERT_MODE_DISABLED ) )
+               ( rram_read_bit(RRAM_BIT_ALERT) == ALERT_MODE_DISABLED ) &&
+               ( rram_read_bit(RRAM_BIT_ALERT_SINGLE ) == ALERT_MODE_SINGLE_DISABLED ) )
       {
         //Sleep forever, in storage mode. Power button will wakeup device
         rram_write_int(RRAM_INT_SLEEPTIME, SLEEP_FOREVER); //will wakeup in 68 years
@@ -466,7 +512,7 @@ void wake_init( void )
       {
         wake_reason = WAKE_WAKEPIN;
       }
-      else if( external_io() )
+      else if( external_io_check() )
       {
         wake_reason = WAKE_IO;
         //Don't auto-sleep for some period of seconds
@@ -729,6 +775,8 @@ static u8 tickSeconds = 0;
 
 void SecondsTick_Handler()
 {
+  external_io_check();
+
   //Check if we are supposed to be sleeping
   if(rram_read_int(RRAM_INT_SLEEPTIME) > 0)
   {
@@ -2412,8 +2460,11 @@ int platform_i2c_recv_byte( unsigned id, int ack )
 // ****************************************************************************
 // PMU functions
 
-void sim3_pmu_sleep( unsigned seconds )
+void sim3_pmu_sleep( int seconds )
 {
+  if( seconds < 0 )
+    seconds = 1;
+
   #ifdef EXTRA_SLEEP_HOOK
     extras_sleep_hook(seconds);
   #endif
@@ -2628,12 +2679,17 @@ void myPB_enter_off_config()
 
 
 
-void sim3_pmu_pm9( unsigned seconds )
+void sim3_pmu_pm9( int seconds )
 {
   //u8 i;
   led_set_mode(LED_COLOR_PWR, LED_FADEDOWN, 10);
   led_set_mode(LED_COLOR_GPS, LED_OFF, 255 );
   led_set_mode(LED_COLOR_SAT, LED_OFF, 255 );
+
+  if( seconds < -1 )
+  {
+    seconds = 1;
+  }
 
   if( seconds != TRICK_TO_REBOOT_WITHOUT_DFU_MODE )
   {
@@ -2716,6 +2772,7 @@ void sim3_pmu_pm9( unsigned seconds )
   if( ( rram_read_bit( RRAM_BIT_STORAGE_MODE ) == STORAGE_MODE_ACTIVE ) &&
       ( rram_read_bit( RRAM_BIT_CHECKIN ) == CHECKIN_MODE_DISABLED ) &&
       ( rram_read_bit( RRAM_BIT_ALERT ) == ALERT_MODE_DISABLED ) &&
+      ( rram_read_bit( RRAM_BIT_ALERT_SINGLE ) == ALERT_MODE_SINGLE_DISABLED ) &&
       !external_power()  )
   {
     //Sleep forever, in storage mode. Power button will wakeup device
