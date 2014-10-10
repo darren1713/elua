@@ -47,7 +47,7 @@
 // ****************************************************************************
 // Platform initialization
 
-#define PIN_CHECK_INTERVAL 10
+#define PIN_CHECK_INTERVAL 1
 int wake_reason = WAKE_UNKNOWN;
 
 // Watchdog timer
