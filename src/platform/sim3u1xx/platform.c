@@ -94,7 +94,7 @@ static volatile int i2c_timeout_timer = I2C_TIMEOUT_SYSTICKS;
 
 int rram_reg[RRAM_SIZE] __attribute__((section(".sret")));
 static int rtc_remaining = 0;
-static u8 sleep_delay = 5;
+static u8 sleep_delay = 0;
 static u8 pending_op_timeout = 0;
 static u8 pending_op_used = 0;
 
