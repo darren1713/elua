@@ -47,7 +47,12 @@
 // ****************************************************************************
 // Platform initialization
 
+#if defined( PCB_V7 )
+#define PIN_CHECK_INTERVAL 10
+#else
 #define PIN_CHECK_INTERVAL 1
+#endif
+
 int wake_reason = WAKE_UNKNOWN;
 
 // Watchdog timer

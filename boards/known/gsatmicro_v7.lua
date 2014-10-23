@@ -1,6 +1,7 @@
 -- gsatmicro build configuration
 
 addm("PCB_V7")
+addm("LAY_FLAT_COMPASS")
 
 return {
   cpu = 'sim3u167',
