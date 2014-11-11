@@ -2691,24 +2691,19 @@ void sim3_pmu_pm9( int seconds )
   led_set_mode(LED_COLOR_GPS, LED_OFF, 255 );
   led_set_mode(LED_COLOR_SAT, LED_OFF, 255 );
 
-  if( seconds < -1 )
-  {
-    seconds = 1;
-  }
-
   if( seconds != TRICK_TO_REBOOT_WITHOUT_DFU_MODE )
   {
+    if( seconds <= 0 )
+    {
+      seconds = 1;
+    }
 
     if( external_power() &&
         ( ( rram_read_bit(RRAM_BIT_SLEEP_WHEN_POWERED) == SLEEP_WHEN_POWERED_DISABLED ) || usb_power() ) )
     {
-      //printf("Unit is powered, no PM9\n");
       wake_reason = WAKE_POWERCONNECTED;
 
-      if( seconds > 0 )
-        rram_write_int(RRAM_INT_SLEEPTIME, seconds);
-      else
-        rram_write_int(RRAM_INT_SLEEPTIME, 1);
+      rram_write_int(RRAM_INT_SLEEPTIME, seconds);
 
       return;
     }
@@ -2719,43 +2714,31 @@ void sim3_pmu_pm9( int seconds )
       pending_op_timeout = 70;
       pending_op_used = 1;
 
-      if( seconds > 0 )
-        rram_write_int(RRAM_INT_SLEEPTIME, seconds);
-      else
-        rram_write_int(RRAM_INT_SLEEPTIME, 1);
-      
+      rram_write_int(RRAM_INT_SLEEPTIME, seconds);
+
       return;
     }
     else if( external_buttons() )
     {
       wake_reason = WAKE_WAKEPIN;
 
-      if( seconds > 0 )
-        rram_write_int(RRAM_INT_SLEEPTIME, seconds);
-      else
-        rram_write_int(RRAM_INT_SLEEPTIME, 1);
-      
+      rram_write_int(RRAM_INT_SLEEPTIME, seconds);
+
       return;
     }
     else if( external_io() )
     {
       wake_reason = WAKE_IO;
 
-      if( seconds > 0 )
-        rram_write_int(RRAM_INT_SLEEPTIME, seconds);
-      else
-        rram_write_int(RRAM_INT_SLEEPTIME, 1);
-      
+      rram_write_int(RRAM_INT_SLEEPTIME, seconds);
+
       return;
     }
     else if( bluetooth_connected() )
     {
       wake_reason = WAKE_BLUETOOTH;
 
-      if( seconds > 0 )
-        rram_write_int(RRAM_INT_SLEEPTIME, seconds);
-      else
-        rram_write_int(RRAM_INT_SLEEPTIME, 1);
+      rram_write_int(RRAM_INT_SLEEPTIME, seconds);
 
       return;
     }
