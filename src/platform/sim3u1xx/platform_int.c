@@ -247,7 +247,7 @@ struct match_port
   u8 pin;
 } ;
 
-#if defined( PCB_V7 ) || defined( PCB_V8 )
+#if defined( PCB_V7 ) || defined( PCB_V8 ) || defined( PCB_V10 )
   #define MATCH_PORTS 6
   static struct match_port match_config[MATCH_PORTS] = { { 1, 14 }, { 1, 15 }, { 0, 0 } , { 2, 2 } , { 2, 3 } , { 2, 4 } };
 #else

@@ -71,7 +71,7 @@ extern void extras_sleep_hook( int seconds );
 #define I2C_TIMEOUT_SYSTICKS 3
 static volatile int i2c_timeout_timer = I2C_TIMEOUT_SYSTICKS;
 
-#if defined( PCB_V7 ) || defined( PCB_V8 )
+#if defined( PCB_V7 ) || defined( PCB_V8 ) || defined( PCB_V10 )
 #define PIN_HV_BANK SI32_PBSTD_3
 #define PIN_HV_PIN ( 1 << 8 )
 #else
@@ -79,7 +79,7 @@ static volatile int i2c_timeout_timer = I2C_TIMEOUT_SYSTICKS;
 #define PIN_HV_PIN ( 1 << 7 )
 #endif
 
-#if defined( PCB_V7 ) || ( PCB_V8 )
+#if defined( PCB_V7 ) || ( PCB_V8 ) || defined( PCB_V10 )
   #define PIN_VCC_BANK 4
   #define PIN_VCC_PIN ( ( u32 ) 1 << 5 )
   #define PIN_NRST_BANK 3
@@ -282,7 +282,7 @@ void mySystemInit(void)
 
 }
 
-#if defined( ELUA_BOARD_GSATMICRO_V8 ) || defined( ELUA_BOARD_GSATMICRO_V7 )
+#if defined( ELUA_BOARD_GSATMICRO_V10 ) || defined( ELUA_BOARD_GSATMICRO_V8 ) || defined( ELUA_BOARD_GSATMICRO_V7 )
 
 int usb_power()
 {
@@ -301,7 +301,7 @@ int external_power()
 
 int external_buttons()
 {
-#if defined( PCB_V7 ) || defined( PCB_V8 )
+#if defined( PCB_V7 ) || defined( PCB_V8 ) || defined( PCB_V10 )
   //check inputs 1 and 2
   if( ( SI32_PBSTD_A_read_pins( SI32_PBSTD_2 ) & ( 1 << 2 ) ) ||
       ( SI32_PBSTD_A_read_pins( SI32_PBSTD_2 ) & ( 1 << 3 ) ) ||
@@ -321,7 +321,7 @@ int external_buttons()
 int external_io_check()
 {
   int ret = 0;
-#if defined( PCB_V7 ) || defined( PCB_V8 )
+#if defined( PCB_V7 ) || defined( PCB_V8 ) || defined( PCB_V10 )
   if(rram_read_bit(RRAM_BIT_WAKE_ON_INPUT1) == WAKE_ON_INPUT1_ACTIVE)
   {
     int val = adc_get_single_sample( 0 );
@@ -412,7 +412,7 @@ void reset_parameters()
 
 void wake_init( void )
 {
-#if defined( ELUA_BOARD_GSATMICRO_V8 ) || defined( ELUA_BOARD_GSATMICRO_V7 )
+#if defined( ELUA_BOARD_GSATMICRO_V10 ) || defined( ELUA_BOARD_GSATMICRO_V8 ) || defined( ELUA_BOARD_GSATMICRO_V7 )
 
   //Determine if we had a power failure, voltage dropout, or reset button pressed
   //The pre-generated code for SI32_RSTSRC_A_get_last_reset_source is incorrect and does
@@ -705,7 +705,7 @@ void clk_init( void )
   // Set system clock to AHB divider frequency
   SystemCoreClock = 5000000;
 #endif
-#if defined( ELUA_BOARD_GSATMICRO_V8 ) || defined( ELUA_BOARD_GSATMICRO_V7 )
+#if defined( ELUA_BOARD_GSATMICRO_V10 ) || defined( ELUA_BOARD_GSATMICRO_V8 ) || defined( ELUA_BOARD_GSATMICRO_V7 )
   SI32_CLKCTRL_A_enable_apb_to_modules_0(SI32_CLKCTRL_0,
                                          SI32_CLKCTRL_A_APBCLKG0_PB0 |
                                          SI32_CLKCTRL_A_APBCLKG0_USART0 |
@@ -986,7 +986,7 @@ u8 led_pending_repeats_ptr[LED_COUNT] = { 0, 0, 0, 0, 0 };
 
 u8 led_mask = 0x00;
 
-#if defined( PCB_V8 )
+#if defined( PCB_V8 ) || defined( PCB_V10 )
 #define LED_PORT 0
 #else
 #define LED_PORT 2
@@ -1045,7 +1045,7 @@ void TIMER1H_IRQHandler(void)
     {
       SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 6 ) );
     #if !defined( MEMBRANE_V1)
-    #if defined( PCB_V8 )
+    #if defined( PCB_V8 ) || defined( PCB_V10 )
       SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 4 ) );
     #else
       SI32_PBHD_A_write_pins_high( SI32_PBHD_4, ( ( u32 ) 1 << 3 ) );
@@ -1056,7 +1056,7 @@ void TIMER1H_IRQHandler(void)
     {
       SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << 6 ) );
     #if !defined( MEMBRANE_V1)
-    #if defined( PCB_V8 )
+    #if defined( PCB_V8 ) || defined( PCB_V10 )
       SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << 4 ) );
     #else
       SI32_PBHD_A_write_pins_low( SI32_PBHD_4, ( ( u32 ) 1 << 3 ) );
@@ -1066,7 +1066,7 @@ void TIMER1H_IRQHandler(void)
     if(led_ticks + led_background[2] > led_ticks_ptr[2] && (led_mask & 1<<2 ) )
     {
     #if defined( MEMBRANE_V1)
-    #if defined( PCB_V8 )
+    #if defined( PCB_V8 ) || defined( PCB_V10 )
       SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 4 ) );
     #else
       SI32_PBHD_A_write_pins_high( SI32_PBHD_4, ( ( u32 ) 1 << 3 ) );
@@ -1077,7 +1077,7 @@ void TIMER1H_IRQHandler(void)
     else
     {
     #if defined( MEMBRANE_V1)
-    #if defined( PCB_V8 )
+    #if defined( PCB_V8 ) || defined( PCB_V10 )
       SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << 4 ) );
     #else
       SI32_PBHD_A_write_pins_low( SI32_PBHD_4, ( ( u32 ) 1 << 3 ) );
@@ -1248,7 +1248,7 @@ static void gTIMER1_enter_auto_reload_config(void)
 
 void pios_init( void )
 {
-#if defined( ELUA_BOARD_GSATMICRO_V8 ) || defined( ELUA_BOARD_GSATMICRO_V7 )
+#if defined( ELUA_BOARD_GSATMICRO_V10 ) || defined( ELUA_BOARD_GSATMICRO_V8 ) || defined( ELUA_BOARD_GSATMICRO_V7 )
   // SI32_PBCFG_A_unlock_ports(SI32_PBCFG_0);
 
   // // PB0 Setup
@@ -1306,7 +1306,7 @@ void pios_init( void )
   SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_1, 0xC000);
   SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_1, 0xC000);
 
-#if !defined( PCB_V7 ) && !defined( PCB_V8 )
+#if !defined( PCB_V7 ) && !defined( PCB_V8 ) && !defined( PCB_V10 )
   SI32_PBSTD_A_write_pins_low(SI32_PBSTD_1, 0x0200 ); //Set 5V regulator off
 #endif
   SI32_PBSTD_A_write_pins_high(SI32_PBSTD_1, 0x0100 ); //Set USB high power mode
@@ -1316,7 +1316,7 @@ void pios_init( void )
   SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_2, 0x03E0); //Set external LEDS 0-4 as outputs
 #endif
 
-#if defined( PCB_V8 )
+#if defined( PCB_V8 ) || defined( PCB_V10 )
   SI32_PBSTD_A_write_pins_low(SI32_PBSTD_0, 0x3F0 ); //Set external LEDS 0-4 off
   SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_0, 0x3F0); //Set external LEDS 0-4 as outputs
 #endif
@@ -1345,14 +1345,14 @@ void pios_init( void )
 
   SI32_PBSTD_A_disable_pullup_resistors( SI32_PBSTD_1 );
 
-#if defined( PCB_V7 ) || defined( PCB_V8 )
+#if defined( PCB_V7 ) || defined( PCB_V8 ) || defined( PCB_V10 )
   //PB3.8 is high voltage dc detection
   //PB3.9 is usb voltage detection
   SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_3, 0x00000300);
   //PB3.11 5V on/off
 
   SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_3, ( u32 ) 1 << 11);
-#if defined( PCB_V8 )
+#if defined( PCB_V8 ) || defined( PCB_V10 )
   SI32_PBSTD_A_write_pins_low(SI32_PBSTD_3, ( u32 ) 1 << 11 ); //Set 5V regulator off
 #else
   SI32_PBSTD_A_write_pins_high(SI32_PBSTD_3, ( u32 ) 1 << 11 ); //Set 5V regulator off
@@ -1416,8 +1416,8 @@ void pios_init( void )
 
   SI32_PBHD_A_select_slew_rate(SI32_PBHD_4, SI32_PBHD_A_SLEW_FASTEST);
 
-#if defined( PCB_V7 ) || defined( PCB_V8 )
-#if defined( PCB_V7_CHARGER_NPN ) || defined( PCB_V8 )
+#if defined( PCB_V7 ) || defined( PCB_V8 ) || defined( PCB_V10 )
+#if defined( PCB_V7_CHARGER_NPN ) || defined( PCB_V8 ) || defined( PCB_V10 )
   //PB4.2 charger disconnect needs to be set high to enable NPN
   SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x04 );
 #else
@@ -1448,8 +1448,8 @@ void pios_init( void )
   //Enable blue LED's if we are on or just in a PM9 temporary sleep...
   if(rram_read_bit(RRAM_BIT_POWEROFF) == POWEROFF_MODE_ACTIVE)
   {
-#if defined(  PCB_V7 ) || defined( PCB_V8 )
-  #if defined( PCB_V8 )
+#if defined(  PCB_V7 ) || defined( PCB_V8 ) || defined( PCB_V10 )
+  #if defined( PCB_V8 ) || defined( PCB_V10 )
     SI32_PBSTD_A_write_pins_low( SI32_PBSTD_0, 0x10 );
   #else
     SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x08 );
@@ -1463,8 +1463,8 @@ void pios_init( void )
   }
   else
   {
-#if defined( PCB_V7 ) || defined( PCB_V8 )
-  #if defined( PCB_V8 )
+#if defined( PCB_V7 ) || defined( PCB_V8 ) || defined( PCB_V10 )
+  #if defined( PCB_V8 ) || defined( PCB_V10 )
     SI32_PBSTD_A_write_pins_high( SI32_PBSTD_0, 0x10 );
   #else
     SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x08 );
@@ -2639,7 +2639,7 @@ void myPB_enter_off_config()
   SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 0x00000200);
   SI32_PBSTD_A_write_pins_low( SI32_PBSTD_1, 0x0200 );
 
-#if defined( PCB_V7 ) || defined( PCB_V8 )
+#if defined( PCB_V7 ) || defined( PCB_V8 ) || defined( PCB_V10 )
   SI32_PBSTD_A_set_pins_digital_input( SI32_PBSTD_2, 0x0002 );
   SI32_PBSTD_A_set_pins_digital_input( SI32_PBSTD_3, 1 << 9 );
 #endif
@@ -2667,8 +2667,8 @@ void myPB_enter_off_config()
   }
 
 
-#if defined( PCB_V7 ) || defined( PCB_V8 )
-#if defined( PCB_V7_CHARGER_NPN ) || defined( PCB_V8 )
+#if defined( PCB_V7 ) || defined( PCB_V8 ) || defined( PCB_V10 )
+#if defined( PCB_V7_CHARGER_NPN ) || defined( PCB_V8 ) || defined( PCB_V10 )
   //PB4.2 is set low above which disables the NPN so do nothing
 #else
   //PB4.2 Set the disconnect mosfets to high!
@@ -2819,7 +2819,7 @@ void sim3_pmu_pm9( int seconds )
   SI32_PMU_A_enable_rtc0_alarm_wake_event(SI32_PMU_0);
 
   //Enable WAKE setup
-#if defined( PCB_V7 ) || defined( PCB_V8 )
+#if defined( PCB_V7 ) || defined( PCB_V8 ) || defined( PCB_V10 )
   //PB2.1
   SI32_PMU_A_set_pin_wake_events( SI32_PMU_0, (1 << 4), (1 << 4) );
 #else
