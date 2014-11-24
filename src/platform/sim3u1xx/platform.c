@@ -430,8 +430,18 @@ void wake_init( void )
     }
     else if((pmu_status & SI32_PMU_A_STATUS_PWAKEF_MASK) == (0 << SI32_PMU_A_STATUS_PWAKEF_SHIFT)) //Check for pin wake NOTE: SiLabs headers are wrong, this bit is backwards per the manual...
     {
-      //Wakeup from WAKE pins, just reset reg[0] so we stay awake
-      wake_reason = WAKE_WAKEPIN;
+      if( bluetooth_connected() )
+      {
+        wake_reason = WAKE_BLUETOOTH;
+      }
+      else if( external_power() )
+      {
+        wake_reason = WAKE_POWERCONNECTED;
+      }
+      else
+      {
+        wake_reason = WAKE_WAKEPIN;
+      }
 
       if( rram_read_bit( RRAM_BIT_TEMP_STORAGE_MODE ) == TEMP_STORAGE_MODE_ACTIVE )
       {
@@ -513,6 +523,12 @@ void wake_init( void )
         //the appropriate script when it reaches zero
         wake_reason = WAKE_POWERCONNECTED;
       }
+      else if( bluetooth_connected() )
+      {
+        wake_reason = WAKE_BLUETOOTH;
+        //Don't auto-sleep for some period of seconds
+        sleep_delay = 2;
+      }
       else if( external_buttons() )
       {
         wake_reason = WAKE_WAKEPIN;
@@ -522,12 +538,6 @@ void wake_init( void )
         wake_reason = WAKE_IO;
         //Don't auto-sleep for some period of seconds
         sleep_delay = 5;
-      }
-      else if( bluetooth_connected() )
-      {
-        wake_reason = WAKE_BLUETOOTH;
-        //Don't auto-sleep for some period of seconds
-        sleep_delay = 2;
       }
       else if( rram_read_int(RRAM_INT_SLEEPTIME) > 0 )  //Go back to sleep if we woke from a PMU wakeup
       {
@@ -2664,7 +2674,9 @@ void myPB_enter_off_config()
   {
     SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 0x0080);
     SI32_PBSTD_A_write_pins_high( SI32_PBSTD_1, 0x0080 );
-
+#if defined( BLUETOOTH_ENABLE_TDI_DTR )
+  SI32_PBSTD_A_set_pins_digital_input( SI32_PBSTD_1, 1 << 4 );
+#endif
     SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_0, 1 << BT_RTS_PIN);
     SI32_PBSTD_A_write_pins_high( SI32_PBSTD_0, 1 << BT_RTS_PIN );
 #if defined( BLUETOOTH_ENABLE_TDO_DSR )
@@ -2764,6 +2776,14 @@ void sim3_pmu_pm9( int seconds )
 
       return;
     }
+    else if( bluetooth_connected() )
+    {
+      wake_reason = WAKE_BLUETOOTH;
+
+      rram_write_int(RRAM_INT_SLEEPTIME, seconds);
+
+      return;
+    }
     else if( external_buttons() )
     {
       wake_reason = WAKE_WAKEPIN;
@@ -2775,14 +2795,6 @@ void sim3_pmu_pm9( int seconds )
     else if( external_io() )
     {
       wake_reason = WAKE_IO;
-
-      rram_write_int(RRAM_INT_SLEEPTIME, seconds);
-
-      return;
-    }
-    else if( bluetooth_connected() )
-    {
-      wake_reason = WAKE_BLUETOOTH;
 
       rram_write_int(RRAM_INT_SLEEPTIME, seconds);
 
