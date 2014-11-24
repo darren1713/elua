@@ -992,6 +992,22 @@ u8 led_mask = 0x00;
 #define LED_PORT 2
 #endif
 
+#if defined( PCB_V7 ) || defined( PCB_V8 )
+#define MLED_PIN_0 4
+#define MLED_PIN_1 5
+#define MLED_PIN_2 6
+#define MLED_PIN_3 7
+#define MLED_PIN_4 8
+#define MLED_PIN_5 9
+#elif defined( PCB_V10 )
+#define MLED_PIN_0 8
+#define MLED_PIN_1 9
+#define MLED_PIN_2 10
+#define MLED_PIN_3 11
+#define MLED_PIN_4 12
+#define MLED_PIN_5 13
+#endif
+
 void TIMER1H_IRQHandler(void)
 {
   led_ticks=((led_ticks+1) & 0x0F);
@@ -1038,15 +1054,15 @@ void TIMER1H_IRQHandler(void)
   else
   {
     if(led_ticks + led_background[0] > led_ticks_ptr[0] && (led_mask & 1 ) )
-      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 5 ) );
+      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << MLED_PIN_1 ) );
     else
-      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << 5 ) );
+      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << MLED_PIN_1 ) );
     if(led_ticks + led_background[1] > led_ticks_ptr[1] && (led_mask & 1<<1 ) )
     {
-      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 6 ) );
+      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << MLED_PIN_2 ) );
     #if !defined( MEMBRANE_V1)
     #if defined( PCB_V8 ) || defined( PCB_V10 )
-      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 4 ) );
+      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << MLED_PIN_0 ) );
     #else
       SI32_PBHD_A_write_pins_high( SI32_PBHD_4, ( ( u32 ) 1 << 3 ) );
     #endif
@@ -1054,10 +1070,10 @@ void TIMER1H_IRQHandler(void)
     }
     else
     {
-      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << 6 ) );
+      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << MLED_PIN_2 ) );
     #if !defined( MEMBRANE_V1)
     #if defined( PCB_V8 ) || defined( PCB_V10 )
-      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << 4 ) );
+      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << MLED_PIN_0 ) );
     #else
       SI32_PBHD_A_write_pins_low( SI32_PBHD_4, ( ( u32 ) 1 << 3 ) );
     #endif
@@ -1067,32 +1083,32 @@ void TIMER1H_IRQHandler(void)
     {
     #if defined( MEMBRANE_V1)
     #if defined( PCB_V8 ) || defined( PCB_V10 )
-      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 4 ) );
+      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << MLED_PIN_0 ) );
     #else
       SI32_PBHD_A_write_pins_high( SI32_PBHD_4, ( ( u32 ) 1 << 3 ) );
     #endif
     #endif
-      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 7 ) );
+      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << MLED_PIN_3 ) );
     }
     else
     {
     #if defined( MEMBRANE_V1)
     #if defined( PCB_V8 ) || defined( PCB_V10 )
-      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << 4 ) );
+      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << MLED_PIN_0 ) );
     #else
       SI32_PBHD_A_write_pins_low( SI32_PBHD_4, ( ( u32 ) 1 << 3 ) );
     #endif
     #endif
-      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << 7 ) );
+      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << MLED_PIN_3 ) );
     }
     if(led_ticks + led_background[3] > led_ticks_ptr[3] && (led_mask & 1<<3 ) )
-      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 8 ) );
+      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << MLED_PIN_4 ) );
     else
-      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << 8 ) );
+      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << MLED_PIN_4 ) );
     if(led_ticks + led_background[4] > led_ticks_ptr[4] && (led_mask & 1<<4 ) )
-      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << 9 ) );
+      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << MLED_PIN_5 ) );
     else
-      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << 9 ) );
+      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << MLED_PIN_5 ) );
   }
   // Clear the interrupt flag
   SI32_TIMER_A_clear_high_overflow_interrupt(SI32_TIMER_1);
@@ -1283,13 +1299,19 @@ void pios_init( void )
 
   SI32_PBCFG_A_unlock_ports(SI32_PBCFG_0);
 
+#if defined( ELUA_BOARD_GSATMICRO_V10 )
+  SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_0, 0x0003);
+  SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_0, 0x3F54);
+  //SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_0, 0x0003);
+    SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_0, 0x3F03);
+#else
   // PB0 Setup
   SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_0, 0x0603);
   SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_0, 0x1514);
   SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_0, 0x03F3);
-
+#endif
   // PB1 Setup
-  SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_1, 0x03A1);
+  SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_1, 0x07A1);
   SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_1, 0xFC1C);
 
 #if defined( BLUETOOTH_ENABLE_TDI_DTR )
@@ -1316,9 +1338,15 @@ void pios_init( void )
   SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_2, 0x03E0); //Set external LEDS 0-4 as outputs
 #endif
 
-#if defined( PCB_V8 ) || defined( PCB_V10 )
+#if defined( PCB_V8 ) 
   SI32_PBSTD_A_write_pins_low(SI32_PBSTD_0, 0x3F0 ); //Set external LEDS 0-4 off
   SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_0, 0x3F0); //Set external LEDS 0-4 as outputs
+#endif
+
+#if defined( PCB_V10 )
+  SI32_PBSTD_A_write_pins_low(SI32_PBSTD_0, 0x3FF0);
+  SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 1 << 10);
+  SI32_PBSTD_A_write_pins_low( SI32_PBSTD_1, 1 << 10 );
 #endif
 
   // Enable Crossbar0 signals & set properties
@@ -1449,7 +1477,9 @@ void pios_init( void )
   if(rram_read_bit(RRAM_BIT_POWEROFF) == POWEROFF_MODE_ACTIVE)
   {
 #if defined(  PCB_V7 ) || defined( PCB_V8 ) || defined( PCB_V10 )
-  #if defined( PCB_V8 ) || defined( PCB_V10 )
+  #if defined( PCB_V10)
+    SI32_PBSTD_A_write_pins_low( SI32_PBSTD_0, 0x100 );
+  #elif defined( PCB_V8 ) 
     SI32_PBSTD_A_write_pins_low( SI32_PBSTD_0, 0x10 );
   #else
     SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x08 );
@@ -1464,7 +1494,9 @@ void pios_init( void )
   else
   {
 #if defined( PCB_V7 ) || defined( PCB_V8 ) || defined( PCB_V10 )
-  #if defined( PCB_V8 ) || defined( PCB_V10 )
+  #if defined( PCB_V10 )
+    SI32_PBSTD_A_write_pins_high( SI32_PBSTD_0, 0x100 );
+  #elif defined( PCB_V8 )
     SI32_PBSTD_A_write_pins_high( SI32_PBSTD_0, 0x10 );
   #else
     SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x08 );
@@ -2563,9 +2595,17 @@ void myPMU_enter_sleep(void)
 void VREG0_vbus_invalid_handler(void)
 {
 }
-
-
-
+#if defined(PCB_V10)
+#define BT_TX_PIN 4
+#define BT_RX_PIN 5
+#define BT_RTS_PIN 6
+#define BT_CTS_PIN 7
+#else
+#define BT_TX_PIN 10
+#define BT_RX_PIN 11
+#define BT_RTS_PIN 12
+#define BT_CTS_PIN 13
+#endif
 void myPB_enter_off_config()
 {
    // all ports hi-z (analog)
@@ -2612,6 +2652,11 @@ void myPB_enter_off_config()
   //Set I2C pins to analog float...
   SI32_PBSTD_A_set_pins_analog( SI32_PBSTD_0, 0x0000C000);
   SI32_PBSTD_A_write_pins_low( SI32_PBSTD_0, 0xC000 );
+#if defined( PCB_V10 )
+    SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 1 << 10);
+    SI32_PBSTD_A_write_pins_low( SI32_PBSTD_1, 1 << 10 );
+#endif
+
 #ifdef BLUETOOTH_POWEREDWHILESLEEPING
   //Set bluetooth pins to analog high...
   if( ( rram_read_bit( RRAM_BIT_STORAGE_MODE ) == STORAGE_MODE_DISABLED ) &&
@@ -2619,13 +2664,14 @@ void myPB_enter_off_config()
   {
     SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 0x0080);
     SI32_PBSTD_A_write_pins_high( SI32_PBSTD_1, 0x0080 );
-    SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_0, 1 << 12);
-    SI32_PBSTD_A_write_pins_high( SI32_PBSTD_0, 1 << 12 );
+
+    SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_0, 1 << BT_RTS_PIN);
+    SI32_PBSTD_A_write_pins_high( SI32_PBSTD_0, 1 << BT_RTS_PIN );
 #if defined( BLUETOOTH_ENABLE_TDO_DSR )
     SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 1 << 3);
     SI32_PBSTD_A_write_pins_high(SI32_PBSTD_1, 1 << 3 );
 #endif
-    SI32_PBSTD_A_set_pins_digital_input( SI32_PBSTD_0, ( (1 << 11) | (1 << 13) ));
+    SI32_PBSTD_A_set_pins_digital_input( SI32_PBSTD_0, ( ( 1 << BT_RX_PIN ) | ( 1 << BT_CTS_PIN ) ));
   }
   else
   {
