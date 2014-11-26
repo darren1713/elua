@@ -206,7 +206,7 @@ void hard_fault_handler_c(unsigned int * hardfault_args)
     fclose( fp );
   }
 
-  sim3_pmu_reboot_nodfu();
+  sim3_pmu_reboot();
 }
 
 /**
@@ -2590,7 +2590,7 @@ void sim3_pmu_reboot_nodfu( void )
 
 void memory_error( void )
 {
-  sim3_pmu_reboot_nodfu();
+  sim3_pmu_reboot();
 }
 
 void myPMU_enter_sleep(void)
