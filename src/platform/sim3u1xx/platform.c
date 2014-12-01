@@ -972,10 +972,12 @@ static u8 const * led_cled_ptr[] = {
   CLED_FLASH5
 };
 
-#define LEDTICKHZ 800
+#define LEDTICKHZ 1000
+#define LEDTICK_DIVIDER 2
 u8 led_pointer_tick = 0;
 u8 led_tick = 0;
 u8 led_repeat_tick = 0;
+u8 led_divider_tick = 0;
 
 u8 led_ticks = 0;
 
@@ -1046,18 +1048,23 @@ void TIMER1H_IRQHandler(void)
       }
 
       int lednum;
-      for(lednum=0;lednum<LED_COUNT;lednum++)
+      if( led_divider_tick == 0 )
       {
-        if(led_repeats_ptr[lednum] > 0)
+        for(lednum=0;lednum<LED_COUNT;lednum++)
         {
-          if((led_repeats_ptr[lednum] != LED_REPEATS_FOREVER) && ((led_tick % led_mode_ptr[lednum][0]) == 0))
-            led_repeats_ptr[lednum]--;
           if(led_repeats_ptr[lednum] > 0)
-            led_ticks_ptr[lednum] = led_mode_ptr[lednum][(led_tick % led_mode_ptr[lednum][0])+1];
+          {
+            if((led_repeats_ptr[lednum] != LED_REPEATS_FOREVER) && ((led_tick % led_mode_ptr[lednum][0]) == 0))
+              led_repeats_ptr[lednum]--;
+            if(led_repeats_ptr[lednum] > 0)
+              led_ticks_ptr[lednum] = led_mode_ptr[lednum][(led_tick % led_mode_ptr[lednum][0])+1];
+          }
         }
+        led_tick++;
+        led_repeat_tick = (led_repeat_tick+1) % LED_MAX_ARRAY;
       }
-      led_tick++;
-      led_repeat_tick = (led_repeat_tick+1) % LED_MAX_ARRAY;
+      led_divider_tick++;
+      led_divider_tick %= LEDTICK_DIVIDER;
     }
     led_pointer_tick++;
   }
