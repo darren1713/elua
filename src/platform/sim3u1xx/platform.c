@@ -47,11 +47,7 @@
 // ****************************************************************************
 // Platform initialization
 
-#if defined( PCB_V7 )
-#define PIN_CHECK_INTERVAL 1
-#else
 #define PIN_CHECK_INTERVAL 10
-#endif
 
 int wake_reason = WAKE_UNKNOWN;
 
