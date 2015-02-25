@@ -115,14 +115,14 @@ static int cpu_set_param( lua_State *L )
   if( lua_isnumber( L, 2 ) )
   {
     nvalue = ( u32 )luaL_checkinteger( L, 2);
-    if( set_param_s32( name, prefix, nvalue ) < 0 )
+    if( param_set_s32( name, prefix, nvalue ) < 0 )
       luaL_error( L, "couldn't save number" );
 
   }
   else if ( lua_isstring( L, 2 ) )
   {
     svalue = ( u8 * )luaL_checkstring( L, 2 );
-    if( set_param_string( name, prefix, svalue ) < 0 )
+    if( param_set_string( name, prefix, svalue ) < 0 )
       luaL_error( L, "couldn't save string" );
   }
   return 0;
@@ -138,10 +138,10 @@ static int cpu_get_param( lua_State *L )
 
   name = luaL_checkstring( L, 1 );
 
-  switch( get_param_type( name, prefix ) )
+  switch( param_get_type( name, prefix ) )
   {
     case PARAM_INTEGER:
-      if( get_param_s32( name, prefix, &nvalue ) < 0 )
+      if( param_get_s32( name, prefix, &nvalue ) < 0 )
         luaL_error( L, "couldn't get number" );
       else
       {
@@ -150,8 +150,8 @@ static int cpu_get_param( lua_State *L )
       }
       break;
     case PARAM_STRING:
-      svalue = ( u8 * )malloc( get_param_string_len( name, prefix ) + 1 );
-      if( get_param_string( name, prefix, svalue, get_param_string_len( name, prefix ) + 1 ) < 0 )
+      svalue = ( u8 * )malloc( param_get_string_len( name, prefix ) + 1 );
+      if( param_get_string( name, prefix, svalue, param_get_string_len( name, prefix ) + 1 ) < 0 )
         luaL_error( L, "couldn't get string" );
       else
       {

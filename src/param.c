@@ -13,7 +13,7 @@ FILE * open_param_file(const char * name, const char * prefix, const char * form
   return ret;
 }
 
-int32_t set_param( const char * name, const char * prefix, uint8_t type, uint8_t * value, uint32_t length )
+int32_t param_set( const char * name, const char * prefix, uint8_t type, uint8_t * value, uint32_t length )
 {
   FILE *fp;
   int n;
@@ -30,7 +30,7 @@ int32_t set_param( const char * name, const char * prefix, uint8_t type, uint8_t
   return n;
 }
 
-int32_t get_param( const char * name, const char * prefix, uint8_t type, uint8_t * value, uint32_t length )
+int32_t param_get( const char * name, const char * prefix, uint8_t type, uint8_t * value, uint32_t length )
 {
   FILE *fp;
   int n;
@@ -54,7 +54,7 @@ int32_t get_param( const char * name, const char * prefix, uint8_t type, uint8_t
   return n; // return length of item actually read
 }
 
-int32_t get_param_type( const char * name, const char * prefix)
+int32_t param_get_type( const char * name, const char * prefix)
 {
   FILE *fp;
   int32_t type;
@@ -70,18 +70,18 @@ int32_t get_param_type( const char * name, const char * prefix)
 }
 
 // store 32-bit integer parameter
-int32_t set_param_s32( const char * name, const char * prefix, int32_t value )
+int32_t param_set_s32( const char * name, const char * prefix, int32_t value )
 {
-  return set_param( name, prefix, PARAM_INTEGER, ( uint8_t * )&value, 4 );
+  return param_set( name, prefix, PARAM_INTEGER, ( uint8_t * )&value, 4 );
 }
 
 // get 32-bit integer parameter, return number of bytes read
-int32_t get_param_s32( const char * name, const char * prefix, int32_t *value )
+int32_t param_get_s32( const char * name, const char * prefix, int32_t *value )
 {
   uint8_t b[4];
   int32_t ret;
 
-  ret = get_param( name, prefix, PARAM_INTEGER, b, 4);
+  ret = param_get( name, prefix, PARAM_INTEGER, b, 4);
 
   if( ret < 0 )
     return ret;
@@ -93,13 +93,13 @@ int32_t get_param_s32( const char * name, const char * prefix, int32_t *value )
 }
 
 // store string parameter
-int32_t set_param_string( const char * name, const char * prefix, uint8_t * value )
+int32_t param_set_string( const char * name, const char * prefix, uint8_t * value )
 {
-  return set_param( name, prefix, PARAM_STRING, value, strlen( ( const char * )value ) );
+  return param_set( name, prefix, PARAM_STRING, value, strlen( ( const char * )value ) );
 }
 
 // return string parameter length
-int32_t get_param_string_len( const char * name, const char * prefix )
+int32_t param_get_string_len( const char * name, const char * prefix )
 {
   FILE *fp;
   int n = 0;
@@ -118,18 +118,18 @@ int32_t get_param_string_len( const char * name, const char * prefix )
 
 
 // get string parameter, return length
-int32_t get_param_string( const char * name, const char * prefix, uint8_t *value, uint32_t max_len  )
+int32_t param_get_string( const char * name, const char * prefix, uint8_t *value, uint32_t max_len  )
 {
   int32_t len;
 
-  len = get_param_string_len( name, prefix );
+  len = param_get_string_len( name, prefix );
 
   // If an error was encountered, pass it up
   if( len < 0 )
     return len;
 
   if( len <= max_len )
-    len = get_param( name, prefix, PARAM_STRING, value, len);
+    len = param_get( name, prefix, PARAM_STRING, value, len);
   else
     return -3;
 
