@@ -86,7 +86,9 @@ int32_t get_param_s32( const char * name, const char * prefix, int32_t *value )
   if( ret < 0 )
     return ret;
 
-  *value = *( int32_t * )b;
+  if( value != NULL )
+    *value = *( int32_t * )b;
+  
   return ret;
 }
 
