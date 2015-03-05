@@ -1658,140 +1658,159 @@ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int st
   if( id == CDC_UART_ID )
     return 0;
 
-  if( id < 2 )
+  if( baud == 0 )
   {
-    SI32_USART_A_enter_full_duplex_mode( uart[ id ] );
-
-    // Set Baud Rate
-    // rate = F_APB / ( N * (R/TBAUD + 1 ) )
-    SI32_USART_A_set_rx_baudrate( usart[ id ], div_round_closest(cmsis_get_cpu_frequency(), (2 * baud)) - 1);
-    SI32_USART_A_set_tx_baudrate( usart[ id ], div_round_closest(cmsis_get_cpu_frequency(), (2 * baud)) - 1);
-
-    // Use Asynchronous Mode
-    SI32_USART_A_select_tx_asynchronous_mode ( usart[ id ] );
-    SI32_USART_A_select_rx_asynchronous_mode ( usart[ id ] );
-
-    // Set Data Bits
-    SI32_USART_A_select_tx_data_length( usart[ id ], databits );
-    SI32_USART_A_select_rx_data_length( usart[ id ], databits );
-
-
-    SI32_USART_A_enable_tx_start_bit( usart[ id ] );
-    SI32_USART_A_enable_tx_stop_bit( usart[ id ] );
-    SI32_USART_A_enable_rx_start_bit( usart[ id ] );
-    SI32_USART_A_enable_rx_stop_bit( usart[ id ] );
-
-    if( stopbits == PLATFORM_UART_STOPBITS_2 )
+    if( id < 2 )
     {
-      SI32_USART_A_select_tx_stop_bits( usart[ id ], SI32_USART_A_STOP_BITS_2_BITS );
-      SI32_USART_A_select_rx_stop_bits( usart[ id ], SI32_USART_A_STOP_BITS_2_BITS );
+      SI32_USART_A_disable_tx( usart[ id ] );
+      SI32_USART_A_disable_rx( usart[ id ] );
     }
     else
     {
-      SI32_USART_A_select_tx_stop_bits( usart[ id ], SI32_USART_A_STOP_BITS_1_BIT );
-      SI32_USART_A_select_rx_stop_bits( usart[ id ], SI32_USART_A_STOP_BITS_1_BIT );
+      id = id - 2;
+      
+      SI32_UART_A_disable_tx( uart[ id ] );
+      SI32_UART_A_disable_rx( uart[ id ] );
     }
-
-    // Set Parity
-    switch( parity )
-    {
-      case PLATFORM_UART_PARITY_NONE:
-        SI32_USART_A_disable_tx_parity_bit( usart[ id ] );
-        SI32_USART_A_disable_rx_parity_bit( usart[ id ] );
-        break;
-
-      case PLATFORM_UART_PARITY_ODD:
-        SI32_USART_A_enable_tx_parity_bit( usart[ id ] );
-        SI32_USART_A_select_tx_parity( usart[ id ], 0 );
-        SI32_USART_A_enable_rx_parity_bit( usart[ id ] );
-        SI32_USART_A_select_rx_parity( usart[ id ], 0 );
-        break;
-
-      case PLATFORM_UART_PARITY_EVEN:
-        SI32_USART_A_enable_tx_parity_bit( usart[ id ] );
-        SI32_USART_A_select_tx_parity( usart[ id ], 1 );
-        SI32_USART_A_enable_rx_parity_bit( usart[ id ] );
-        SI32_USART_A_select_rx_parity( usart[ id ], 1 );
-        break;
-    }
-
-    SI32_USART_A_disable_tx_signal_inversion( usart[ id ] );
-    SI32_USART_A_disable_rx_signal_inversion( usart[ id ] );
-
-    //SI32_USART_A_select_rx_fifo_threshold_2( usart[ id ] );
-
-    // Enable RX & TX
-    SI32_USART_A_enable_tx( usart[ id ] );
-    SI32_USART_A_enable_rx( usart[ id ] );
   }
   else
   {
-    id = id - 2;
-
-    SI32_UART_A_enter_full_duplex_mode( uart[ id ] );
-
-    // Set Baud Rate
-    // rate = F_APB / ( N * (R/TBAUD + 1 ) )
-    SI32_UART_A_set_rx_baudrate( uart[ id ], div_round_closest(cmsis_get_cpu_frequency(), (2 * baud)) - 1);
-    SI32_UART_A_set_tx_baudrate( uart[ id ], div_round_closest(cmsis_get_cpu_frequency(), (2 * baud)) - 1);
-
-    // Use Asynchronous Mode
-    //SI32_UART_A_select_tx_asynchronous_mode ( uart[ id ] );
-    //SI32_UART_A_select_rx_asynchronous_mode ( uart[ id ] );
-
-    // Set Data Bits
-    SI32_UART_A_select_tx_data_length( uart[ id ], databits );
-    SI32_UART_A_select_rx_data_length( uart[ id ], databits );
-
-
-    SI32_UART_A_enable_tx_start_bit( uart[ id ] );
-    SI32_UART_A_enable_tx_stop_bit( uart[ id ] );
-    SI32_UART_A_enable_rx_start_bit( uart[ id ] );
-    SI32_UART_A_enable_rx_stop_bit( uart[ id ] );
-
-    if( stopbits == PLATFORM_UART_STOPBITS_2 )
+    if( id < 2 )
     {
-      SI32_UART_A_select_tx_stop_bits( uart[ id ], SI32_UART_A_STOP_BITS_2_BITS );
-      SI32_UART_A_select_rx_stop_bits( uart[ id ], SI32_UART_A_STOP_BITS_2_BITS );
+      SI32_USART_A_enter_full_duplex_mode( usart[ id ] );
+
+      // Set Baud Rate
+      // rate = F_APB / ( N * (R/TBAUD + 1 ) )
+      SI32_USART_A_set_rx_baudrate( usart[ id ], div_round_closest(cmsis_get_cpu_frequency(), (2 * baud)) - 1);
+      SI32_USART_A_set_tx_baudrate( usart[ id ], div_round_closest(cmsis_get_cpu_frequency(), (2 * baud)) - 1);
+
+      // Use Asynchronous Mode
+      SI32_USART_A_select_tx_asynchronous_mode ( usart[ id ] );
+      SI32_USART_A_select_rx_asynchronous_mode ( usart[ id ] );
+
+      // Set Data Bits
+      SI32_USART_A_select_tx_data_length( usart[ id ], databits );
+      SI32_USART_A_select_rx_data_length( usart[ id ], databits );
+
+
+      SI32_USART_A_enable_tx_start_bit( usart[ id ] );
+      SI32_USART_A_enable_tx_stop_bit( usart[ id ] );
+      SI32_USART_A_enable_rx_start_bit( usart[ id ] );
+      SI32_USART_A_enable_rx_stop_bit( usart[ id ] );
+
+      if( stopbits == PLATFORM_UART_STOPBITS_2 )
+      {
+        SI32_USART_A_select_tx_stop_bits( usart[ id ], SI32_USART_A_STOP_BITS_2_BITS );
+        SI32_USART_A_select_rx_stop_bits( usart[ id ], SI32_USART_A_STOP_BITS_2_BITS );
+      }
+      else
+      {
+        SI32_USART_A_select_tx_stop_bits( usart[ id ], SI32_USART_A_STOP_BITS_1_BIT );
+        SI32_USART_A_select_rx_stop_bits( usart[ id ], SI32_USART_A_STOP_BITS_1_BIT );
+      }
+
+      // Set Parity
+      switch( parity )
+      {
+        case PLATFORM_UART_PARITY_NONE:
+          SI32_USART_A_disable_tx_parity_bit( usart[ id ] );
+          SI32_USART_A_disable_rx_parity_bit( usart[ id ] );
+          break;
+
+        case PLATFORM_UART_PARITY_ODD:
+          SI32_USART_A_enable_tx_parity_bit( usart[ id ] );
+          SI32_USART_A_select_tx_parity( usart[ id ], 0 );
+          SI32_USART_A_enable_rx_parity_bit( usart[ id ] );
+          SI32_USART_A_select_rx_parity( usart[ id ], 0 );
+          break;
+
+        case PLATFORM_UART_PARITY_EVEN:
+          SI32_USART_A_enable_tx_parity_bit( usart[ id ] );
+          SI32_USART_A_select_tx_parity( usart[ id ], 1 );
+          SI32_USART_A_enable_rx_parity_bit( usart[ id ] );
+          SI32_USART_A_select_rx_parity( usart[ id ], 1 );
+          break;
+      }
+
+      SI32_USART_A_disable_tx_signal_inversion( usart[ id ] );
+      SI32_USART_A_disable_rx_signal_inversion( usart[ id ] );
+
+      //SI32_USART_A_select_rx_fifo_threshold_2( usart[ id ] );
+
+      // Enable RX & TX
+      SI32_USART_A_enable_tx( usart[ id ] );
+      SI32_USART_A_enable_rx( usart[ id ] );
     }
     else
     {
-      SI32_UART_A_select_tx_stop_bits( uart[ id ], SI32_UART_A_STOP_BITS_1_BIT );
-      SI32_UART_A_select_rx_stop_bits( uart[ id ], SI32_UART_A_STOP_BITS_1_BIT );
+      id = id - 2;
+
+      SI32_UART_A_enter_full_duplex_mode( uart[ id ] );
+
+      // Set Baud Rate
+      // rate = F_APB / ( N * (R/TBAUD + 1 ) )
+      SI32_UART_A_set_rx_baudrate( uart[ id ], div_round_closest(cmsis_get_cpu_frequency(), (2 * baud)) - 1);
+      SI32_UART_A_set_tx_baudrate( uart[ id ], div_round_closest(cmsis_get_cpu_frequency(), (2 * baud)) - 1);
+
+      // Use Asynchronous Mode
+      //SI32_UART_A_select_tx_asynchronous_mode ( uart[ id ] );
+      //SI32_UART_A_select_rx_asynchronous_mode ( uart[ id ] );
+
+      // Set Data Bits
+      SI32_UART_A_select_tx_data_length( uart[ id ], databits );
+      SI32_UART_A_select_rx_data_length( uart[ id ], databits );
+
+
+      SI32_UART_A_enable_tx_start_bit( uart[ id ] );
+      SI32_UART_A_enable_tx_stop_bit( uart[ id ] );
+      SI32_UART_A_enable_rx_start_bit( uart[ id ] );
+      SI32_UART_A_enable_rx_stop_bit( uart[ id ] );
+
+      if( stopbits == PLATFORM_UART_STOPBITS_2 )
+      {
+        SI32_UART_A_select_tx_stop_bits( uart[ id ], SI32_UART_A_STOP_BITS_2_BITS );
+        SI32_UART_A_select_rx_stop_bits( uart[ id ], SI32_UART_A_STOP_BITS_2_BITS );
+      }
+      else
+      {
+        SI32_UART_A_select_tx_stop_bits( uart[ id ], SI32_UART_A_STOP_BITS_1_BIT );
+        SI32_UART_A_select_rx_stop_bits( uart[ id ], SI32_UART_A_STOP_BITS_1_BIT );
+      }
+
+      // Set Parity
+      switch( parity )
+      {
+        case PLATFORM_UART_PARITY_NONE:
+          SI32_UART_A_disable_tx_parity_bit( uart[ id ] );
+          SI32_UART_A_disable_rx_parity_bit( uart[ id ] );
+          break;
+
+        case PLATFORM_UART_PARITY_ODD:
+          SI32_UART_A_enable_tx_parity_bit( uart[ id ] );
+          SI32_UART_A_select_tx_parity( uart[ id ], 0 );
+          SI32_UART_A_enable_rx_parity_bit( uart[ id ] );
+          SI32_UART_A_select_rx_parity( uart[ id ], 0 );
+          break;
+
+        case PLATFORM_UART_PARITY_EVEN:
+          SI32_UART_A_enable_tx_parity_bit( uart[ id ] );
+          SI32_UART_A_select_tx_parity( uart[ id ], 1 );
+          SI32_UART_A_enable_rx_parity_bit( uart[ id ] );
+          SI32_UART_A_select_rx_parity( uart[ id ], 1 );
+          break;
+      }
+
+      SI32_UART_A_disable_tx_signal_inversion( uart[ id ] );
+      SI32_UART_A_disable_rx_signal_inversion( uart[ id ] );
+
+      //SI32_UART_A_select_rx_fifo_threshold_2( uart[ id ] );
+
+      // Enable RX & TX
+      SI32_UART_A_enable_tx( uart[ id ] );
+      SI32_UART_A_enable_rx( uart[ id ] );
     }
-
-    // Set Parity
-    switch( parity )
-    {
-      case PLATFORM_UART_PARITY_NONE:
-        SI32_UART_A_disable_tx_parity_bit( uart[ id ] );
-        SI32_UART_A_disable_rx_parity_bit( uart[ id ] );
-        break;
-
-      case PLATFORM_UART_PARITY_ODD:
-        SI32_UART_A_enable_tx_parity_bit( uart[ id ] );
-        SI32_UART_A_select_tx_parity( uart[ id ], 0 );
-        SI32_UART_A_enable_rx_parity_bit( uart[ id ] );
-        SI32_UART_A_select_rx_parity( uart[ id ], 0 );
-        break;
-
-      case PLATFORM_UART_PARITY_EVEN:
-        SI32_UART_A_enable_tx_parity_bit( uart[ id ] );
-        SI32_UART_A_select_tx_parity( uart[ id ], 1 );
-        SI32_UART_A_enable_rx_parity_bit( uart[ id ] );
-        SI32_UART_A_select_rx_parity( uart[ id ], 1 );
-        break;
-    }
-
-    SI32_UART_A_disable_tx_signal_inversion( uart[ id ] );
-    SI32_UART_A_disable_rx_signal_inversion( uart[ id ] );
-
-    //SI32_UART_A_select_rx_fifo_threshold_2( uart[ id ] );
-
-    // Enable RX & TX
-    SI32_UART_A_enable_tx( uart[ id ] );
-    SI32_UART_A_enable_rx( uart[ id ] );
   }
+  
 
 
   return baud; // FIXME: find a way to actually get baud
