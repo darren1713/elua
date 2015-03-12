@@ -2782,7 +2782,7 @@ void sim3_pmu_pm9( int seconds )
 
     if( external_power() &&
         ( ( rram_read_bit(RRAM_BIT_SLEEP_WHEN_POWERED) == SLEEP_WHEN_POWERED_DISABLED ) || usb_power() ) ||
-        ( rram_read_bit( RRAM_BIT_SLEEP_WITH_BATTERY ) == SLEEP_WITH_BATTERY_DISABLED ) )
+        ( ( rram_read_bit( RRAM_BIT_SLEEP_WITH_BATTERY ) == SLEEP_WITH_BATTERY_DISABLED ) && ( bat_abovethresh() > 0 ) ) )
     {
       wake_reason = WAKE_POWERCONNECTED;
 
