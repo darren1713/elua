@@ -2251,6 +2251,8 @@ int platform_adc_start_sequence()
 
 //#define DEBUG_I2C
 
+int i2c_reset_pending = 0;
+
 static SI32_I2C_A_Type* const i2cs[] = { SI32_I2C_0, SI32_I2C_1 };
 
 #define  I2C_WRITE          0x00           // I2C WRITE command
@@ -2261,6 +2263,13 @@ u32 platform_i2c_setup( unsigned id, u32 speed )
   u32 i2c_clock = cmsis_get_cpu_frequency();
   u32 scl_timer_bytes = ( ( 1 << 20 ) - ( ( 25 * i2c_clock ) / 1000 ) ) / 16;
   u32 i2c_clock_per_cycle = ( ( ( i2c_clock / 2 + ( speed - 1 ) ) / speed ) );
+
+  if( i2c_reset_pending )
+  {
+    printf("i2c: reset\n");
+    SI32_I2C_A_reset_module( i2cs[ id ] );
+    i2c_reset_pending = 0;
+  }
 
   SI32_I2C_A_set_scaler_value( i2cs[ id ], 0x3F );
 
@@ -2360,6 +2369,7 @@ void platform_i2c_send_stop( unsigned id )
 #if defined( DEBUG_I2C )
     printf("send_stop: not active\n");
 #endif
+    i2c_reset_pending = 1;
   }
 }
 
@@ -2421,6 +2431,7 @@ int platform_i2c_send_address( unsigned id, u16 address, int direction )
   {
     //#if defined( DEBUG_I2C )
     printf("send_addr: not active\n");
+    i2c_reset_pending = 1;
     //#endif
   }
 
@@ -2463,6 +2474,7 @@ int platform_i2c_send_byte( unsigned id, u8 data )
 #if defined( DEBUG_I2C )
     printf("send_byte: not active\n");
 #endif
+    i2c_reset_pending = 1;
     return 0;
   }
 }
@@ -2522,6 +2534,7 @@ int platform_i2c_recv_byte( unsigned id, int ack )
 #if defined( DEBUG_I2C )
     printf("recv_byte: not active\n");
 #endif
+    i2c_reset_pending = 1;
     return 0;
   }
 }
