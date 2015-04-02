@@ -21,7 +21,6 @@ return {
   config = {
     egc = { mode = "alloc" },
     vtmr = { num = 4, freq = 10 },
-    clocks = { external = 8000000, cpu = 168000000 }
   },
   modules = {
     generic = { 'all', "-spi", "-pwm", "-can", "-net" },

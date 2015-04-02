@@ -146,7 +146,11 @@ u32 cmsis_get_cpu_frequency();
 #define RRAM_BIT_SLEEP_WITH_BATTERY 58
 #define SLEEP_WITH_BATTERY_ACTIVE 1
 #define SLEEP_WITH_BATTERY_DISABLED 0
+#define RRAM_BIT_MOVING_MODE 59
+#define MOVING_MODE_ACTIVE 1
+#define MOVING_MODE_DISABLED 0
 
+#define RRAM_INT_CLK_CORR 3
 #define RRAM_INT_X_Z 4
 #define RRAM_INT_Y_Z 5
 #define RRAM_INT_TIME 6
@@ -262,6 +266,8 @@ void led_set_mask( u8 mask );
 void led_cache_mode(int led, int mode );
 void led_set_background(int led, u8 bkgnd);
 int external_power( void );
+s32 adc_get_single_sample( int adc_id );
+int32_t gps_get_rtc_correction( void );
 
 #define SHELL_WELCOMEMSG_EXTRA "\nGSatMicro http://gsat.us/"
 

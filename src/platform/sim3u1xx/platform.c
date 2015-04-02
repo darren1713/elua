@@ -612,7 +612,7 @@ int platform_init()
   SI32_RTC_A_start_timer_capture(SI32_RTC_0);
   while(SI32_RTC_A_is_timer_capture_in_progress(SI32_RTC_0));
 
-  rtc_remaining = (SI32_RTC_A_read_alarm0(SI32_RTC_0)-SI32_RTC_A_read_setcap(SI32_RTC_0))/16384;
+  rtc_remaining = (SI32_RTC_A_read_alarm0(SI32_RTC_0)-SI32_RTC_A_read_setcap(SI32_RTC_0))/platform_timer_op(0, PLATFORM_TIMER_OP_GET_CLOCK, 0);
   rtc_init();
 
     // Set the Systick as the highest priority, then uarts, then the rest
@@ -1968,15 +1968,29 @@ timer_data_type platform_s_timer_op( unsigned id, int op, timer_data_type data )
       break;
 
     case PLATFORM_TIMER_OP_READ:
+      if( id == 0 )
+      {
+        SI32_RTC_A_start_timer_capture(SI32_RTC_0);
+        while(SI32_RTC_A_is_timer_capture_in_progress(SI32_RTC_0));
+        res = SI32_RTC_A_read_setcap(SI32_RTC_0);
+      }
       break;
 
     case PLATFORM_TIMER_OP_SET_CLOCK:
       break;
 
     case PLATFORM_TIMER_OP_GET_CLOCK:
+      if( id == 0 )
+      {
+        if( rram_read_int(RRAM_INT_CLK_CORR) != 0 )
+          res = ( u64 )16384 *  ( u64 )rram_read_int(RRAM_INT_CLK_CORR) / ( u64 )1000000;
+        else
+          res = 16384;
+      }
       break;
 
     case PLATFORM_TIMER_OP_GET_MAX_CNT:
+        res = 0xFFFFFFFF;
       break;
   }
   return res;
@@ -2559,7 +2573,7 @@ void sim3_pmu_sleep( int seconds )
 
   // SET ALARM FOR now+s
   // RTC running at 16.384Khz so there are 16384 cycles/sec)
-  SI32_RTC_A_write_alarm0(SI32_RTC_0, SI32_RTC_A_read_setcap(SI32_RTC_0) + (16384 * seconds));
+  SI32_RTC_A_write_alarm0(SI32_RTC_0, SI32_RTC_A_read_setcap(SI32_RTC_0) + (platform_timer_op(0, PLATFORM_TIMER_OP_GET_CLOCK, 0) * seconds));
   SI32_RTC_A_clear_alarm0_interrupt(SI32_RTC_0);
 
   // Enable RTC alarm interrupt
@@ -2866,12 +2880,12 @@ void sim3_pmu_pm9( int seconds )
   else if( seconds > PIN_CHECK_INTERVAL )
   {
     rram_write_int(RRAM_INT_SLEEPTIME, seconds - PIN_CHECK_INTERVAL);
-    SI32_RTC_A_write_alarm0(SI32_RTC_0, /*SI32_RTC_A_read_setcap(SI32_RTC_0) +*/ (16384 * PIN_CHECK_INTERVAL));
+    SI32_RTC_A_write_alarm0(SI32_RTC_0, /*SI32_RTC_A_read_setcap(SI32_RTC_0) +*/ (platform_timer_op(0, PLATFORM_TIMER_OP_GET_CLOCK, 0) * PIN_CHECK_INTERVAL));
   }
   else
   {
     rram_write_int(RRAM_INT_SLEEPTIME, 0);
-    SI32_RTC_A_write_alarm0(SI32_RTC_0, /*SI32_RTC_A_read_setcap(SI32_RTC_0) +*/ (16384 * seconds));
+    SI32_RTC_A_write_alarm0(SI32_RTC_0, /*SI32_RTC_A_read_setcap(SI32_RTC_0) +*/ (platform_timer_op(0, PLATFORM_TIMER_OP_GET_CLOCK, 0) * seconds));
   }
 
 
