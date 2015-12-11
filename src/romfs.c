@@ -146,11 +146,13 @@ static u8 romfs_open_file( const char* fname, FD* pfd, FSDATA *pfs, u32 *plast, 
     
     if( (( u64 )j + ( u64 )ROMFS_SIZE_LEN + ( u64 )fsize) > ( u64 )pfs->max_size )
     {
+      /* POSSIBLE BUG HERE: When opening a new file for writing, this function scans past the end of the fs
+      and triggers this flag to be set and then we cannot do anything with the filesystem :(
       if( romfs_fs_is_flag_set( pfs, ROMFS_FS_FLAG_READY_WRITE ) )
       {
-        fprintf(stderr, "[ERROR] File too long, making filesystem readonly\n");
+        fprintf(stderr, "[ERROR] Open File too long, making filesystem readonly\n");
         romfs_fs_clear_flag( pfs, ROMFS_FS_FLAG_READY_WRITE );
-      }
+      }*/
       *plast = i;
       return FS_FILE_NOT_FOUND;
     }
@@ -460,7 +462,7 @@ static struct dm_dirent* romfs_readdir_r( struct _reent *r, void *d, void *pdata
       if( romfs_fs_is_flag_set( pfsdata, ROMFS_FS_FLAG_READY_WRITE ) &&
           !( romfs_fs_is_flag_set( pfsdata, ROMFS_FS_FLAG_WRITING ) && ( u64 )pent->fsize == 0xFFFFFFFF ) )
       {
-        fprintf(stderr, "[ERROR] File too long, making filesystem readonly\n");
+        fprintf(stderr, "[ERROR] Read File too long, making filesystem readonly\n");
         romfs_fs_clear_flag( pfsdata, ROMFS_FS_FLAG_READY_WRITE );
       }
       return NULL;
@@ -689,7 +691,7 @@ int romfs_walk_fs( u32 *start, u32 *end, void *pdata  )
   {
     if( romfs_fs_is_flag_set( pfsdata, ROMFS_FS_FLAG_READY_WRITE ) )
     {
-      fprintf(stderr, "[ERROR] File too long, making filesystem readonly\n");
+      fprintf(stderr, "[ERROR] Dir File too long, making filesystem readonly\n");
       romfs_fs_clear_flag( pfsdata, ROMFS_FS_FLAG_READY_WRITE );
     }
     return -1;

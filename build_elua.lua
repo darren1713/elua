@@ -407,6 +407,7 @@ local function make_romfs( target, deps )
     flist[ k ] = v:gsub( romdir .. utils.dir_sep, "" )
   end
 
+  print( 'Executing ' .. fscompcmd)
   if not mkfs.mkfs( romdir, "romfiles", flist, comp.romfs, fscompcmd ) then return -1 end
   if utils.is_file( "inc/romfiles.h" ) then
     -- Read both the old and the new file
