@@ -84,7 +84,11 @@ u32 cmsis_get_cpu_frequency();
     _C( INT_BOOT ), \
     _C( INT_CONTENTION ), \
     _C( INT_SYSINIT ), \
-    _C( INT_TICKSECOND ),
+    _C( INT_TICKSECOND ), \
+    _C( INT_GSM_SIGNAL ), \
+    _C( INT_GSM_TX_OK ), \
+    _C( INT_GSM_TX_FAIL ), \
+    _C( INT_GSM_TIMEOUT ),
 
 #define RRAM_SIZE 8
 

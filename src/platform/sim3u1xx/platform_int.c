@@ -6,11 +6,16 @@
 #include "platform_conf.h"
 #include "elua_int.h"
 #include "common.h"
+#include <string.h>
 
 // Platform-specific headers
 #include "sim3u1xx.h"
 #include "sim3u1xx_Types.h"
 //#include <stdio.h>
+
+#if defined(BUILD_I2C_SLAVE)
+extern void I2C0_rx_handler();
+#endif
 
 #ifndef VTMR_TIMER_ID
 #define VTMR_TIMER_ID         ( -1 )
@@ -69,23 +74,99 @@ void UART1_IRQHandler(void)
      all_usart_irqhandler( 3 );
 }
 
-
+#if defined(BUILD_I2C_SLAVE)
+static u8 I2C_slave_selected = 0; //most I2C functions are ran by waiting for a response so ignore the interrupt handler here outside of a START/STOP event
+#endif
 
 void I2C0_IRQHandler(void)
 {
+  //printf("!%08X%08X!", SI32_I2C_0->CONFIG.U32, SI32_I2C_0->CONTROL.U32);
   if ( SI32_I2C_A_is_timer3_interrupt_pending( SI32_I2C_0 ) &&
        SI32_I2C_A_is_timer3_interrupt_enabled( SI32_I2C_0 ) )
   {
     //printf("SCLOW");
+#if defined(BUILD_I2C_SLAVE)
+    I2C_slave_selected = 0;
+#endif
     SI32_I2C_A_reset_module( SI32_I2C_0 );
   }
-  if ( SI32_I2C_A_is_arblost_interrupt_pending( SI32_I2C_0 ) &
+  if ( SI32_I2C_A_is_arblost_interrupt_pending( SI32_I2C_0 ) &&
        SI32_I2C_A_is_arblost_interrupt_enabled( SI32_I2C_0 ) )
   {
     // Just clear arb lost interrupt
     //printf("ALOST");
+#if defined(BUILD_I2C_SLAVE)
+    I2C_slave_selected = 0;
+#endif
     SI32_I2C_A_clear_arblost_interrupt( SI32_I2C_0 );
   }
+
+#if defined(BUILD_I2C_SLAVE)
+  //START
+  if ( SI32_I2C_A_is_start_interrupt_pending( SI32_I2C_0 ) &
+       SI32_I2C_A_is_start_interrupt_enabled( SI32_I2C_0 ) &
+       !SI32_I2C_A_is_tx_mode_enabled( SI32_I2C_0 ))
+  {
+    //printf("START");
+    u8 i2c_slave_addr = (SI32_I2C_A_read_data( SI32_I2C_0 )) & 0xFF;
+    if(i2c_slave_addr == (0x18 << 1))
+    {
+      //printf("S%02XS", i2c_slave_addr);
+
+      SI32_I2C_A_arm_rx( SI32_I2C_0 );
+      if(SI32_I2C_A_is_ack_requested(SI32_I2C_0))
+        SI32_I2C_A_send_ack( SI32_I2C_0 );
+      I2C_slave_selected = 1;
+      SI32_I2C_A_clear_start_interrupt( SI32_I2C_0 );
+      SI32_I2C_A_enable_rx_interrupt(SI32_I2C_0);
+      SI32_I2C_A_enable_ack_interrupt(SI32_I2C_0);
+      SI32_I2C_A_enable_stop_interrupt(SI32_I2C_0);
+      SI32_I2C_A_clear_start(SI32_I2C_0);
+    }
+  }
+
+  //RX
+  if ( SI32_I2C_A_is_rx_interrupt_pending( SI32_I2C_0 ) &
+       SI32_I2C_A_is_rx_interrupt_enabled( SI32_I2C_0 ) &
+       I2C_slave_selected)
+  {
+    I2C0_rx_handler();
+    SI32_I2C_A_arm_rx( SI32_I2C_0 );
+    SI32_I2C_A_clear_rx_interrupt ( SI32_I2C_0 );
+  }
+
+  //ACK
+  if ( SI32_I2C_A_is_ack_interrupt_pending( SI32_I2C_0 ) &
+       SI32_I2C_A_is_ack_interrupt_enabled( SI32_I2C_0 ) &
+       I2C_slave_selected)
+  {
+    if(SI32_I2C_A_is_ack_requested(SI32_I2C_0))
+      SI32_I2C_A_send_ack( SI32_I2C_0 );
+    //printf("k");
+    SI32_I2C_A_clear_ack_interrupt( SI32_I2C_0 );
+  }
+
+  //STOP
+  if ( SI32_I2C_A_is_stop_interrupt_pending( SI32_I2C_0 ) &
+       SI32_I2C_A_is_stop_interrupt_enabled( SI32_I2C_0 ) &
+       I2C_slave_selected)
+  {
+
+    SI32_I2C_A_disarm_rx( SI32_I2C_0 );
+    //printf("s%08X %08X\n", SI32_I2C_0->CONTROL.U32, SI32_I2C_0->CONFIG.U32);
+    I2C_slave_selected = 0;
+    SI32_I2C_A_clear_stop_interrupt( SI32_I2C_0 );
+
+    SI32_I2C_A_disable_rx_interrupt(SI32_I2C_0);
+    SI32_I2C_A_disable_ack_interrupt(SI32_I2C_0);
+    SI32_I2C_A_disable_stop_interrupt(SI32_I2C_0);
+    
+    SI32_I2C_A_clear_stop(SI32_I2C_0);
+
+    SI32_I2C_A_reset_module( SI32_I2C_0 );
+    //printf("s%08X %08X\n", SI32_I2C_0->CONTROL.U32, SI32_I2C_0->CONFIG.U32);
+  }
+#endif
 }
 
 
@@ -387,4 +468,9 @@ const elua_int_descriptor elua_int_table[ INT_ELUA_LAST ] =
   { callback_set_status, callback_get_status, callback_get_flag }, // INT_SYSINIT
   { callback_set_status, callback_get_status, callback_get_flag }, // INT_UART_BUF_HALF_FULL
   { callback_set_status, callback_get_status, callback_get_flag }, // INT_TICKSECOND
+  { callback_set_status, callback_get_status, callback_get_flag }, // INT_GSM_SIGNAL
+  { callback_set_status, callback_get_status, callback_get_flag }, // INT_GSM_TX_OK
+  { callback_set_status, callback_get_status, callback_get_flag }, // INT_GSM_TX_FAIL
+  { callback_set_status, callback_get_status, callback_get_flag }, // INT_GSM_TIMEOUT
 };
+

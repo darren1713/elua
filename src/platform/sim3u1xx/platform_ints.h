@@ -20,6 +20,10 @@
 #define INT_SYSINIT          ( ELUA_INT_FIRST_ID + 12 )
 #define INT_UART_BUF_HALF_FULL ( ELUA_INT_FIRST_ID + 13 )
 #define INT_TICKSECOND       ( ELUA_INT_FIRST_ID + 14 )
-#define INT_ELUA_LAST        INT_TICKSECOND
+#define INT_GSM_SIGNAL   ( ELUA_INT_FIRST_ID + 15 )
+#define INT_GSM_TX_OK    ( ELUA_INT_FIRST_ID + 16 )
+#define INT_GSM_TX_FAIL  ( ELUA_INT_FIRST_ID + 17 )
+#define INT_GSM_TIMEOUT  ( ELUA_INT_FIRST_ID + 18 )
+#define INT_ELUA_LAST        INT_GSM_TIMEOUT
 
 #endif // #ifndef __PLATFORM_INTS_H__

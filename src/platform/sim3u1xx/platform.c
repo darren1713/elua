@@ -38,6 +38,7 @@
 #include <SI32_PMU_A_Type.h>
 #include <SI32_SARADC_A_Type.h>
 #include <SI32_LDO_A_Type.h>
+#include <SI32_SPI_A_Type.h>
 #include "myPB.h"
 #include <gVMON0.h>
 #include <gLDO0.h>
@@ -571,12 +572,6 @@ int platform_init()
   int i;
   SystemInit();
 
-  // Configure the NVIC Preemption Priority Bits:
-  // two (2) bits of preemption priority, six (6) bits of sub-priority.
-  // Since the Number of Bits used for Priority Levels is five (5), so the
-  // actual bit number of sub-priority is three (3)
-  //NVIC_SetPriorityGrouping(0x05);
-
   // Setup peripherals
   // platform_setup_timers();
   SI32_VREG_A_enable_band_gap(SI32_VREG_0);
@@ -615,32 +610,54 @@ int platform_init()
   rtc_remaining = (SI32_RTC_A_read_alarm0(SI32_RTC_0)-SI32_RTC_A_read_setcap(SI32_RTC_0))/platform_timer_op(0, PLATFORM_TIMER_OP_GET_CLOCK, 0);
   rtc_init();
 
-    // Set the Systick as the highest priority, then uarts, then the rest
-  NVIC_SetPriority(SysTick_IRQn, 0);
+  // Set the Systick as the highest priority, then uarts, then the rest
+  // __NVIC_PRIO_BITS = 4 so there are 16 priorities. It seems as though the first bit is not used as SPI1 has to be set 2 lower than systick?
+
+  uint32_t priorityGroup;
+  // Configure the NVIC Preemption Priority Bits
+  // Set all bits to preempt priority
+  NVIC_SetPriorityGrouping(0x03);
+  priorityGroup =  NVIC_GetPriorityGrouping();
+ 
+  NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(priorityGroup, 3, 0));
+  
+//  NVIC_SetPriority(SysTick_IRQn, 2);
   for(i=WDTIMER0_IRQn;i<=VREG0LOW_IRQn;i++)
   {
     switch(i)
     {
       case WDTIMER0_IRQn:
-        NVIC_SetPriority(i, (1 << __NVIC_PRIO_BITS) - 5);
+        NVIC_SetPriority(i, NVIC_EncodePriority(priorityGroup, 0, 0));
+//        NVIC_SetPriority(i, (1 << __NVIC_PRIO_BITS) - 6);
+        break;
+      case I2C0_IRQn:
+#if defined(BUILD_SPI1)
+      case SPI1_IRQn:
+#endif
+        NVIC_SetPriority(i, NVIC_EncodePriority(priorityGroup, 1, 0));
+        //NVIC_SetPriority(i, 0);
         break;
       case UART0_IRQn:
       case UART1_IRQn:
       case USB0_IRQn:
       case USART0_IRQn:
       case USART1_IRQn:
-        NVIC_SetPriority(i, (1 << __NVIC_PRIO_BITS) - 4);
+        NVIC_SetPriority(i, NVIC_EncodePriority(priorityGroup, 2, 0));
+//        NVIC_SetPriority(i, (1 << __NVIC_PRIO_BITS) - 4);
         break;
       case TIMER1L_IRQn:
       case TIMER1H_IRQn:
-        NVIC_SetPriority(i, (1 << __NVIC_PRIO_BITS) - 3);
+        NVIC_SetPriority(i, NVIC_EncodePriority(priorityGroup, 4, 0));
+//        NVIC_SetPriority(i, (1 << __NVIC_PRIO_BITS) - 3);
         break;
       case TIMER0L_IRQn:
       case TIMER0H_IRQn:
-        NVIC_SetPriority(i, (1 << __NVIC_PRIO_BITS) - 2);
+        NVIC_SetPriority(i, NVIC_EncodePriority(priorityGroup, 5, 0));
+//        NVIC_SetPriority(i, (1 << __NVIC_PRIO_BITS) - 2);
         break;
       default:
-        NVIC_SetPriority(i, (1 << __NVIC_PRIO_BITS) - 1);
+        NVIC_SetPriority(i, NVIC_EncodePriority(priorityGroup, 6, 0));
+//        NVIC_SetPriority(i, (1 << __NVIC_PRIO_BITS) - 1);
         break;
     }
   }
@@ -718,7 +735,7 @@ void clk_init( void )
                                          SI32_CLKCTRL_A_APBCLKG0_USART1 |
                                          SI32_CLKCTRL_A_APBCLKG0_UART0 |
                                          SI32_CLKCTRL_A_APBCLKG0_UART1 |
-                                         SI32_CLKCTRL_A_APBCLKG0_SPI0 |
+                                         SI32_CLKCTRL_A_APBCLKG0_SPI1 |
                                          SI32_CLKCTRL_A_APBCLKG0_I2C0 |
                                          SI32_CLKCTRL_A_APBCLKG0_SARADC1 |
                                          SI32_CLKCTRL_A_APBCLKG0_AES0 |
@@ -1376,7 +1393,11 @@ void pios_init( void )
   SI32_PBCFG_A_enable_crossbar_0(SI32_PBCFG_0);
 
   // PB2 Setup
+#if defined(BUILD_SPI1)
+  SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_2, 0x003F);
+#else
   SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_2, 0xFFFF);
+#endif
 
   SI32_PBSTD_A_disable_pullup_resistors( SI32_PBSTD_2 );
 
@@ -1420,10 +1441,12 @@ void pios_init( void )
   SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_0, 0x00000003);
   SI32_PBSTD_A_disable_pullup_resistors( SI32_PBSTD_0 );
 
+#if defined(BUILD_SPI1)
+  SI32_PBCFG_A_enable_xbar1_peripherals(SI32_PBCFG_0, SI32_PBCFG_A_XBAR1_SPI1EN);
+#endif
+
   // Enable Crossbar1 signals & set properties
   SI32_PBCFG_A_enable_crossbar_1(SI32_PBCFG_0);
-
-
 
   // Setup PBHD4
   SI32_PBCFG_A_unlock_ports(SI32_PBCFG_0);
@@ -2319,6 +2342,7 @@ void platform_i2c_send_start( unsigned id )
   // The master write operation starts with firmware setting the STA
   // bit to generate a start condition.
 
+/* This is all moved to the 'platform_i2c_send_address' function because we have to generate and detect a start so do it all at once. This is required for us to work in I2C slave mode properly
   SI32_I2C_A_set_start( i2cs[ id ] );
 
   if( SI32_I2C_A_is_tx_interrupt_pending( i2cs[ id ] ) )
@@ -2342,6 +2366,7 @@ void platform_i2c_send_start( unsigned id )
 #if defined( DEBUG_I2C )
   printf("BEG CONTROL = %lx\n",  i2cs[ id ]->CONTROL.U32 );
 #endif
+*/
 }
 
 void platform_i2c_send_stop( unsigned id )
@@ -2389,6 +2414,40 @@ void platform_i2c_send_stop( unsigned id )
 
 int platform_i2c_send_address( unsigned id, u16 address, int direction )
 {
+  // The master write operation starts with firmware setting the STA
+  // bit to generate a start condition.
+#if defined(BUILD_I2C_SLAVE) //Disable start interrupt as we need to detect in inline below...
+  SI32_I2C_A_disable_start_interrupt( i2cs[ id ] );
+#endif
+
+  SI32_I2C_A_set_start( i2cs[ id ] );
+
+  if( SI32_I2C_A_is_tx_interrupt_pending( i2cs[ id ] ) )
+    SI32_I2C_A_clear_tx_interrupt ( i2cs[ id ] );
+
+  if( SI32_I2C_A_is_rx_interrupt_pending( i2cs[ id ] ) )
+    SI32_I2C_A_clear_rx_interrupt ( i2cs[ id ] );
+
+  i2c_timeout_timer = I2C_TIMEOUT_SYSTICKS;
+
+  while( SI32_I2C_A_is_start_interrupt_pending( i2cs[ id ] ) == 0 &&
+         i2c_timeout_timer );
+
+  if( !SI32_I2C_A_is_start_interrupt_pending( i2cs[ id ] ) )
+  {
+#if defined( DEBUG_I2C )
+    printf("BEG TIMEOUT\n");
+#endif
+#if defined(BUILD_I2C_SLAVE) //Disable start interrupt as we need to detect in inline below...
+    SI32_I2C_A_enable_start_interrupt( i2cs[ id ] );
+#endif
+    return 0;
+  }
+#if defined( DEBUG_I2C )
+  printf("BEG CONTROL = %lx\n",  i2cs[ id ]->CONTROL.U32 );
+#endif
+
+
   u8 acktmp = 0;
   // The ISR or firmware routine should then clear the start bit (STA),
   // set the targeted slave address and the R/W direction bit in the DATA
@@ -2410,6 +2469,9 @@ int platform_i2c_send_address( unsigned id, u16 address, int direction )
 #if defined( DEBUG_I2C )
       printf("I2C TIMEOUT\n");
 #endif
+#if defined(BUILD_I2C_SLAVE) //Disable start interrupt as we need to detect in inline below...
+      SI32_I2C_A_enable_start_interrupt( i2cs[ id ] );
+#endif
       return 0;
     }
 
@@ -2428,6 +2490,9 @@ int platform_i2c_send_address( unsigned id, u16 address, int direction )
     {
 #if defined( DEBUG_I2C )
       printf("I2C TIMEOUT2\n");
+#endif
+#if defined(BUILD_I2C_SLAVE) //Disable start interrupt as we need to detect in inline below...
+      SI32_I2C_A_enable_start_interrupt( i2cs[ id ] );
 #endif
       return 0;
     }
@@ -2448,6 +2513,9 @@ int platform_i2c_send_address( unsigned id, u16 address, int direction )
     i2c_reset_pending = 1;
     //#endif
   }
+#if defined(BUILD_I2C_SLAVE) //Disable start interrupt as we need to detect in inline below...
+  SI32_I2C_A_enable_start_interrupt( i2cs[ id ] );
+#endif
 
   return acktmp;
 }
@@ -2680,6 +2748,7 @@ void myPB_enter_off_config()
 
   SI32_PBCFG_A_enable_xbar0h_peripherals(SI32_PBCFG_0, 0x0000);
   SI32_PBCFG_A_enable_xbar0l_peripherals(SI32_PBCFG_0, 0x0000);
+  SI32_PBCFG_A_enable_xbar1_peripherals(SI32_PBCFG_0, 0x0000);
   SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_0, 0xFFFF);
   SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_1, 0xFFFF);
   SI32_PBCFG_A_enable_crossbar_0(SI32_PBCFG_0);
@@ -2807,8 +2876,8 @@ void sim3_pmu_pm9( int seconds )
       seconds = 1;
     }
 
-    if( external_power() &&
-        ( ( rram_read_bit(RRAM_BIT_SLEEP_WHEN_POWERED) == SLEEP_WHEN_POWERED_DISABLED ) || usb_power() ) ||
+    if( ( external_power() && 
+        ( ( rram_read_bit(RRAM_BIT_SLEEP_WHEN_POWERED) == SLEEP_WHEN_POWERED_DISABLED ) || usb_power() ) ) ||
         ( ( rram_read_bit( RRAM_BIT_SLEEP_WITH_BATTERY ) == SLEEP_WITH_BATTERY_DISABLED ) && ( bat_abovethresh() > 0 ) ) )
     {
       wake_reason = WAKE_POWERCONNECTED;
@@ -2927,6 +2996,7 @@ void sim3_pmu_pm9( int seconds )
   SI32_PMU_A_write_wakeen(SI32_PMU_0, 0x0); //Clear all wake events
   SI32_PMU_A_enable_reset_pin_wake_event(SI32_PMU_0);
   SI32_PMU_A_enable_rtc0_alarm_wake_event(SI32_PMU_0);
+  //SI32_PMU_A_enable_comparator0_wake_event( SI32_PMU_0 ); //JEFF TESTING WAKE ON EXTERNAL POWER: doesn't work, not adding it. Might need to configure CMP0
 
   //Enable WAKE setup
 #if defined( PCB_V7 ) || defined( PCB_V8 ) || defined( PCB_V10 )
@@ -2950,6 +3020,7 @@ void sim3_pmu_pm9( int seconds )
 
   SI32_RSTSRC_A_enable_power_mode_9(SI32_RSTSRC_0);
   SI32_RSTSRC_A_enable_rtc0_reset_source(SI32_RSTSRC_0);
+  //SI32_RSTSRC_A_enable_comparator0_reset_source( SI32_RSTSRC_0 ); //JEFF TESTING WAKE ON EXTERNAL POWER: doesn't work, not adding it. Might need to configure CMP0
 }
 
 // ****************************************************************************
