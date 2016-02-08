@@ -107,12 +107,9 @@ void I2C0_IRQHandler(void)
        SI32_I2C_A_is_start_interrupt_enabled( SI32_I2C_0 ) &
        !SI32_I2C_A_is_tx_mode_enabled( SI32_I2C_0 ))
   {
-    //printf("START");
     u8 i2c_slave_addr = (SI32_I2C_A_read_data( SI32_I2C_0 )) & 0xFF;
     if(i2c_slave_addr == (0x18 << 1))
     {
-      //printf("S%02XS", i2c_slave_addr);
-
       SI32_I2C_A_arm_rx( SI32_I2C_0 );
       if(SI32_I2C_A_is_ack_requested(SI32_I2C_0))
         SI32_I2C_A_send_ack( SI32_I2C_0 );
@@ -142,7 +139,6 @@ void I2C0_IRQHandler(void)
   {
     if(SI32_I2C_A_is_ack_requested(SI32_I2C_0))
       SI32_I2C_A_send_ack( SI32_I2C_0 );
-    //printf("k");
     SI32_I2C_A_clear_ack_interrupt( SI32_I2C_0 );
   }
 
@@ -153,7 +149,6 @@ void I2C0_IRQHandler(void)
   {
 
     SI32_I2C_A_disarm_rx( SI32_I2C_0 );
-    //printf("s%08X %08X\n", SI32_I2C_0->CONTROL.U32, SI32_I2C_0->CONFIG.U32);
     I2C_slave_selected = 0;
     SI32_I2C_A_clear_stop_interrupt( SI32_I2C_0 );
 
@@ -164,7 +159,6 @@ void I2C0_IRQHandler(void)
     SI32_I2C_A_clear_stop(SI32_I2C_0);
 
     SI32_I2C_A_reset_module( SI32_I2C_0 );
-    //printf("s%08X %08X\n", SI32_I2C_0->CONTROL.U32, SI32_I2C_0->CONFIG.U32);
   }
 #endif
 }
