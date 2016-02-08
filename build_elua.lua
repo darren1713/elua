@@ -126,6 +126,7 @@ builder:add_option( 'cpumode', 'ARM CPU compilation mode (only affects certain A
 builder:add_option( 'bootloader', 'Build for bootloader usage', 'none', { 'none', 'emblod', 'freakusb' } )
 builder:add_option( 'debug', 'Enable debug build', false )
 builder:add_option( 'extras', 'Path to directory containing build extras', '' )
+builder:add_option( 'extrasconf', 'Config file for build extras, defaults to conf.lua', '' )
 builder:add_option( "output_dir", "choose executable directory", "." )
 builder:add_option( "romfs_dir", 'choose ROMFS directory', 'romfs' )
 builder:add_option( "board_config_file", "choose board configuration file", "" )
@@ -319,6 +320,9 @@ print( "Debug:          ", comp.debug )
 if comp.extras ~= '' then
   print( "Extras:         ", comp.extras )
 end
+if comp.extrasconf ~= '' then
+  print( "Extras Conf:         ", comp.extrasconf )
+end
 print( "Version:        ", elua_vers )
 print "*********************************"
 print ""
@@ -378,7 +382,11 @@ extras_files = ''
 dofile( sf( "src/platform/%s/conf.lua", platform ) )
 
 if comp.extras ~= '' then
-   dofile( sf( "%s/conf.lua", comp.extras ) )
+  if comp.extrasconf ~= '' then
+    dofile( sf( "%s/%s", comp.extras, comp.extrasconf ) )
+  else
+    dofile( sf( "%s/conf.lua", comp.extras ) )
+  end
 end
 
 -- Complete file list
