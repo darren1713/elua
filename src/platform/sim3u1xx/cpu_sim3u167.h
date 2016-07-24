@@ -153,6 +153,9 @@ u32 cmsis_get_cpu_frequency();
 #define RRAM_BIT_MOVING_MODE 59
 #define MOVING_MODE_ACTIVE 1
 #define MOVING_MODE_DISABLED 0
+#define RRAM_BIT_BLE_OFF 59
+#define BLE_OFF_ACTIVE 1
+#define BLE_OFF_DISABLED 0
 
 #define RRAM_INT_CLK_CORR 3
 #define RRAM_INT_X_Z 4
@@ -177,6 +180,14 @@ typedef enum {
 extern int ok_to_sleep();
 void reset_seconds_awake( void );
 u8 extras_op_pending( void );
+
+u8 extras_minimum_sleep_power( void );
+typedef enum {
+  VERY_LIGHT_LOAD_UNDER_5MA = 0,
+  LIGHT_LOAD_BETWEEN_20MA_TO_5MA = 1,
+  FULL_POWER_ABOVE_20MA = 2
+} minimum_sleep_power;
+
 int bat_abovethresh( void );
 #define TRICK_TO_REBOOT_WITHOUT_DFU_MODE -1
 #define SLEEP_FOREVER 0x7FFFFFFF

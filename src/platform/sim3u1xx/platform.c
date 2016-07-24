@@ -2660,8 +2660,15 @@ void sim3_pmu_sleep( int seconds )
   SI32_RSTSRC_A_disable_power_mode_9( SI32_RSTSRC_0 );
 
   // Switch VREG to low power mode
-  SI32_VREG_A_disable_band_gap( SI32_VREG_0 );
-  SI32_VREG_A_enter_suspend_mode( SI32_VREG_0 );
+  if(extras_minimum_sleep_power() <= LIGHT_LOAD_BETWEEN_20MA_TO_5MA)
+    SI32_VREG_A_enter_suspend_mode(SI32_VREG_0);
+  if(extras_minimum_sleep_power() == VERY_LIGHT_LOAD_UNDER_5MA)
+    SI32_VREG_A_disable_band_gap(SI32_VREG_0);
+
+
+  //SI32_VREG_A_disable_band_gap( SI32_VREG_0 );
+  //SI32_VREG_A_enter_suspend_mode( SI32_VREG_0 );
+  
   //SI32_VREG_A_enable_vbus_invalid_interrupt( SI32_VREG_0 );
 
   // Disable VDD Monitor
@@ -2790,7 +2797,8 @@ void myPB_enter_off_config()
 #ifdef BLUETOOTH_POWEREDWHILESLEEPING
   //Set bluetooth pins to analog high...
   if( ( rram_read_bit( RRAM_BIT_STORAGE_MODE ) == STORAGE_MODE_DISABLED ) &&
-      ( rram_read_bit( RRAM_BIT_TEMP_STORAGE_MODE ) == TEMP_STORAGE_MODE_DISABLED ) )
+      ( rram_read_bit( RRAM_BIT_TEMP_STORAGE_MODE ) == TEMP_STORAGE_MODE_DISABLED ) &&
+      ( rram_read_bit( RRAM_BIT_BLE_OFF ) == BLE_OFF_DISABLED /* enabled */ ) )
   {
     SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 0x0080);
     SI32_PBSTD_A_write_pins_high( SI32_PBSTD_1, 0x0080 );
@@ -2981,8 +2989,10 @@ void sim3_pmu_pm9( int seconds )
   SI32_LDO_A_select_low_bias(SI32_LDO_0);
 
   //VREG0_enter_power_9_mode_from_normal_power_mode();
-  SI32_VREG_A_enter_suspend_mode(SI32_VREG_0);
-  SI32_VREG_A_disable_band_gap(SI32_VREG_0);
+  if(extras_minimum_sleep_power() <= LIGHT_LOAD_BETWEEN_20MA_TO_5MA)
+    SI32_VREG_A_enter_suspend_mode(SI32_VREG_0);
+  if(extras_minimum_sleep_power() == VERY_LIGHT_LOAD_UNDER_5MA)
+    SI32_VREG_A_disable_band_gap(SI32_VREG_0);
   RSTSRC0_enter_power_9_mode_from_normal_power_mode();
 
   //Reset RTC Timer and clear any interrupts
