@@ -236,7 +236,7 @@ else
     local c = usable_chains[ i ]
     local t = bd.get_toolchain_data( c )
     local res = utils.check_command( t.compile .. " " .. t.version )
-    if res == 0 then chain = c break end
+    if res == 0 or res == true then chain = c break end
   end
   if chain then
     comp.toolchain = chain
@@ -305,27 +305,20 @@ output = outd .. utils.dir_sep .. 'elua_' .. comp.target .. '_' .. comp.board:lo
 builder:set_build_dir( builder:get_build_dir() .. utils.dir_sep .. comp.board:lower() )
 
 -- User report
-print ""
-print "*********************************"
-print "Compiling eLua ..."
-print( "CPU:            ", comp.cpu )
-print( "Board:          ", comp.board )
-print( "Platform:       ", platform )
-print( "Allocator:      ", comp.allocator )
-print( "Boot Mode:      ", comp.boot )
-print( "Target:         ", comp.target  )
-print( "Toolchain:      ", comp.toolchain )
-print( "ROMFS mode:     ", comp.romfs )
-print( "Debug:          ", comp.debug )
-if comp.extras ~= '' then
-  print( "Extras:         ", comp.extras )
-end
-if comp.extrasconf ~= '' then
-  print( "Extras Conf:         ", comp.extrasconf )
-end
-print( "Version:        ", elua_vers )
-print "*********************************"
-print ""
+dprint ""
+dprint "*********************************"
+dprint "Compiling eLua ..."
+dprint( "CPU:            ", comp.cpu )
+dprint( "Board:          ", comp.board )
+dprint( "Platform:       ", platform )
+dprint( "Allocator:      ", comp.allocator )
+dprint( "Boot Mode:      ", comp.boot )
+dprint( "Target:         ", comp.target  )
+dprint( "Toolchain:      ", comp.toolchain )
+dprint( "ROMFS mode:     ", comp.romfs )
+dprint( "Version:        ", elua_vers )
+dprint "*********************************"
+dprint ""
 
 -- Build list of source files, include directories, macro definitions
 addm( "ELUA_CPU=" .. comp.cpu:upper() )
@@ -367,7 +360,7 @@ local uip_files = " " .. utils.prepend_path( "uip_arp.c uip.c uiplib.c dhcpc.c p
 
 addi{ { 'inc', 'inc/newlib',  'inc/remotefs', 'src/platform', 'src/lua' }, { 'src/modules', 'src/platform/' .. platform, 'src/platform/' .. platform .. '/cpus' }, "src/uip", "src/fatfs" }
 addm( "LUA_OPTIMIZE_MEMORY=" .. ( comp.optram and "2" or "0" ) )
-addcf( { '-Os','-fomit-frame-pointer'} )
+addcf( { '-Os','-fomit-frame-pointer' } )
 
 if comp.debug == true then
    addcf( { '-g'} )

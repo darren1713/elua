@@ -1,0 +1,202 @@
+Instead of gdb, run gdbtui. Or run gdb with the -tui switch. Or press C-x C-a after entering gdb. Now you're in GDB's TUI mode.
+
+Enter layout asm to make the upper window display assembly -- this will automatically follow your instruction pointer, although you can also change frames or scroll around while debugging. Press C-x s to enter SingleKey mode, where run continue up down finish etc. are abbreviated to a single key, allowing you to walk through your program very quickly.
+
+target extended-remote :1234
+set mem inaccessible-by-default off
+load
+
+info all-registers
+
+layout src to switch back to source view
+
+
+
+Cannot access memory at address 0x2001ffec
+
+
+
+
+(gdb) stepi
+0x08017458 in OC2Config (TIM_OCInitStruct=0x0, TIMx=0x0) at src/platform/stm32l4/FWLib/library/src/stm32l4xx_ll_tim.c:772
+(gdb) stepi
+(gdb) bt
+#0  0x08017458 in OC2Config (TIM_OCInitStruct=0x0, TIMx=0x0) at src/platform/stm32l4/FWLib/library/src/stm32l4xx_ll_tim.c:772
+#1  LL_TIM_OC_Init (TIMx=0x0, Channel=<optimized out>, TIM_OC_InitStruct=0x0) at src/platform/stm32l4/FWLib/library/src/stm32l4xx_ll_tim.c:371
+
+
+r0             0x2001ffb8       537001912
+r1             0x51c    1308
+r2             0x3d0900 4000000
+r3             0x2000007c       536871036
+r4             0x0      0
+r5             0x0      0
+r6             0x0      0
+r7             0x0      0
+r8             0x0      0
+r9             0x0      0
+r10            0x0      0
+r11            0x0      0
+r12            0x0      0
+sp             0x2001ff88       0x2001ff88
+lr             0xfffffff9       4294967289
+pc             0x802afa2        0x802afa2 <hard_fault_handler_c+6>
+f0             -0       (raw 0x0000a41000000000addeadde)
+f1             -0       (raw 0x0000a41000000000addeadde)
+f2             -0       (raw 0x0000a41000000000addeadde)
+f3             -0       (raw 0x0000a41000000000addeadde)
+f4             -0       (raw 0x0000a41000000000addeadde)
+f5             -0       (raw 0x0000a41000000000addeadde)
+f6             -0       (raw 0x0000a41000000000addeadde)
+f7             -0       (raw 0x0000a41000000000addeadde)
+fps            0xaddeadde       2917051870
+cpsr           0x61000003       1627389955
+
+
+
+r0             0x20000000       536870912
+r1             0x51c    1308
+r2             0x3d0900 4000000
+r3             0x2000007c       536871036
+r4             0x0      0
+r5             0x0      0
+r6             0x0      0
+r7             0x0      0
+r8             0x0      0
+r9             0x0      0
+r10            0x0      0
+r11            0x0      0
+r12            0x0      0
+sp             0x2001ffd8       0x2001ffd8
+lr             0xfffffff9       4294967289
+pc             0x802b0a4        0x802b0a4 <HardFault_Handler>
+f0             -0       (raw 0x0000a41000000000addeadde)
+f1             -0       (raw 0x0000a41000000000addeadde)
+f2             -0       (raw 0x0000a41000000000addeadde)
+f3             -0       (raw 0x0000a41000000000addeadde)
+f4             -0       (raw 0x0000a41000000000addeadde)
+f5             -0       (raw 0x0000a41000000000addeadde)
+f6             -0       (raw 0x0000a41000000000addeadde)
+f7             -0       (raw 0x0000a41000000000addeadde)
+fps            0xaddeadde       2917051870
+cpsr           0x61000003       1627389955
+
+
+
+0x8028ee6 <LoopFillZerobss+10>  bl     0x801db08 <main>
+0x801db08 <main>        push   {lr} 
+r0             0x20000000       536870912
+r1             0x51c    1308
+r2             0x3d0900 4000000
+r3             0x2000007c       536871036
+r4             0x0      0
+r5             0x0      0
+r6             0x0      0
+r7             0x0      0
+r8             0x0      0
+r9             0x0      0
+r10            0x0      0
+r11            0x0      0
+r12            0x0      0
+sp             0x20020000       0x20020000
+lr             0x8028eeb        134385387
+pc             0x801db08        0x801db08 <main>
+f0             -0       (raw 0x0000a41000000000addeadde)
+f1             -0       (raw 0x0000a41000000000addeadde)
+f2             -0       (raw 0x0000a41000000000addeadde)
+f3             -0       (raw 0x0000a41000000000addeadde)
+f4             -0       (raw 0x0000a41000000000addeadde)
+f5             -0       (raw 0x0000a41000000000addeadde)
+f6             -0       (raw 0x0000a41000000000addeadde)
+f7             -0       (raw 0x0000a41000000000addeadde)
+fps            0xaddeadde       2917051870
+cpsr           0x61000000       1627389952
+
+
+                                                                                                                                                                                            │
+   │0x801db0a <main+2>      sub    sp, #36 ; 0x24   
+   r0             0x20000000       536870912
+r1             0x51c    1308
+r2             0x3d0900 4000000
+r3             0x2000007c       536871036
+r4             0x0      0
+r5             0x0      0
+r6             0x0      0
+r7             0x0      0
+r8             0x0      0
+r9             0x0      0
+r10            0x0      0
+r11            0x0      0
+r12            0x0      0
+sp             0x2001fffc       0x2001fffc
+lr             0x8028eeb        134385387
+pc             0x801db0a        0x801db0a <main+2>
+f0             -0       (raw 0x0000a41000000000addeadde)
+f1             -0       (raw 0x0000a41000000000addeadde)
+f2             -0       (raw 0x0000a41000000000addeadde)
+f3             -0       (raw 0x0000a41000000000addeadde)
+f4             -0       (raw 0x0000a41000000000addeadde)
+f5             -0       (raw 0x0000a41000000000addeadde)
+f6             -0       (raw 0x0000a41000000000addeadde)
+f7             -0       (raw 0x0000a41000000000addeadde)
+fps            0xaddeadde       2917051870
+cpsr           0x61000000       1627389952
+
+(CRASH)                                                                                                                                                                                │
+   │0x801db0c <main+4>      bl     0x80293b4 <platform_init>
+
+
+
+
+settings.flash(settings.accel_thresh,10)
+settings.flash(settings.sleep,1000)
+settings.flash(settings.moving_sleep,200)
+gps.setpower(0)
+accel.setmotion(10)
+pmu.pm9(999)
+
+accel.setmotion(16, 1, 2, 4, 0)
+
+
+
+
+CTRL_REG1_A 3F
+CTRL_REG2_A 00
+CTRL_REG3_A 40
+CTRL_REG4_A 00
+CTRL_REG5_A 0C
+INT1_CFG_A 7F
+INT1_THS_A 08
+INT1_DURATION_A 00
+A#INT1#src:68,y:low
+A#,215,10,1000,200
+
+    logconsole(LOG_LEVEL_BASIC, LOG_MODULE_ACCEL, ",%i,%i,%i,%i",
+      rram_read_int(RRAM_INT_SLEEPTIME), accel_thresh, sleep, moving_sleep);
+      215,                               10,           1000,  200
+
+
+
+
+CTRL_REG1_A 37
+CTRL_REG2_A 00
+CTRL_REG3_A 40
+CTRL_REG4_A 08
+CTRL_REG5_A 0C
+INT1_CFG_A 7F
+INT1_THS_A 08
+INT1_DURATION_A 00
+
+
+
+
+A#T#CTRL_REG1_A 37
+A#T#CTRL_REG2_A 80
+A#T#CTRL_REG3_A 60
+A#T#CTRL_REG4_A 08
+A#T#CTRL_REG5_A 0E
+A#T#INT1_CFG_A 48
+A#T#INT1_THS_A 07
+A#T#INT1_DURATION_A 0A
+
+
