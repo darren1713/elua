@@ -1768,3 +1768,18 @@ int platform_flash_erase_sector( u32 sector_id )
 
 #endif // #ifdef BUILD_WOFS
 
+
+void memory_error( void )
+{
+  //sim3_pmu_reboot(); //TODO: IMPLEMENT ERROR HANDLING
+}
+
+//TODO: IMPLEMENT WATCHDOG TIMER
+volatile u16 wdt_reset_counter = 20;
+
+void watchdog_counter_set( u16 value )
+{
+  wdt_reset_counter = value;
+}
+
+
