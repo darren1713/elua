@@ -69,7 +69,7 @@
 #define HAL_DMA_MODULE_ENABLED
 //#define HAL_FIREWALL_MODULE_ENABLED
 #define HAL_MEMORY_MODULE_ENABLED
-#define HAL_HCD_MODULE_ENABLED
+//#define HAL_HCD_MODULE_ENABLED
 #define HAL_GPIO_MODULE_ENABLED
 #define HAL_I2C_MODULE_ENABLED
 //#define HAL_IRDA_MODULE_ENABLED
@@ -94,7 +94,7 @@
 //#define HAL_UART_MODULE_ENABLED
 #define HAL_USART_MODULE_ENABLED
 #define HAL_WWDG_MODULE_ENABLED
-
+//#define HAL_USB_MODULE_ENABLED
 
 /* ########################## Oscillator Values adaptation ####################*/
 /**
@@ -347,9 +347,9 @@
 // #include "stm32l4xx_hal_pcd.h"
 #endif /* HAL_PCD_MODULE_ENABLED */
 
-#ifdef HAL_HCD_MODULE_ENABLED
-// #include "stm32l4xx_hal_hcd.h"
-#endif /* HAL_HCD_MODULE_ENABLED */
+#if defined (HAL_PCD_MODULE_ENABLED) || defined (HAL_HCD_MODULE_ENABLED) 
+ #include "stm32l4xx_ll_usb.h"
+#endif /* HAL_PCD_MODULE_ENABLED || HAL_HCD_MODULE_ENABLED  */
 
 /* Exported macro ------------------------------------------------------------*/
 #ifdef  USE_FULL_ASSERT
