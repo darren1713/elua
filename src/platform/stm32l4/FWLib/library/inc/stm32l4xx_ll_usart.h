@@ -2,8 +2,8 @@
   ******************************************************************************
   * @file    stm32l4xx_ll_usart.h
   * @author  MCD Application Team
-  * @version V1.4.0
-  * @date    26-February-2016
+  * @version V1.5.1
+  * @date    31-May-2016
   * @brief   Header file of USART LL module.
   ******************************************************************************
   * @attention
@@ -185,7 +185,7 @@ typedef struct
 #define LL_USART_ICR_ORECF                      USART_ICR_ORECF               /*!< Overrun error flag */
 #define LL_USART_ICR_IDLECF                     USART_ICR_IDLECF              /*!< Idle line detected flag */
 #define LL_USART_ICR_TCCF                       USART_ICR_TCCF                /*!< Transmission complete flag */
-#if defined (USART_TCBGT_SUPPORT)
+#if defined(USART_TCBGT_SUPPORT)
 #define LL_USART_ICR_TCBGTCF                    USART_ICR_TCBGTCF             /*!< Transmission completed before guard time flag */
 #endif
 #define LL_USART_ICR_LBDCF                      USART_ICR_LBDCF               /*!< LIN break detection flag */
@@ -224,7 +224,7 @@ typedef struct
 #define LL_USART_ISR_WUF                        USART_ISR_WUF                 /*!< Wakeup from Stop mode flag */
 #define LL_USART_ISR_TEACK                      USART_ISR_TEACK               /*!< Transmit enable acknowledge flag */
 #define LL_USART_ISR_REACK                      USART_ISR_REACK               /*!< Receive enable acknowledge flag */
-#if defined (USART_TCBGT_SUPPORT)
+#if defined(USART_TCBGT_SUPPORT)
 #define LL_USART_ISR_TCBGT                      USART_ISR_TCBGT               /*!< Transmission complete before guard time completion flag */
 #endif
 /**
@@ -247,7 +247,7 @@ typedef struct
 #define LL_USART_CR3_EIE                        USART_CR3_EIE                 /*!< Error interrupt enable */
 #define LL_USART_CR3_CTSIE                      USART_CR3_CTSIE               /*!< CTS interrupt enable */
 #define LL_USART_CR3_WUFIE                      USART_CR3_WUFIE               /*!< Wakeup from Stop mode interrupt enable */
-#if defined (USART_TCBGT_SUPPORT)
+#if defined(USART_TCBGT_SUPPORT)
 #define LL_USART_CR3_TCBGTIE                    USART_CR3_TCBGTIE             /*!< Transmission complete before guard time interrupt enable */
 #endif
 /**
@@ -767,8 +767,8 @@ __STATIC_INLINE uint32_t LL_USART_GetWakeUpMethod(USART_TypeDef *USARTx)
 
 /**
   * @brief  Set Word length (i.e. nb of data bits, excluding start and stop bits)
-  * @rmtoll CR1          M1            LL_USART_SetDataWidth\n
-  *         CR1          M2            LL_USART_SetDataWidth
+  * @rmtoll CR1          M0            LL_USART_SetDataWidth\n
+  *         CR1          M1            LL_USART_SetDataWidth
   * @param  USARTx USART Instance
   * @param  DataWidth This parameter can be one of the following values:
   *         @arg @ref LL_USART_DATAWIDTH_7B
@@ -783,8 +783,8 @@ __STATIC_INLINE void LL_USART_SetDataWidth(USART_TypeDef *USARTx, uint32_t DataW
 
 /**
   * @brief  Return Word length (i.e. nb of data bits, excluding start and stop bits)
-  * @rmtoll CR1          M1            LL_USART_GetDataWidth\n
-  *         CR1          M2            LL_USART_GetDataWidth
+  * @rmtoll CR1          M0            LL_USART_GetDataWidth\n
+  *         CR1          M1            LL_USART_GetDataWidth
   * @param  USARTx USART Instance
   * @retval Returned value can be one of the following values:
   *         @arg @ref LL_USART_DATAWIDTH_7B
@@ -1056,8 +1056,8 @@ __STATIC_INLINE uint32_t LL_USART_GetStopBitsLength(USART_TypeDef *USARTx)
   *         - Stop bits configuration using @ref LL_USART_SetStopBitsLength() function
   * @rmtoll CR1          PS            LL_USART_ConfigCharacter\n
   *         CR1          PCE           LL_USART_ConfigCharacter\n
+  *         CR1          M0            LL_USART_ConfigCharacter\n
   *         CR1          M1            LL_USART_ConfigCharacter\n
-  *         CR1          M2            LL_USART_ConfigCharacter\n
   *         CR2          STOP          LL_USART_ConfigCharacter
   * @param  USARTx USART Instance
   * @param  DataWidth This parameter can be one of the following values:
@@ -1071,8 +1071,8 @@ __STATIC_INLINE uint32_t LL_USART_GetStopBitsLength(USART_TypeDef *USARTx)
   * @param  StopBits This parameter can be one of the following values:
   *         @arg @ref LL_USART_STOPBITS_0_5
   *         @arg @ref LL_USART_STOPBITS_1
-  *         @arg @ref LL_USART_STOPBITS_2
   *         @arg @ref LL_USART_STOPBITS_1_5
+  *         @arg @ref LL_USART_STOPBITS_2
   * @retval None
   */
 __STATIC_INLINE void LL_USART_ConfigCharacter(USART_TypeDef *USARTx, uint32_t DataWidth, uint32_t Parity,
@@ -2245,8 +2245,8 @@ __STATIC_INLINE uint32_t LL_USART_GetDESignalPolarity(USART_TypeDef *USARTx)
   * @note   In UART mode, the following bits must be kept cleared:
   *           - LINEN bit in the USART_CR2 register,
   *           - CLKEN bit in the USART_CR2 register,
-  *           - SCEN bit in the USART_CR3 register.
-  *           - IREN bit in the USART_CR3 register.
+  *           - SCEN bit in the USART_CR3 register,
+  *           - IREN bit in the USART_CR3 register,
   *           - HDSEL bit in the USART_CR3 register.
   * @note   Call of this function is equivalent to following function call sequence :
   *         - Clear LINEN in CR2 using @ref LL_USART_DisableLIN() function
@@ -2257,8 +2257,8 @@ __STATIC_INLINE uint32_t LL_USART_GetDESignalPolarity(USART_TypeDef *USARTx)
   * @note   Other remaining configurations items related to Asynchronous Mode
   *         (as Baud Rate, Word length, Parity, ...) should be set using
   *         dedicated functions
-  * @rmtoll CR2          CLKEN         LL_USART_ConfigAsyncMode\n
-  *         CR2          LINEN         LL_USART_ConfigAsyncMode\n
+  * @rmtoll CR2          LINEN         LL_USART_ConfigAsyncMode\n
+  *         CR2          CLKEN         LL_USART_ConfigAsyncMode\n
   *         CR3          SCEN          LL_USART_ConfigAsyncMode\n
   *         CR3          IREN          LL_USART_ConfigAsyncMode\n
   *         CR3          HDSEL         LL_USART_ConfigAsyncMode
@@ -2269,7 +2269,7 @@ __STATIC_INLINE void LL_USART_ConfigAsyncMode(USART_TypeDef *USARTx)
 {
   /* In Asynchronous mode, the following bits must be kept cleared:
   - LINEN, CLKEN bits in the USART_CR2 register,
-  - SCEN and HDSEL bits in the USART_CR3 register.*/
+  - SCEN, IREN and HDSEL bits in the USART_CR3 register.*/
   CLEAR_BIT(USARTx->CR2, (USART_CR2_LINEN | USART_CR2_CLKEN));
   CLEAR_BIT(USARTx->CR3, (USART_CR3_SCEN | USART_CR3_IREN | USART_CR3_HDSEL));
 }
@@ -2277,14 +2277,16 @@ __STATIC_INLINE void LL_USART_ConfigAsyncMode(USART_TypeDef *USARTx)
 /**
   * @brief  Perform basic configuration of USART for enabling use in Synchronous Mode
   * @note   In Synchronous mode, the following bits must be kept cleared:
-  *             LINEN bit in the USART_CR2 register,
-  *             SCEN, IREN and HDSEL bits in the USART_CR3 register.
+  *           - LINEN bit in the USART_CR2 register,
+  *           - SCEN bit in the USART_CR3 register,
+  *           - IREN bit in the USART_CR3 register,
+  *           - HDSEL bit in the USART_CR3 register.
   *         This function also sets the USART in Synchronous mode.
   * @note   Macro @ref IS_USART_INSTANCE(USARTx) can be used to check whether or not
   *         Synchronous mode is supported by the USARTx instance.
   * @note   Call of this function is equivalent to following function call sequence :
   *         - Clear LINEN in CR2 using @ref LL_USART_DisableLIN() function
-  *         - Clear IREN in CR3 using @ref LL_USART_DisableSmartcard() function
+  *         - Clear IREN in CR3 using @ref LL_USART_DisableIrda() function
   *         - Clear SCEN in CR3 using @ref LL_USART_DisableSmartcard() function
   *         - Clear HDSEL in CR3 using @ref LL_USART_DisableHalfDuplex() function
   *         - Set CLKEN in CR2 using @ref LL_USART_EnableSCLKOutput() function
@@ -2313,8 +2315,10 @@ __STATIC_INLINE void LL_USART_ConfigSyncMode(USART_TypeDef *USARTx)
 /**
   * @brief  Perform basic configuration of USART for enabling use in LIN Mode
   * @note   In LIN mode, the following bits must be kept cleared:
-  *             STOP and CLKEN bits in the USART_CR2 register,
-  *             IREN, SCEN and HDSEL bits in the USART_CR3 register.
+  *           - STOP and CLKEN bits in the USART_CR2 register,
+  *           - SCEN bit in the USART_CR3 register,
+  *           - IREN bit in the USART_CR3 register,
+  *           - HDSEL bit in the USART_CR3 register.
   *         This function also set the UART/USART in LIN mode.
   * @note   Macro @ref IS_UART_LIN_INSTANCE(USARTx) can be used to check whether or not
   *         LIN feature is supported by the USARTx instance.
@@ -2351,8 +2355,10 @@ __STATIC_INLINE void LL_USART_ConfigLINMode(USART_TypeDef *USARTx)
 /**
   * @brief  Perform basic configuration of USART for enabling use in Half Duplex Mode
   * @note   In Half Duplex mode, the following bits must be kept cleared:
-  *             LINEN, and CLKEN bits in the USART_CR2 register,
-  *             SCEN and IREN bits in the USART_CR3 register.
+  *           - LINEN bit in the USART_CR2 register,
+  *           - CLKEN bit in the USART_CR2 register,
+  *           - SCEN bit in the USART_CR3 register,
+  *           - IREN bit in the USART_CR3 register,
   *         This function also sets the UART/USART in Half Duplex mode.
   * @note   Macro @ref IS_UART_HALFDUPLEX_INSTANCE(USARTx) can be used to check whether or not
   *         Half-Duplex mode is supported by the USARTx instance.
@@ -2376,7 +2382,7 @@ __STATIC_INLINE void LL_USART_ConfigLINMode(USART_TypeDef *USARTx)
 __STATIC_INLINE void LL_USART_ConfigHalfDuplexMode(USART_TypeDef *USARTx)
 {
   /* In Half Duplex mode, the following bits must be kept cleared:
-  - LINEN, and CLKEN bits in the USART_CR2 register,
+  - LINEN and CLKEN bits in the USART_CR2 register,
   - SCEN and IREN bits in the USART_CR3 register.*/
   CLEAR_BIT(USARTx->CR2, (USART_CR2_LINEN | USART_CR2_CLKEN));
   CLEAR_BIT(USARTx->CR3, (USART_CR3_SCEN | USART_CR3_IREN));
@@ -2387,8 +2393,9 @@ __STATIC_INLINE void LL_USART_ConfigHalfDuplexMode(USART_TypeDef *USARTx)
 /**
   * @brief  Perform basic configuration of USART for enabling use in Smartcard Mode
   * @note   In Smartcard mode, the following bits must be kept cleared:
-  *             LINEN bit in the USART_CR2 register,
-  *             IREN and HDSEL bits in the USART_CR3 register.
+  *           - LINEN bit in the USART_CR2 register,
+  *           - IREN bit in the USART_CR3 register,
+  *           - HDSEL bit in the USART_CR3 register.
   *         This function also configures Stop bits to 1.5 bits and
   *         sets the USART in Smartcard mode (SCEN bit).
   *         Clock Output is also enabled (CLKEN).
@@ -2429,8 +2436,10 @@ __STATIC_INLINE void LL_USART_ConfigSmartcardMode(USART_TypeDef *USARTx)
 /**
   * @brief  Perform basic configuration of USART for enabling use in Irda Mode
   * @note   In IRDA mode, the following bits must be kept cleared:
-  *             LINEN, STOP and CLKEN bits in the USART_CR2 register,
-  *             SCEN and HDSEL bits in the USART_CR3 register.
+  *           - LINEN bit in the USART_CR2 register,
+  *           - STOP and CLKEN bits in the USART_CR2 register,
+  *           - SCEN bit in the USART_CR3 register,
+  *           - HDSEL bit in the USART_CR3 register.
   *         This function also sets the UART/USART in IRDA mode (IREN bit).
   * @note   Macro @ref IS_IRDA_INSTANCE(USARTx) can be used to check whether or not
   *         IrDA feature is supported by the USARTx instance.
@@ -2469,8 +2478,11 @@ __STATIC_INLINE void LL_USART_ConfigIrdaMode(USART_TypeDef *USARTx)
   *         (several USARTs connected in a network, one of the USARTs can be the master,
   *         its TX output connected to the RX inputs of the other slaves USARTs).
   * @note   In MultiProcessor mode, the following bits must be kept cleared:
-  *             LINEN, CLKEN bits in the USART_CR2 register,
-  *             IREN, SCEN and HDSEL bits in the USART_CR3 register.
+  *           - LINEN bit in the USART_CR2 register,
+  *           - CLKEN bit in the USART_CR2 register,
+  *           - SCEN bit in the USART_CR3 register,
+  *           - IREN bit in the USART_CR3 register,
+  *           - HDSEL bit in the USART_CR3 register.
   * @note   Call of this function is equivalent to following function call sequence :
   *         - Clear LINEN in CR2 using @ref LL_USART_DisableLIN() function
   *         - Clear CLKEN in CR2 using @ref LL_USART_DisableSCLKOutput() function
@@ -2761,8 +2773,8 @@ __STATIC_INLINE uint32_t LL_USART_IsActiveFlag_REACK(USART_TypeDef *USARTx)
   return (READ_BIT(USARTx->ISR, USART_ISR_REACK) == (USART_ISR_REACK));
 }
 
-/* Function available only on devices supporting Transmit Complete before Guard Time feature */
 #if defined(USART_TCBGT_SUPPORT)
+/* Function available only on devices supporting Transmit Complete before Guard Time feature */
 /**
   * @brief  Check if the Smartcard Transmission Complete Before Guard Time Flag is set or not
   * @rmtoll ISR          TCBGT         LL_USART_IsActiveFlag_TCBGT
@@ -2773,7 +2785,7 @@ __STATIC_INLINE uint32_t LL_USART_IsActiveFlag_TCBGT(USART_TypeDef *USARTx)
 {
   return (READ_BIT(USARTx->ISR, USART_ISR_TCBGT) == (USART_ISR_TCBGT));
 }
-#endif /* USART_TCBGT_SUPPORT */
+#endif
 
 /**
   * @brief  Clear Parity Error Flag
@@ -2841,8 +2853,8 @@ __STATIC_INLINE void LL_USART_ClearFlag_TC(USART_TypeDef *USARTx)
   WRITE_REG(USARTx->ICR, USART_ICR_TCCF);
 }
 
-/* Function available only on devices supporting Transmit Complete before Guard Time feature */
 #if defined(USART_TCBGT_SUPPORT)
+/* Function available only on devices supporting Transmit Complete before Guard Time feature */
 /**
   * @brief  Clear Smartcard Transmission Complete Before Guard Time Flag
   * @rmtoll ICR          TCBGTCF       LL_USART_ClearFlag_TCBGT
@@ -2853,7 +2865,7 @@ __STATIC_INLINE void LL_USART_ClearFlag_TCBGT(USART_TypeDef *USARTx)
 {
   WRITE_REG(USARTx->ICR, USART_ICR_TCBGTCF);
 }
-#endif /* USART_TCBGT_SUPPORT */
+#endif
 
 /**
   * @brief  Clear LIN Break Detection Flag
@@ -3081,8 +3093,8 @@ __STATIC_INLINE void LL_USART_EnableIT_WKUP(USART_TypeDef *USARTx)
   SET_BIT(USARTx->CR3, USART_CR3_WUFIE);
 }
 
-/* Function available only on devices supporting Transmit Complete before Guard Time feature */
 #if defined(USART_TCBGT_SUPPORT)
+/* Function available only on devices supporting Transmit Complete before Guard Time feature */
 /**
   * @brief  Enable Smartcard Transmission Complete Before Guard Time Interrupt
   * @note   Macro @ref IS_SMARTCARD_INSTANCE(USARTx) can be used to check whether or not
@@ -3095,7 +3107,7 @@ __STATIC_INLINE void LL_USART_EnableIT_TCBGT(USART_TypeDef *USARTx)
 {
   SET_BIT(USARTx->CR3, USART_CR3_TCBGTIE);
 }
-#endif /* USART_TCBGT_SUPPORT */
+#endif
 
 /**
   * @brief  Disable IDLE Interrupt
@@ -3241,8 +3253,8 @@ __STATIC_INLINE void LL_USART_DisableIT_WKUP(USART_TypeDef *USARTx)
   CLEAR_BIT(USARTx->CR3, USART_CR3_WUFIE);
 }
 
-/* Function available only on devices supporting Transmit Complete before Guard Time feature */
 #if defined(USART_TCBGT_SUPPORT)
+/* Function available only on devices supporting Transmit Complete before Guard Time feature */
 /**
   * @brief  Disable Smartcard Transmission Complete Before Guard Time Interrupt
   * @note   Macro @ref IS_SMARTCARD_INSTANCE(USARTx) can be used to check whether or not
@@ -3255,7 +3267,7 @@ __STATIC_INLINE void LL_USART_DisableIT_TCBGT(USART_TypeDef *USARTx)
 {
   CLEAR_BIT(USARTx->CR3, USART_CR3_TCBGTIE);
 }
-#endif /* USART_TCBGT_SUPPORT */
+#endif
 
 /**
   * @brief  Check if the USART IDLE Interrupt  source is enabled or disabled.
@@ -3397,8 +3409,8 @@ __STATIC_INLINE uint32_t LL_USART_IsEnabledIT_WKUP(USART_TypeDef *USARTx)
   return (READ_BIT(USARTx->CR3, USART_CR3_WUFIE) == (USART_CR3_WUFIE));
 }
 
-/* Function available only on devices supporting Transmit Complete before Guard Time feature */
 #if defined(USART_TCBGT_SUPPORT)
+/* Function available only on devices supporting Transmit Complete before Guard Time feature */
 /**
   * @brief  Check if the Smartcard Transmission Complete Before Guard Time Interrupt is enabled or disabled.
   * @note   Macro @ref IS_SMARTCARD_INSTANCE(USARTx) can be used to check whether or not
@@ -3411,7 +3423,7 @@ __STATIC_INLINE uint32_t LL_USART_IsEnabledIT_TCBGT(USART_TypeDef *USARTx)
 {
   return (READ_BIT(USARTx->CR3, USART_CR3_TCBGTIE) == (USART_CR3_TCBGTIE));
 }
-#endif /* USART_TCBGT_SUPPORT */
+#endif
 
 /**
   * @}

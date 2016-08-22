@@ -2,8 +2,8 @@
   ******************************************************************************
   * @file    stm32l4xx_ll_tim.c
   * @author  MCD Application Team
-  * @version V1.4.0
-  * @date    26-February-2016
+  * @version V1.5.1
+  * @date    31-May-2016
   * @brief   TIM LL module driver.
   ******************************************************************************
   * @attention
@@ -140,7 +140,7 @@
 
 
 /* Private function prototypes -----------------------------------------------*/
-/** @defgroup TIM_LL_Private_Functions TIM LL Private Functions
+/** @defgroup TIM_LL_Private_Functions TIM Private Functions
   * @{
   */
 static ErrorStatus OC1Config(TIM_TypeDef* TIMx, LL_TIM_OC_InitTypeDef* TIM_OCInitStruct);
@@ -642,7 +642,7 @@ ErrorStatus LL_TIM_HALLSENSOR_Init(TIM_TypeDef* TIMx, LL_TIM_HALLSENSOR_InitType
   * @}
   */
 
-/** @addtogroup TIM_LL_Private_Functions TIM LL Private Functions
+/** @addtogroup TIM_LL_Private_Functions TIM Private Functions
  *  @brief   Private functions
   * @{
   */
@@ -665,6 +665,7 @@ static ErrorStatus OC1Config(TIM_TypeDef* TIMx, LL_TIM_OC_InitTypeDef* TIM_OCIni
   assert_param(IS_LL_TIM_OCMODE(TIM_OCInitStruct->OCMode));
   assert_param(IS_LL_TIM_OCSTATE(TIM_OCInitStruct->OCState));
   assert_param(IS_LL_TIM_OCPOLARITY(TIM_OCInitStruct->OCPolarity));   
+  assert_param(IS_LL_TIM_OCSTATE(TIM_OCInitStruct->OCNState));
   assert_param(IS_LL_TIM_OCPOLARITY(TIM_OCInitStruct->OCNPolarity));   
 
   /* Disable the Channel 1: Reset the CC1E Bit */
@@ -693,8 +694,6 @@ static ErrorStatus OC1Config(TIM_TypeDef* TIMx, LL_TIM_OC_InitTypeDef* TIM_OCIni
     
   if(IS_TIM_BREAK_INSTANCE(TIMx))
   {
-    assert_param(IS_LL_TIM_OCSTATE(TIM_OCInitStruct->OCNState));
-    assert_param(IS_LL_TIM_OCPOLARITY(TIM_OCInitStruct->OCNPolarity));
     assert_param(IS_LL_TIM_OCIDLESTATE(TIM_OCInitStruct->OCNIdleState));
     assert_param(IS_LL_TIM_OCIDLESTATE(TIM_OCInitStruct->OCIdleState));
     
@@ -745,6 +744,7 @@ static ErrorStatus OC2Config(TIM_TypeDef* TIMx, LL_TIM_OC_InitTypeDef* TIM_OCIni
   assert_param(IS_LL_TIM_OCMODE(TIM_OCInitStruct->OCMode));
   assert_param(IS_LL_TIM_OCSTATE(TIM_OCInitStruct->OCState));
   assert_param(IS_LL_TIM_OCPOLARITY(TIM_OCInitStruct->OCPolarity));   
+  assert_param(IS_LL_TIM_OCSTATE(TIM_OCInitStruct->OCNState));
   assert_param(IS_LL_TIM_OCPOLARITY(TIM_OCInitStruct->OCNPolarity));   
 
   /* Disable the Channel 2: Reset the CC2E Bit */
@@ -773,8 +773,6 @@ static ErrorStatus OC2Config(TIM_TypeDef* TIMx, LL_TIM_OC_InitTypeDef* TIM_OCIni
     
   if(IS_TIM_BREAK_INSTANCE(TIMx))
   {
-    assert_param(IS_LL_TIM_OCSTATE(TIM_OCInitStruct->OCNState));
-    assert_param(IS_LL_TIM_OCPOLARITY(TIM_OCInitStruct->OCNPolarity));
     assert_param(IS_LL_TIM_OCIDLESTATE(TIM_OCInitStruct->OCNIdleState));
     assert_param(IS_LL_TIM_OCIDLESTATE(TIM_OCInitStruct->OCIdleState));
     
@@ -825,6 +823,7 @@ static ErrorStatus OC3Config(TIM_TypeDef* TIMx, LL_TIM_OC_InitTypeDef* TIM_OCIni
   assert_param(IS_LL_TIM_OCMODE(TIM_OCInitStruct->OCMode));
   assert_param(IS_LL_TIM_OCSTATE(TIM_OCInitStruct->OCState));
   assert_param(IS_LL_TIM_OCPOLARITY(TIM_OCInitStruct->OCPolarity));   
+  assert_param(IS_LL_TIM_OCSTATE(TIM_OCInitStruct->OCNState));
   assert_param(IS_LL_TIM_OCPOLARITY(TIM_OCInitStruct->OCNPolarity));   
 
   /* Disable the Channel 3: Reset the CC3E Bit */
@@ -853,8 +852,6 @@ static ErrorStatus OC3Config(TIM_TypeDef* TIMx, LL_TIM_OC_InitTypeDef* TIM_OCIni
     
   if(IS_TIM_BREAK_INSTANCE(TIMx))
   {
-    assert_param(IS_LL_TIM_OCSTATE(TIM_OCInitStruct->OCNState));
-    assert_param(IS_LL_TIM_OCPOLARITY(TIM_OCInitStruct->OCNPolarity));
     assert_param(IS_LL_TIM_OCIDLESTATE(TIM_OCInitStruct->OCNIdleState));
     assert_param(IS_LL_TIM_OCIDLESTATE(TIM_OCInitStruct->OCIdleState));
         
@@ -906,6 +903,7 @@ static ErrorStatus OC4Config(TIM_TypeDef* TIMx, LL_TIM_OC_InitTypeDef* TIM_OCIni
   assert_param(IS_LL_TIM_OCSTATE(TIM_OCInitStruct->OCState));
   assert_param(IS_LL_TIM_OCPOLARITY(TIM_OCInitStruct->OCPolarity));   
   assert_param(IS_LL_TIM_OCPOLARITY(TIM_OCInitStruct->OCNPolarity));   
+  assert_param(IS_LL_TIM_OCSTATE(TIM_OCInitStruct->OCNState));
 
   /* Disable the Channel 4: Reset the CC4E Bit */
   CLEAR_BIT(TIMx->CCER, TIM_CCER_CC4E);
@@ -933,6 +931,7 @@ static ErrorStatus OC4Config(TIM_TypeDef* TIMx, LL_TIM_OC_InitTypeDef* TIM_OCIni
   
   if(IS_TIM_BREAK_INSTANCE(TIMx))
   {
+    assert_param(IS_LL_TIM_OCIDLESTATE(TIM_OCInitStruct->OCNIdleState));
     assert_param(IS_LL_TIM_OCIDLESTATE(TIM_OCInitStruct->OCIdleState));
     
     /* Set the Output Idle state */
@@ -972,7 +971,8 @@ static ErrorStatus OC5Config(TIM_TypeDef* TIMx, LL_TIM_OC_InitTypeDef* TIM_OCIni
   assert_param(IS_LL_TIM_OCMODE(TIM_OCInitStruct->OCMode));
   assert_param(IS_LL_TIM_OCSTATE(TIM_OCInitStruct->OCState));
   assert_param(IS_LL_TIM_OCPOLARITY(TIM_OCInitStruct->OCPolarity));   
-  assert_param(IS_LL_TIM_OCPOLARITY(TIM_OCInitStruct->OCNPolarity));   
+  assert_param(IS_LL_TIM_OCPOLARITY(TIM_OCInitStruct->OCNPolarity)); 
+  assert_param(IS_LL_TIM_OCSTATE(TIM_OCInitStruct->OCNState));  
 
   /* Disable the Channel 5: Reset the CC5E Bit */
   CLEAR_BIT(TIMx->CCER, TIM_CCER_CC5E);
@@ -994,6 +994,7 @@ static ErrorStatus OC5Config(TIM_TypeDef* TIMx, LL_TIM_OC_InitTypeDef* TIM_OCIni
   
   if(IS_TIM_BREAK_INSTANCE(TIMx))
   {
+    assert_param(IS_LL_TIM_OCIDLESTATE(TIM_OCInitStruct->OCNIdleState));
     assert_param(IS_LL_TIM_OCIDLESTATE(TIM_OCInitStruct->OCIdleState));
         
     /* Set the Output Idle state */
@@ -1031,7 +1032,8 @@ static ErrorStatus OC6Config(TIM_TypeDef* TIMx, LL_TIM_OC_InitTypeDef* TIM_OCIni
   assert_param(IS_LL_TIM_OCMODE(TIM_OCInitStruct->OCMode));
   assert_param(IS_LL_TIM_OCSTATE(TIM_OCInitStruct->OCState));
   assert_param(IS_LL_TIM_OCPOLARITY(TIM_OCInitStruct->OCPolarity));   
-  assert_param(IS_LL_TIM_OCPOLARITY(TIM_OCInitStruct->OCNPolarity));   
+  assert_param(IS_LL_TIM_OCPOLARITY(TIM_OCInitStruct->OCNPolarity)); 
+  assert_param(IS_LL_TIM_OCSTATE(TIM_OCInitStruct->OCNState));  
 
   /* Disable the Channel 5: Reset the CC6E Bit */
   CLEAR_BIT(TIMx->CCER, TIM_CCER_CC6E);
@@ -1053,6 +1055,7 @@ static ErrorStatus OC6Config(TIM_TypeDef* TIMx, LL_TIM_OC_InitTypeDef* TIM_OCIni
   
   if(IS_TIM_BREAK_INSTANCE(TIMx))
   {
+    assert_param(IS_LL_TIM_OCIDLESTATE(TIM_OCInitStruct->OCNIdleState));
     assert_param(IS_LL_TIM_OCIDLESTATE(TIM_OCInitStruct->OCIdleState));
     
     /* Set the Output Idle state */

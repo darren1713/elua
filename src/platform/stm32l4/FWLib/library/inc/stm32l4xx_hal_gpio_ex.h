@@ -2,8 +2,8 @@
   ******************************************************************************
   * @file    stm32l4xx_hal_gpio_ex.h
   * @author  MCD Application Team
-  * @version V1.4.0
-  * @date    26-February-2016
+  * @version V1.5.1
+  * @date    31-May-2016
   * @brief   Header file of GPIO HAL Extended module.
   ******************************************************************************
   * @attention
@@ -121,7 +121,7 @@
   * @brief   AF 6 selection
   */
 #define GPIO_AF6_SPI3          ((uint8_t)0x06)  /* SPI3 Alternate Function mapping   */
-#define GPIO_AF6_DFSDM         ((uint8_t)0x06)  /* DFSDM Alternate Function mapping  */
+#define GPIO_AF6_DFSDM1        ((uint8_t)0x06)  /* DFSDM1 Alternate Function mapping */
 
 /**
   * @brief   AF 7 selection
@@ -136,6 +136,7 @@
 #define GPIO_AF8_UART4         ((uint8_t)0x08)  /* UART4 Alternate Function mapping   */
 #define GPIO_AF8_UART5         ((uint8_t)0x08)  /* UART5 Alternate Function mapping   */
 #define GPIO_AF8_LPUART1       ((uint8_t)0x08)  /* LPUART1 Alternate Function mapping */
+
 
 /**
   * @brief   AF 9 selection
@@ -245,6 +246,7 @@
   * @brief   AF 6 selection
   */
 #define GPIO_AF6_SPI3          ((uint8_t)0x06)  /* SPI3 Alternate Function mapping   */
+#define GPIO_AF6_COMP1         ((uint8_t)0x06)  /* COMP1 Alternate Function mapping   */
 
 /**
   * @brief   AF 7 selection

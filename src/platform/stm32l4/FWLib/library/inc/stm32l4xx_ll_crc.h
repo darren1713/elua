@@ -2,8 +2,8 @@
   ******************************************************************************
   * @file    stm32l4xx_ll_crc.h
   * @author  MCD Application Team
-  * @version V1.4.0
-  * @date    26-February-2016
+  * @version V1.5.1
+  * @date    31-May-2016
   * @brief   Header file of CRC LL module.
   ******************************************************************************
   * @attention
@@ -67,10 +67,10 @@ extern "C" {
   * @{
   */
 
-/** @defgroup CRC_LL_EC_POLYLENGTH Polynomial lenght
+/** @defgroup CRC_LL_EC_POLYLENGTH Polynomial length
   * @{
   */
-#define LL_CRC_POLYLENGTH_32B              (uint32_t)0x00000000U                     /*!< 32 bits Polynomial size */
+#define LL_CRC_POLYLENGTH_32B              (uint32_t)0x00000000U                    /*!< 32 bits Polynomial size */
 #define LL_CRC_POLYLENGTH_16B              CRC_CR_POLYSIZE_0                        /*!< 16 bits Polynomial size */
 #define LL_CRC_POLYLENGTH_8B               CRC_CR_POLYSIZE_1                        /*!< 8 bits Polynomial size */
 #define LL_CRC_POLYLENGTH_7B               (CRC_CR_POLYSIZE_1 | CRC_CR_POLYSIZE_0)  /*!< 7 bits Polynomial size */
@@ -81,7 +81,7 @@ extern "C" {
 /** @defgroup CRC_LL_EC_INDATA_REVERSE Input Data Reverse
   * @{
   */
-#define LL_CRC_INDATA_REVERSE_NONE         (uint32_t)0x00000000U                     /*!< Input Data bit order not affected */
+#define LL_CRC_INDATA_REVERSE_NONE         (uint32_t)0x00000000U                    /*!< Input Data bit order not affected */
 #define LL_CRC_INDATA_REVERSE_BYTE         CRC_CR_REV_IN_0                          /*!< Input Data bit reversal done by byte */
 #define LL_CRC_INDATA_REVERSE_HALFWORD     CRC_CR_REV_IN_1                          /*!< Input Data bit reversal done by half-word */
 #define LL_CRC_INDATA_REVERSE_WORD         (CRC_CR_REV_IN_1 | CRC_CR_REV_IN_0)      /*!< Input Data bit reversal done by word */
@@ -92,7 +92,7 @@ extern "C" {
 /** @defgroup CRC_LL_EC_OUTDATA_REVERSE Output Data Reverse
   * @{
   */
-#define LL_CRC_OUTDATA_REVERSE_NONE        (uint32_t)0x00000000U                      /*!< Output Data bit order not affected */
+#define LL_CRC_OUTDATA_REVERSE_NONE        (uint32_t)0x00000000U                     /*!< Output Data bit order not affected */
 #define LL_CRC_OUTDATA_REVERSE_BIT         CRC_CR_REV_OUT                            /*!< Output Data bit reversal done by bit */
 /**
   * @}
@@ -165,7 +165,6 @@ extern "C" {
 
 /**
   * @brief  Reset the CRC calculation unit.
-  *
   * @note   If Programmable Initial CRC value feature
   *         is available, also set the Data Register to the value stored in the
   *         CRC_INIT register, otherwise, reset Data Register to its default value.

@@ -2,8 +2,8 @@
   ******************************************************************************
   * @file    stm32l4xx_ll_spi.c
   * @author  MCD Application Team
-  * @version V1.4.0
-  * @date    26-February-2016
+  * @version V1.5.1
+  * @date    31-May-2016
   * @brief   SPI LL module driver.
   ******************************************************************************
   * @attention
@@ -42,7 +42,7 @@
 #ifdef  USE_FULL_ASSERT
 #include "stm32_assert.h"
 #else
-#define assert_param(expr) ((void)0)
+#define assert_param(expr) ((void)0U)
 #endif
 
 #if defined(USE_FULL_LL_DRIVER)
@@ -53,7 +53,7 @@
 
 #if defined (SPI1) || defined (SPI2) || defined (SPI3)
 
-/** @defgroup SPI_LL SPI
+/** @addtogroup SPI_LL
   * @{
   */
 
@@ -151,11 +151,12 @@
   */
 ErrorStatus LL_SPI_DeInit(SPI_TypeDef *SPIx)
 {
-  ErrorStatus status = SUCCESS;
+  ErrorStatus status = ERROR;
 
   /* Check the parameters */
   assert_param(IS_SPI_ALL_INSTANCE(SPIx));
 
+#if defined(SPI1)
   if (SPIx == SPI1)
   {
     /* Force reset of SPI clock */
@@ -163,8 +164,12 @@ ErrorStatus LL_SPI_DeInit(SPI_TypeDef *SPIx)
 
     /* Release reset of SPI clock */
     LL_APB2_GRP1_ReleaseReset(LL_APB2_GRP1_PERIPH_SPI1);
+
+    status = SUCCESS;
   }
-  else if (SPIx == SPI2)
+#endif /* SPI1 */
+#if defined(SPI2)
+  if (SPIx == SPI2)
   {
     /* Force reset of SPI clock */
     LL_APB1_GRP1_ForceReset(LL_APB1_GRP1_PERIPH_SPI2);
@@ -172,19 +177,21 @@ ErrorStatus LL_SPI_DeInit(SPI_TypeDef *SPIx)
     /* Release reset of SPI clock */
     LL_APB1_GRP1_ReleaseReset(LL_APB1_GRP1_PERIPH_SPI2);
 
+    status = SUCCESS;
   }
-  else if (SPIx == SPI3)
+#endif /* SPI2 */
+#if defined(SPI3)
+  if (SPIx == SPI3)
   {
     /* Force reset of SPI clock */
     LL_APB1_GRP1_ForceReset(LL_APB1_GRP1_PERIPH_SPI3);
 
     /* Release reset of SPI clock */
     LL_APB1_GRP1_ReleaseReset(LL_APB1_GRP1_PERIPH_SPI3);
+
+    status = SUCCESS;
   }
-  else
-  {
-    status = ERROR;
-  }
+#endif /* SPI3 */
 
   return status;
 }
@@ -244,7 +251,7 @@ ErrorStatus LL_SPI_Init(SPI_TypeDef *SPIx, LL_SPI_InitTypeDef *SPI_InitStruct)
                SPI_CR2_DS | SPI_CR2_SSOE,
                SPI_InitStruct->DataWidth | (SPI_InitStruct->NSS >> 16U));
 
-    /*---------------------------- SPIx CRCPR Configuration -----------------------
+    /*---------------------------- SPIx CRCPR Configuration ----------------------
      * Configure SPIx CRCPR with parameters:
      * - CRCPoly:            CRCPOLY[15:0] bits
      */

@@ -224,7 +224,7 @@
 #endif /* HAL_DFSDM_MODULE_ENABLED */
 
 #ifdef HAL_CORTEX_MODULE_ENABLED
-//  #include "stm32l4xx_hal_cortex.h"
+  #include "stm32l4xx_hal_cortex.h"
 #endif /* HAL_CORTEX_MODULE_ENABLED */
 
 #ifdef HAL_ADC_MODULE_ENABLED

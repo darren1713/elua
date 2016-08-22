@@ -2,8 +2,8 @@
   ******************************************************************************
   * @file    stm32l4xx_ll_crs.h
   * @author  MCD Application Team
-  * @version V1.4.0
-  * @date    26-February-2016
+  * @version V1.5.1
+  * @date    31-May-2016
   * @brief   Header file of CRS LL module.
   ******************************************************************************
   * @attention
@@ -65,8 +65,9 @@ extern "C" {
   */
 
 /* Defines used for the bit position in the register and perform offsets*/
-#define CRS_POSITION_TRIM        (uint32_t)POSITION_VAL(CRS_CR_TRIM)
-#define CRS_POSITION_FELIM       (uint32_t)POSITION_VAL(CRS_CFGR_FELIM)
+#define CRS_POSITION_TRIM        (uint32_t)POSITION_VAL(CRS_CR_TRIM)    /* bit position in CR reg */
+#define CRS_POSITION_FECAP       (uint32_t)POSITION_VAL(CRS_ISR_FECAP)  /* bit position in ISR reg */
+#define CRS_POSITION_FELIM       (uint32_t)POSITION_VAL(CRS_CFGR_FELIM) /* bit position in CFGR reg */
 
 
 /**
@@ -111,7 +112,7 @@ extern "C" {
 /** @defgroup CRS_LL_EC_SYNC_DIV Synchronization Signal Divider
   * @{
   */
-#define LL_CRS_SYNC_DIV_1                  ((uint32_t)0x00U)                          /*!< Synchro Signal not divided (default) */
+#define LL_CRS_SYNC_DIV_1                  ((uint32_t)0x00U)                         /*!< Synchro Signal not divided (default) */
 #define LL_CRS_SYNC_DIV_2                  CRS_CFGR_SYNCDIV_0                        /*!< Synchro Signal divided by 2 */
 #define LL_CRS_SYNC_DIV_4                  CRS_CFGR_SYNCDIV_1                        /*!< Synchro Signal divided by 4 */
 #define LL_CRS_SYNC_DIV_8                  (CRS_CFGR_SYNCDIV_1 | CRS_CFGR_SYNCDIV_0) /*!< Synchro Signal divided by 8 */
@@ -126,7 +127,7 @@ extern "C" {
 /** @defgroup CRS_LL_EC_SYNC_SOURCE Synchronization Signal Source
   * @{
   */
-#define LL_CRS_SYNC_SOURCE_GPIO            ((uint32_t)0x00U)        /*!< Synchro Signal soucre GPIO */
+#define LL_CRS_SYNC_SOURCE_GPIO            ((uint32_t)0x00U)       /*!< Synchro Signal soucre GPIO */
 #define LL_CRS_SYNC_SOURCE_LSE             CRS_CFGR_SYNCSRC_0      /*!< Synchro Signal source LSE */
 #define LL_CRS_SYNC_SOURCE_USB             CRS_CFGR_SYNCSRC_1      /*!< Synchro Signal source USB SOF (default)*/
 /**
@@ -136,7 +137,7 @@ extern "C" {
 /** @defgroup CRS_LL_EC_SYNC_POLARITY Synchronization Signal Polarity
   * @{
   */
-#define LL_CRS_SYNC_POLARITY_RISING        ((uint32_t)0x00U)      /*!< Synchro Active on rising edge (default) */
+#define LL_CRS_SYNC_POLARITY_RISING        ((uint32_t)0x00U)     /*!< Synchro Active on rising edge (default) */
 #define LL_CRS_SYNC_POLARITY_FALLING       CRS_CFGR_SYNCPOL      /*!< Synchro Active on falling edge */
 /**
   * @}
@@ -145,7 +146,7 @@ extern "C" {
 /** @defgroup CRS_LL_EC_FREQERRORDIR Frequency Error Direction
   * @{
   */
-#define LL_CRS_FREQ_ERROR_DIR_UP             ((uint32_t)0x00U)          /*!< Upcounting direction, the actual frequency is above the target */
+#define LL_CRS_FREQ_ERROR_DIR_UP             ((uint32_t)0x00U)         /*!< Upcounting direction, the actual frequency is above the target */
 #define LL_CRS_FREQ_ERROR_DIR_DOWN           ((uint32_t)CRS_ISR_FEDIR) /*!< Downcounting direction, the actual frequency is below the target */
 /**
   * @}
@@ -307,10 +308,10 @@ __STATIC_INLINE uint32_t LL_CRS_IsEnabledAutoTrimming(void)
 
 /**
   * @brief  Set HSI48 oscillator smooth trimming
-  * @note When the AUTOTRIMEN bit is set, this field is controlled by hardware and is read-only
+  * @note   When the AUTOTRIMEN bit is set, this field is controlled by hardware and is read-only
   * @rmtoll CR           TRIM          LL_CRS_SetHSI48SmoothTrimming
   * @param  Value a number between Min_Data = 0 and Max_Data = 63
-  * @note Default value can be set thanks to @ref LL_CRS_HSI48CALIBRATION_DEFAULT 
+  * @note   Default value can be set thanks to @ref LL_CRS_HSI48CALIBRATION_DEFAULT 
   * @retval None
   */
 __STATIC_INLINE void LL_CRS_SetHSI48SmoothTrimming(uint32_t Value)
@@ -332,8 +333,8 @@ __STATIC_INLINE uint32_t LL_CRS_GetHSI48SmoothTrimming(void)
   * @brief  Set counter reload value
   * @rmtoll CFGR         RELOAD        LL_CRS_SetReloadCounter
   * @param  Value a number between Min_Data = 0 and Max_Data = 0xFFFF
-  * @note Default value can be set thanks to @ref LL_CRS_RELOADVALUE_DEFAULT 
-  *       Otherwise it can be calculated in using macro @ref __LL_CRS_CALC_CALCULATE_RELOADVALUE (_FTARGET_, _FSYNC_)
+  * @note   Default value can be set thanks to @ref LL_CRS_RELOADVALUE_DEFAULT 
+  *         Otherwise it can be calculated in using macro @ref __LL_CRS_CALC_CALCULATE_RELOADVALUE (_FTARGET_, _FSYNC_)
   * @retval None
   */
 __STATIC_INLINE void LL_CRS_SetReloadCounter(uint32_t Value)
@@ -355,7 +356,7 @@ __STATIC_INLINE uint32_t LL_CRS_GetReloadCounter(void)
   * @brief  Set frequency error limit
   * @rmtoll CFGR         FELIM         LL_CRS_SetFreqErrorLimit
   * @param  Value a number between Min_Data = 0 and Max_Data = 255
-  * @note Default value can be set thanks to @ref LL_CRS_ERRORLIMIT_DEFAULT 
+  * @note   Default value can be set thanks to @ref LL_CRS_ERRORLIMIT_DEFAULT 
   * @retval None
   */
 __STATIC_INLINE void LL_CRS_SetFreqErrorLimit(uint32_t Value)
@@ -366,7 +367,7 @@ __STATIC_INLINE void LL_CRS_SetFreqErrorLimit(uint32_t Value)
 /**
   * @brief  Get frequency error limit
   * @rmtoll CFGR         FELIM         LL_CRS_GetFreqErrorLimit
-  * @retval a number between Min_Data = 0 and Max_Data = 255
+  * @retval A number between Min_Data = 0 and Max_Data = 255
   */
 __STATIC_INLINE uint32_t LL_CRS_GetFreqErrorLimit(void)
 {
@@ -522,11 +523,11 @@ __STATIC_INLINE uint32_t LL_CRS_GetFreqErrorDirection(void)
 /**
   * @brief  Get the frequency error counter value latched in the time of the last SYNC event
   * @rmtoll ISR          FECAP         LL_CRS_GetFreqErrorCapture
-  * @retval n.a.
+  * @retval A number between Min_Data = 0x0000 and Max_Data = 0xFFFF
   */
 __STATIC_INLINE uint32_t LL_CRS_GetFreqErrorCapture(void)
 {
-  return (uint32_t)(READ_BIT(CRS->ISR, CRS_ISR_FECAP));
+  return (uint32_t)(READ_BIT(CRS->ISR, CRS_ISR_FECAP) >> CRS_POSITION_FECAP);
 }
 
 /**

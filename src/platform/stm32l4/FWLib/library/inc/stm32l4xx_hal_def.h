@@ -2,8 +2,8 @@
   ******************************************************************************
   * @file    stm32l4xx_hal_def.h
   * @author  MCD Application Team
-  * @version V1.4.0
-  * @date    26-February-2016
+  * @version V1.5.1
+  * @date    31-May-2016
   * @brief   This file contains HAL common defines, enumeration, macros and
   *          structures definitions.
   ******************************************************************************
@@ -46,7 +46,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32l4xx.h"
-//#include "Legacy/stm32_hal_legacy.h"  /* Aliases file for old names compatibility */
+//#include "Legacy/stm32_hal_legacy.h"  /* Aliases file for old names compatibility */ Penev
 #include <stdio.h>
 
 /* Exported types ------------------------------------------------------------*/
@@ -73,7 +73,7 @@ typedef enum
 
 /* Exported macros -----------------------------------------------------------*/
 
-#define HAL_MAX_DELAY      0xFFFFFFFF
+#define HAL_MAX_DELAY      0xFFFFFFFFU
 
 #define HAL_IS_BIT_SET(REG, BIT)         (((REG) & (BIT)) == (BIT))
 #define HAL_IS_BIT_CLR(REG, BIT)         (((REG) & (BIT)) == RESET)

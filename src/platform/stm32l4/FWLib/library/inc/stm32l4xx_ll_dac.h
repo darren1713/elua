@@ -2,8 +2,8 @@
   ******************************************************************************
   * @file    stm32l4xx_ll_dac.h
   * @author  MCD Application Team
-  * @version V1.4.0
-  * @date    26-February-2016
+  * @version V1.5.1
+  * @date    31-May-2016
   * @brief   Header file of DAC LL module.
   ******************************************************************************
   * @attention
@@ -329,7 +329,7 @@ typedef struct
   * @{
   */
 #define LL_DAC_OUTPUT_CONNECT_GPIO         ((uint32_t)0x00000000U) /*!< The selected DAC channel output is connected to external pin */
-#define LL_DAC_OUTPUT_CONNECT_INTERNAL     (DAC_MCR_MODE1_0)       /*!< The selected DAC channel output is connected to on-chip peripherals via internal paths. On this STM32 family, output connection depends on output mode (normal or sample and hold) and output buffer state. Refer to comments of function @ref LL_DAC_SetOutputConnection(). */
+#define LL_DAC_OUTPUT_CONNECT_INTERNAL     (DAC_MCR_MODE1_0)       /*!< The selected DAC channel output is connected to on-chip peripherals via internal paths. On this STM32 serie, output connection depends on output mode (normal or sample and hold) and output buffer state. Refer to comments of function @ref LL_DAC_SetOutputConnection(). */
 /**
   * @}
   */
@@ -375,6 +375,46 @@ typedef struct
 #define LL_DAC_DMA_REG_DATA_12BITS_RIGHT_ALIGNED  DAC_REG_DHR12RX_REGOFFSET_MASK /*!< DAC channel data holding register 12 bits right aligned */
 #define LL_DAC_DMA_REG_DATA_12BITS_LEFT_ALIGNED   DAC_REG_DHR12LX_REGOFFSET_MASK /*!< DAC channel data holding register 12 bits left aligned */
 #define LL_DAC_DMA_REG_DATA_8BITS_RIGHT_ALIGNED   DAC_REG_DHR8RX_REGOFFSET_MASK  /*!< DAC channel data holding register 8 bits right aligned */
+/**
+  * @}
+  */
+
+/** @defgroup DAC_LL_EC_HW_DELAYS  Definitions of DAC hardware constraints delays
+  * @note   Only DAC IP HW delays are defined in DAC LL driver driver,
+  *         not timeout values.
+  *         For details on delays values, refer to descriptions in source code
+  *         above each literal definition.
+  * @{
+  */
+
+/* Delay for DAC channel voltage settling time from DAC channel startup       */
+/* (transition from disable to enable).                                       */
+/* Note: DAC channel startup time depends on board application environment:   */
+/*       impedance connected to DAC channel output.                           */
+/*       The delay below is specified under conditions:                       */
+/*        - voltage maximum transition (lowest to highest value)              */
+/*        - until voltage reaches final value +-1LSB                          */
+/*        - DAC channel output buffer enabled                                 */
+/*        - load impedance of 5kOhm (min), 50pF (max)                         */
+/* Literal set to maximum value (refer to device datasheet,                   */
+/* parameter "tWAKEUP").                                                      */
+/* Unit: us                                                                   */
+#define LL_DAC_DELAY_STARTUP_VOLTAGE_SETTLING_US ((uint32_t)  8U)  /*!< Delay for DAC channel voltage settling time from DAC channel startup (transition from disable to enable) */
+
+
+/* Delay for DAC channel voltage settling time.                               */
+/* Note: DAC channel startup time depends on board application environment:   */
+/*       impedance connected to DAC channel output.                           */
+/*       The delay below is specified under conditions:                       */
+/*        - voltage maximum transition (lowest to highest value)              */
+/*        - until voltage reaches final value +-1LSB                          */
+/*        - DAC channel output buffer enabled                                 */
+/*        - load impedance of 5kOhm min, 50pF max                             */
+/* Literal set to maximum value (refer to device datasheet,                   */
+/* parameter "tSETTLING").                                                    */
+/* Unit: us                                                                   */
+#define LL_DAC_DELAY_VOLTAGE_SETTLING_US  ((uint32_t)  2U)  /*!< Delay for DAC channel voltage settling time */
+
 /**
   * @}
   */
@@ -614,14 +654,14 @@ __STATIC_INLINE uint32_t LL_DAC_GetTrimmingValue(DAC_TypeDef *DACx, uint32_t DAC
   *         @arg @ref LL_DAC_CHANNEL_1
   *         @arg @ref LL_DAC_CHANNEL_2
   * @param  TriggerSource This parameter can be one of the following values:
-  *         @arg @ref LL_DAC_TRIGGER_SOFTWARE
+  *         @arg @ref LL_DAC_TRIG_SOFTWARE
   *         @arg @ref LL_DAC_TRIG_EXT_TIM2_TRGO
   *         @arg @ref LL_DAC_TRIG_EXT_TIM4_TRGO
   *         @arg @ref LL_DAC_TRIG_EXT_TIM5_TRGO
   *         @arg @ref LL_DAC_TRIG_EXT_TIM6_TRGO
   *         @arg @ref LL_DAC_TRIG_EXT_TIM7_TRGO
   *         @arg @ref LL_DAC_TRIG_EXT_TIM8_TRGO
-  *         @arg @ref LL_DAC_TRIGGER_EXT_IT9
+  *         @arg @ref LL_DAC_TRIG_EXT_EXTI_LINE9
   * @retval None
   */
 __STATIC_INLINE void LL_DAC_SetTriggerSource(DAC_TypeDef *DACx, uint32_t DAC_Channel, uint32_t TriggerSource)
@@ -644,7 +684,7 @@ __STATIC_INLINE void LL_DAC_SetTriggerSource(DAC_TypeDef *DACx, uint32_t DAC_Cha
   *         @arg @ref LL_DAC_CHANNEL_1
   *         @arg @ref LL_DAC_CHANNEL_2
   * @retval Returned value can be one of the following values:
-  *         @arg @ref LL_DAC_TRIGGER_SOFTWARE
+  *         @arg @ref LL_DAC_TRIG_SOFTWARE
   *         @arg @ref LL_DAC_TRIG_EXT_TIM2_TRGO
   *         @arg @ref LL_DAC_TRIG_EXT_TIM4_TRGO
   *         @arg @ref LL_DAC_TRIG_EXT_TIM5_TRGO
@@ -846,7 +886,7 @@ __STATIC_INLINE uint32_t LL_DAC_GetWaveTriangleAmplitude(DAC_TypeDef *DACx, uint
   *         - @ref LL_DAC_SetOutputBuffer()
   *         - @ref LL_DAC_SetOutputMode()
   *         - @ref LL_DAC_SetOutputConnection()
-  * @note   On this STM32 family, output connection depends on output mode
+  * @note   On this STM32 serie, output connection depends on output mode
   *         (normal or sample and hold) and output buffer state.
   *         - if output connection is set to internal path and output buffer
   *           is enabled (whatever output mode):
@@ -934,7 +974,7 @@ __STATIC_INLINE uint32_t LL_DAC_GetOutputMode(DAC_TypeDef *DACx, uint32_t DAC_Ch
 
 /**
   * @brief  Set the output buffer for the selected DAC channel.
-  * @note   On this STM32 family, when buffer is enabled, its offset can be
+  * @note   On this STM32 serie, when buffer is enabled, its offset can be
   *         trimmed: factory calibration default values can be
   *         replaced by user trimming values, using function
   *         @ref LL_DAC_SetTrimmingValue().
@@ -977,7 +1017,7 @@ __STATIC_INLINE uint32_t LL_DAC_GetOutputBuffer(DAC_TypeDef *DACx, uint32_t DAC_
 
 /**
   * @brief  Set the output connection for the selected DAC channel.
-  * @note   On this STM32 family, output connection depends on output mode (normal or
+  * @note   On this STM32 serie, output connection depends on output mode (normal or
   *         sample and hold) and output buffer state.
   *         - if output connection is set to internal path and output buffer
   *           is enabled (whatever output mode):
@@ -1007,7 +1047,7 @@ __STATIC_INLINE void LL_DAC_SetOutputConnection(DAC_TypeDef *DACx, uint32_t DAC_
 
 /**
   * @brief  Get the output connection for the selected DAC channel.
-  * @note   On this STM32 family, output connection depends on output mode (normal or
+  * @note   On this STM32 serie, output connection depends on output mode (normal or
   *         sample and hold) and output buffer state.
   *         - if output connection is set to internal path and output buffer
   *           is enabled (whatever output mode):
@@ -1173,7 +1213,7 @@ __STATIC_INLINE uint32_t LL_DAC_GetWaveMode(DAC_TypeDef *DACx, uint32_t DAC_Chan
   * @}
   */
 
-/** @defgroup DAC_LL_EF_DMA_Management DMA_Management
+/** @defgroup DAC_LL_EF_DMA_Management DMA Management
   * @{
   */
 
@@ -1235,7 +1275,7 @@ __STATIC_INLINE uint32_t LL_DAC_IsDMAReqEnabled(DAC_TypeDef *DACx, uint32_t DAC_
   * @brief  Function to help to configure DMA transfer to DAC: retrieve the
   *         DAC register address from DAC instance and a list of DAC registers
   *         intended to be used (most commonly) with DMA transfer.
-  *         These DAC registers are data holding registers:
+  * @note   These DAC registers are data holding registers:
   *         when DAC conversion is requested, DAC generates a DMA transfer
   *         request to have data available in DAC data holding registers.
   * @note   This macro is intended to be used with LL DMA driver, refer to
@@ -1331,7 +1371,7 @@ __STATIC_INLINE uint32_t LL_DAC_IsEnabled(DAC_TypeDef *DACx, uint32_t DAC_Channe
 
 /**
   * @brief  Enable DAC trigger of the selected channel.
-  *         - If DAC trigger is disabled, DAC conversion is performed
+  * @note   - If DAC trigger is disabled, DAC conversion is performed
   *           automatically once the data holding register is updated,
   *           using functions "LL_DAC_ConvertData{8; 12}{Right; Left} Aligned()":
   *           @ref LL_DAC_ConvertData12RightAligned(), ...
@@ -1560,7 +1600,7 @@ __STATIC_INLINE uint32_t LL_DAC_RetrieveOutputData(DAC_TypeDef *DACx, uint32_t D
   * @}
   */
 
-/** @defgroup DAC_LL_EF_FLAG_Management FLAG_Management
+/** @defgroup DAC_LL_EF_FLAG_Management FLAG Management
   * @{
   */
 /**
@@ -1655,7 +1695,7 @@ __STATIC_INLINE void LL_DAC_ClearFlag_DMAUDR2(DAC_TypeDef *DACx)
   * @}
   */
 
-/** @defgroup DAC_LL_EF_IT_Management IT_Management
+/** @defgroup DAC_LL_EF_IT_Management IT management
   * @{
   */
 

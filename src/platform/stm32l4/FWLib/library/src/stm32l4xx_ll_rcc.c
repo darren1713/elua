@@ -2,8 +2,8 @@
   ******************************************************************************
   * @file    stm32l4xx_ll_rcc.c
   * @author  MCD Application Team
-  * @version V1.4.0
-  * @date    26-February-2016
+  * @version V1.5.1
+  * @date    31-May-2016
   * @brief   RCC LL module driver.
   ******************************************************************************
   * @attention
@@ -40,7 +40,7 @@
 #ifdef  USE_FULL_ASSERT
   #include "stm32_assert.h"
 #else
-  #define assert_param(expr) ((void)0)
+  #define assert_param(expr) ((void)0U)
 #endif
 /** @addtogroup STM32L4xx_LL_Driver
   * @{
@@ -61,34 +61,48 @@
 /** @addtogroup RCC_LL_Private_Macros
   * @{
   */
+#if defined(RCC_CCIPR_USART3SEL)
 #define IS_LL_RCC_USART_CLKSOURCE(__VALUE__)  (((__VALUE__) == LL_RCC_USART1_CLKSOURCE) \
                                             || ((__VALUE__) == LL_RCC_USART2_CLKSOURCE) \
                                             || ((__VALUE__) == LL_RCC_USART3_CLKSOURCE))
+#else
+#define IS_LL_RCC_USART_CLKSOURCE(__VALUE__)  (((__VALUE__) == LL_RCC_USART1_CLKSOURCE) \
+                                            || ((__VALUE__) == LL_RCC_USART2_CLKSOURCE))
 
-#if defined(UART4) && defined(UART5)
+#endif /* RCC_CCIPR_USART3SEL */
+#if defined(RCC_CCIPR_UART4SEL) && defined(RCC_CCIPR_UART5SEL)
 #define IS_LL_RCC_UART_CLKSOURCE(__VALUE__)    (((__VALUE__) == LL_RCC_UART4_CLKSOURCE) \
                                              || ((__VALUE__) == LL_RCC_UART5_CLKSOURCE))
-#elif defined(UART4)
+#elif defined(RCC_CCIPR_UART4SEL)
 #define IS_LL_RCC_UART_INSTANCE(__VALUE__)     ((__VALUE__) == LL_RCC_UART4_CLKSOURCE)
-#elif defined(UART5)
+#elif defined(RCC_CCIPR_UART5SEL)
 #define IS_LL_RCC_UART_INSTANCE(__VALUE__)     ((__VALUE__) == LL_RCC_UART5_CLKSOURCE)
-#endif /* UART4 && UART5*/
+#endif /* RCC_CCIPR_UART4SEL && RCC_CCIPR_UART5SEL*/
 
 #define IS_LL_RCC_LPUART_CLKSOURCE(__VALUE__) (((__VALUE__) == LL_RCC_LPUART1_CLKSOURCE))
 
+#if defined(RCC_CCIPR_I2C2SEL)&&defined(RCC_CCIPR_I2C3SEL)
 #define IS_LL_RCC_I2C_CLKSOURCE(__VALUE__)    (((__VALUE__) == LL_RCC_I2C1_CLKSOURCE) \
                                             || ((__VALUE__) == LL_RCC_I2C2_CLKSOURCE) \
                                             || ((__VALUE__) == LL_RCC_I2C3_CLKSOURCE))
 
+#elif !defined(RCC_CCIPR_I2C2SEL)&&defined(RCC_CCIPR_I2C3SEL)
+#define IS_LL_RCC_I2C_CLKSOURCE(__VALUE__)    (((__VALUE__) == LL_RCC_I2C1_CLKSOURCE) \
+                                            || ((__VALUE__) == LL_RCC_I2C3_CLKSOURCE))
+
+#else
+#define IS_LL_RCC_I2C_CLKSOURCE(__VALUE__)     ((__VALUE__) == LL_RCC_I2C1_CLKSOURCE)
+
+#endif /* RCC_CCIPR_I2C2SEL && RCC_CCIPR_I2C3SEL */
 #define IS_LL_RCC_LPTIM_CLKSOURCE(__VALUE__)  (((__VALUE__) == LL_RCC_LPTIM1_CLKSOURCE) \
                                             || ((__VALUE__) == LL_RCC_LPTIM2_CLKSOURCE))
 
-#if defined(SAI2)
+#if defined(RCC_CCIPR_SAI2SEL)
 #define IS_LL_RCC_SAI_CLKSOURCE(__VALUE__)    (((__VALUE__) == LL_RCC_SAI1_CLKSOURCE) \
                                             || ((__VALUE__) == LL_RCC_SAI2_CLKSOURCE))
 #else
 #define IS_LL_RCC_SAI_CLKSOURCE(__VALUE__)    ((__VALUE__) == LL_RCC_SAI1_CLKSOURCE)
-#endif /*SAI2*/
+#endif /* RCC_CCIPR_SAI2SEL */
 
 #define IS_LL_RCC_SDMMC_CLKSOURCE(__VALUE__)  (((__VALUE__) == LL_RCC_SDMMC1_CLKSOURCE))
 
@@ -102,7 +116,7 @@
 
 #define IS_LL_RCC_SWPMI_CLKSOURCE(__VALUE__)  (((__VALUE__) == LL_RCC_SWPMI1_CLKSOURCE))
 
-#define IS_LL_RCC_DFSDM_CLKSOURCE(__VALUE__)  (((__VALUE__) == LL_RCC_DFSDM_CLKSOURCE))
+#define IS_LL_RCC_DFSDM_CLKSOURCE(__VALUE__)  (((__VALUE__) == LL_RCC_DFSDM1_CLKSOURCE))
 
 /**
   * @}
@@ -273,7 +287,9 @@ void LL_RCC_GetSystemClocksFreq(LL_RCC_ClocksTypeDef *RCC_Clocks)
   * @param  USARTxSource This parameter can be one of the following values:
   *         @arg @ref LL_RCC_USART1_CLKSOURCE
   *         @arg @ref LL_RCC_USART2_CLKSOURCE
-  *         @arg @ref LL_RCC_USART3_CLKSOURCE
+  *         @arg @ref LL_RCC_USART3_CLKSOURCE (*)
+  *
+  *         (*) value not defined in all devices.
   * @retval USART clock frequency (in Hz)
   *         - @ref  LL_RCC_PERIPH_FREQUENCY_NO indicates that oscillator (HSI or LSE) is not ready
   */
@@ -344,6 +360,7 @@ uint32_t LL_RCC_GetUSARTClockFreq(uint32_t USARTxSource)
   }
   else
   {
+#if defined(RCC_CCIPR_USART3SEL)
     if (USARTxSource == LL_RCC_USART3_CLKSOURCE)
     {
       /* USART3CLK clock frequency */
@@ -373,11 +390,12 @@ uint32_t LL_RCC_GetUSARTClockFreq(uint32_t USARTxSource)
           break;
       }
     }
+#endif /* RCC_CCIPR_USART3SEL */
   }
   return usart_frequency;
 }
 
-#if defined(UART4) || defined(UART5)
+#if defined(RCC_CCIPR_UART4SEL) || defined(RCC_CCIPR_UART5SEL)
 /**
   * @brief  Return UARTx clock frequency
   * @param  UARTxSource This parameter can be one of the following values:
@@ -393,7 +411,7 @@ uint32_t LL_RCC_GetUARTClockFreq(uint32_t UARTxSource)
   /* Check parameter */
   assert_param(IS_LL_RCC_UART_CLKSOURCE(UARTxSource));
 
-#if defined(UART4)
+#if defined(RCC_CCIPR_UART4SEL)
   if (UARTxSource == LL_RCC_UART4_CLKSOURCE)
   {
     /* UART4CLK clock frequency */
@@ -423,9 +441,9 @@ uint32_t LL_RCC_GetUARTClockFreq(uint32_t UARTxSource)
         break;
     }
   }
-#endif /* UART4 */
+#endif /* RCC_CCIPR_UART4SEL */
 
-#if defined(UART5)
+#if defined(RCC_CCIPR_UART5SEL)
   if (UARTxSource == LL_RCC_UART5_CLKSOURCE)
   {
     /* UART5CLK clock frequency */
@@ -455,17 +473,19 @@ uint32_t LL_RCC_GetUARTClockFreq(uint32_t UARTxSource)
         break;
     }
   }
-#endif /* UART5 */
+#endif /* RCC_CCIPR_UART5SEL */
 
   return uart_frequency;
 }
-#endif /* UART4 || UART5 */
+#endif /* RCC_CCIPR_UART4SEL || RCC_CCIPR_UART5SEL */
 
 /**
   * @brief  Return I2Cx clock frequency
   * @param  I2CxSource This parameter can be one of the following values:
   *         @arg @ref LL_RCC_I2C1_CLKSOURCE
-  *         @arg @ref LL_RCC_I2C2_CLKSOURCE
+  *         @arg @ref LL_RCC_I2C2_CLKSOURCE (*)
+  *
+  *         (*) value not defined in all devices.
   *         @arg @ref LL_RCC_I2C3_CLKSOURCE
   * @retval I2C clock frequency (in Hz)
   *         - @ref  LL_RCC_PERIPH_FREQUENCY_NO indicates that HSI oscillator is not ready
@@ -499,6 +519,7 @@ uint32_t LL_RCC_GetI2CClockFreq(uint32_t I2CxSource)
         break;
     }
   }
+#if defined(RCC_CCIPR_I2C2SEL)
   else if (I2CxSource == LL_RCC_I2C2_CLKSOURCE)
   {
     /* I2C2 CLK clock frequency */
@@ -521,6 +542,7 @@ uint32_t LL_RCC_GetI2CClockFreq(uint32_t I2CxSource)
         break;
     }
   }
+#endif /*RCC_CCIPR_I2C2SEL*/
   else
   {
     if (I2CxSource == LL_RCC_I2C3_CLKSOURCE)
@@ -734,7 +756,7 @@ uint32_t LL_RCC_GetSAIClockFreq(uint32_t SAIxSource)
   }
   else
   {
-#if defined(SAI2)
+#if defined(RCC_CCIPR_SAI2SEL)
     if (SAIxSource == LL_RCC_SAI2_CLKSOURCE)
     {
       /* SAI2CLK clock frequency */
@@ -769,7 +791,7 @@ uint32_t LL_RCC_GetSAIClockFreq(uint32_t SAIxSource)
           break;
       }
     }
-#endif /*SAI2*/
+#endif /*RCC_CCIPR_SAI2SEL*/
   }
 
   return sai_frequency;
@@ -967,7 +989,6 @@ uint32_t LL_RCC_GetADCClockFreq(uint32_t ADCxSource)
     case LL_RCC_ADC_CLKSOURCE_SYSCLK:        /* SYSCLK clock used as ADC clock source */
       adc_frequency = RCC_GetSystemClockFreq();
       break;
-
     case LL_RCC_ADC_CLKSOURCE_NONE:          /* No clock used as ADC clock source */
     default:
       adc_frequency = LL_RCC_PERIPH_FREQUENCY_NA;
@@ -1010,11 +1031,11 @@ uint32_t LL_RCC_GetSWPMIClockFreq(uint32_t SWPMIxSource)
   return swpmi_frequency;
 }
 
-#if defined(DFSDM_Channel0)
+#if defined(DFSDM1_Channel0)
 /**
   * @brief  Return DFSDMx clock frequency
   * @param  DFSDMxSource This parameter can be one of the following values:
-  *         @arg @ref LL_RCC_DFSDM_CLKSOURCE
+  *         @arg @ref LL_RCC_DFSDM1_CLKSOURCE
   * @retval DFSDM clock frequency (in Hz)
   */
 uint32_t LL_RCC_GetDFSDMClockFreq(uint32_t DFSDMxSource)
@@ -1024,14 +1045,14 @@ uint32_t LL_RCC_GetDFSDMClockFreq(uint32_t DFSDMxSource)
   /* Check parameter */
   assert_param(IS_LL_RCC_DFSDM_CLKSOURCE(DFSDMxSource));
 
-  /* DFSDMCLK clock frequency */
+  /* DFSDM1CLK clock frequency */
   switch (LL_RCC_GetDFSDMClockSource(DFSDMxSource))
   {
-    case LL_RCC_DFSDM_CLKSOURCE_SYSCLK:      /* DFSDM Clock is SYSCLK */
+    case LL_RCC_DFSDM1_CLKSOURCE_SYSCLK:     /* DFSDM1 Clock is SYSCLK */
       dfsdm_frequency = RCC_GetSystemClockFreq();
       break;
 
-    case LL_RCC_DFSDM_CLKSOURCE_PCLK:        /* DFSDM Clock is PCLK1 */
+    case LL_RCC_DFSDM1_CLKSOURCE_PCLK:       /* DFSDM1 Clock is PCLK1 */
     default:
       dfsdm_frequency = RCC_GetPCLK1ClockFreq(RCC_GetHCLKClockFreq(RCC_GetSystemClockFreq()));
       break;
@@ -1039,7 +1060,7 @@ uint32_t LL_RCC_GetDFSDMClockFreq(uint32_t DFSDMxSource)
 
   return dfsdm_frequency;
 }
-#endif /* DFSDM_Channel0 */
+#endif /* DFSDM1_Channel0 */
 
 /**
   * @}
@@ -1167,7 +1188,6 @@ uint32_t RCC_PLL_GetFreqDomain_SYS(void)
   return __LL_RCC_CALC_PLLCLK_FREQ(pllinputfreq, LL_RCC_PLL_GetDivider(),
                                         LL_RCC_PLL_GetN(), LL_RCC_PLL_GetR());
 }
-
 /**
   * @brief  Return PLL clock frequency used for SAI domain
   * @retval PLL clock frequency (in Hz)

@@ -2,8 +2,8 @@
   ******************************************************************************
   * @file    stm32l4xx_ll_system.h
   * @author  MCD Application Team
-  * @version V1.4.0
-  * @date    26-February-2016
+  * @version V1.5.1
+  * @date    31-May-2016
   * @brief   Header file of SYSTEM LL module.
   @verbatim
   ==============================================================================
@@ -131,10 +131,16 @@ extern "C" {
   */
 #define LL_SYSCFG_I2C_FASTMODEPLUS_PB6     SYSCFG_CFGR1_I2C_PB6_FMP  /*!< Enable Fast Mode Plus on PB6       */
 #define LL_SYSCFG_I2C_FASTMODEPLUS_PB7     SYSCFG_CFGR1_I2C_PB7_FMP  /*!< Enable Fast Mode Plus on PB7       */
+#if defined(SYSCFG_CFGR1_I2C_PB8_FMP)
 #define LL_SYSCFG_I2C_FASTMODEPLUS_PB8     SYSCFG_CFGR1_I2C_PB8_FMP  /*!< Enable Fast Mode Plus on PB8       */
+#endif /* SYSCFG_CFGR1_I2C_PB8_FMP */
+#if defined(SYSCFG_CFGR1_I2C_PB9_FMP)
 #define LL_SYSCFG_I2C_FASTMODEPLUS_PB9     SYSCFG_CFGR1_I2C_PB9_FMP  /*!< Enable Fast Mode Plus on PB9       */
+#endif /* SYSCFG_CFGR1_I2C_PB9_FMP */
 #define LL_SYSCFG_I2C_FASTMODEPLUS_I2C1    SYSCFG_CFGR1_I2C1_FMP     /*!< Enable Fast Mode Plus on I2C1 pins */
+#if defined(I2C2)
 #define LL_SYSCFG_I2C_FASTMODEPLUS_I2C2    SYSCFG_CFGR1_I2C2_FMP     /*!< Enable Fast Mode Plus on I2C2 pins */
+#endif /* I2C2 */
 #define LL_SYSCFG_I2C_FASTMODEPLUS_I2C3    SYSCFG_CFGR1_I2C3_FMP     /*!< Enable Fast Mode Plus on I2C3 pins */
 /**
   * @}
@@ -251,47 +257,62 @@ extern "C" {
   * @}
   */
 
-/** @defgroup SYSTEM_LL_EC_ABP1_GRP1_STOP_IP DBGMCU ABP1 GRP1 STOP IP
+/** @defgroup SYSTEM_LL_EC_APB1_GRP1_STOP_IP DBGMCU APB1 GRP1 STOP IP
   * @{
   */
-#define LL_DBGMCU_ABP1_GRP1_TIM2_STOP      DBGMCU_APB1FZR1_DBG_TIM2_STOP   /*!< The counter clock of TIM2 is stopped when the core is halted*/
-#define LL_DBGMCU_ABP1_GRP1_TIM3_STOP      DBGMCU_APB1FZR1_DBG_TIM3_STOP   /*!< The counter clock of TIM3 is stopped when the core is halted*/
-#define LL_DBGMCU_ABP1_GRP1_TIM4_STOP      DBGMCU_APB1FZR1_DBG_TIM4_STOP   /*!< The counter clock of TIM4 is stopped when the core is halted*/
-#define LL_DBGMCU_ABP1_GRP1_TIM5_STOP      DBGMCU_APB1FZR1_DBG_TIM5_STOP   /*!< The counter clock of TIM5 is stopped when the core is halted*/
-#define LL_DBGMCU_ABP1_GRP1_TIM6_STOP      DBGMCU_APB1FZR1_DBG_TIM6_STOP   /*!< The counter clock of TIM6 is stopped when the core is halted*/
-#define LL_DBGMCU_ABP1_GRP1_TIM7_STOP      DBGMCU_APB1FZR1_DBG_TIM7_STOP   /*!< The counter clock of TIM7 is stopped when the core is halted*/
-#define LL_DBGMCU_ABP1_GRP1_RTC_STOP       DBGMCU_APB1FZR1_DBG_RTC_STOP    /*!< The clock of the RTC counter is stopped when the core is halted*/
-#define LL_DBGMCU_ABP1_GRP1_WWDG_STOP      DBGMCU_APB1FZR1_DBG_WWDG_STOP   /*!< The window watchdog counter clock is stopped when the core is halted*/
-#define LL_DBGMCU_ABP1_GRP1_IWDG_STOP      DBGMCU_APB1FZR1_DBG_IWDG_STOP   /*!< The independent watchdog counter clock is stopped when the core is halted*/
-#define LL_DBGMCU_ABP1_GRP1_I2C1_STOP      DBGMCU_APB1FZR1_DBG_I2C1_STOP   /*!< The I2C1 SMBus timeout is frozen*/
-#define LL_DBGMCU_ABP1_GRP1_I2C2_STOP      DBGMCU_APB1FZR1_DBG_I2C2_STOP   /*!< The I2C2 SMBus timeout is frozen*/
-#define LL_DBGMCU_ABP1_GRP1_I2C3_STOP      DBGMCU_APB1FZR1_DBG_I2C3_STOP   /*!< The I2C3 SMBus timeout is frozen*/
-#define LL_DBGMCU_ABP1_GRP1_CAN_STOP       DBGMCU_APB1FZR1_DBG_CAN_STOP    /*!< The bxCAN receive registers are frozen*/
-#define LL_DBGMCU_ABP1_GRP1_LPTIM1_STOP    DBGMCU_APB1FZR1_DBG_LPTIM1_STOP /*!< The counter clock of LPTIM1 is stopped when the core is halted*/
+#define LL_DBGMCU_APB1_GRP1_TIM2_STOP      DBGMCU_APB1FZR1_DBG_TIM2_STOP   /*!< The counter clock of TIM2 is stopped when the core is halted*/
+#if defined(TIM3)
+#define LL_DBGMCU_APB1_GRP1_TIM3_STOP      DBGMCU_APB1FZR1_DBG_TIM3_STOP   /*!< The counter clock of TIM3 is stopped when the core is halted*/
+#endif /* TIM3 */
+#if defined(TIM4)
+#define LL_DBGMCU_APB1_GRP1_TIM4_STOP      DBGMCU_APB1FZR1_DBG_TIM4_STOP   /*!< The counter clock of TIM4 is stopped when the core is halted*/
+#endif /* TIM4 */
+#if defined(TIM5)
+#define LL_DBGMCU_APB1_GRP1_TIM5_STOP      DBGMCU_APB1FZR1_DBG_TIM5_STOP   /*!< The counter clock of TIM5 is stopped when the core is halted*/
+#endif /* TIM5 */
+#define LL_DBGMCU_APB1_GRP1_TIM6_STOP      DBGMCU_APB1FZR1_DBG_TIM6_STOP   /*!< The counter clock of TIM6 is stopped when the core is halted*/
+#if defined(TIM7)
+#define LL_DBGMCU_APB1_GRP1_TIM7_STOP      DBGMCU_APB1FZR1_DBG_TIM7_STOP   /*!< The counter clock of TIM7 is stopped when the core is halted*/
+#endif /* TIM7 */
+#define LL_DBGMCU_APB1_GRP1_RTC_STOP       DBGMCU_APB1FZR1_DBG_RTC_STOP    /*!< The clock of the RTC counter is stopped when the core is halted*/
+#define LL_DBGMCU_APB1_GRP1_WWDG_STOP      DBGMCU_APB1FZR1_DBG_WWDG_STOP   /*!< The window watchdog counter clock is stopped when the core is halted*/
+#define LL_DBGMCU_APB1_GRP1_IWDG_STOP      DBGMCU_APB1FZR1_DBG_IWDG_STOP   /*!< The independent watchdog counter clock is stopped when the core is halted*/
+#define LL_DBGMCU_APB1_GRP1_I2C1_STOP      DBGMCU_APB1FZR1_DBG_I2C1_STOP   /*!< The I2C1 SMBus timeout is frozen*/
+#if defined(I2C2)
+#define LL_DBGMCU_APB1_GRP1_I2C2_STOP      DBGMCU_APB1FZR1_DBG_I2C2_STOP   /*!< The I2C2 SMBus timeout is frozen*/
+#endif /* I2C2 */
+#define LL_DBGMCU_APB1_GRP1_I2C3_STOP      DBGMCU_APB1FZR1_DBG_I2C3_STOP   /*!< The I2C3 SMBus timeout is frozen*/
+#define LL_DBGMCU_APB1_GRP1_CAN_STOP       DBGMCU_APB1FZR1_DBG_CAN_STOP    /*!< The bxCAN receive registers are frozen*/
+#define LL_DBGMCU_APB1_GRP1_LPTIM1_STOP    DBGMCU_APB1FZR1_DBG_LPTIM1_STOP /*!< The counter clock of LPTIM1 is stopped when the core is halted*/
 /**
   * @}
   */
 
-/** @defgroup SYSTEM_LL_EC_ABP1_GRP2_STOP_IP DBGMCU ABP1 GRP2 STOP IP
+/** @defgroup SYSTEM_LL_EC_APB1_GRP2_STOP_IP DBGMCU APB1 GRP2 STOP IP
   * @{
   */
-#define LL_DBGMCU_ABP1_GRP2_LPTIM2_STOP    DBGMCU_APB1FZR2_DBG_LPTIM2_STOP /*!< The counter clock of LPTIM2 is stopped when the core is halted*/
+#define LL_DBGMCU_APB1_GRP2_LPTIM2_STOP    DBGMCU_APB1FZR2_DBG_LPTIM2_STOP /*!< The counter clock of LPTIM2 is stopped when the core is halted*/
 /**
   * @}
   */
 
-/** @defgroup SYSTEM_LL_EC_ABP2_GRP1_STOP_IP DBGMCU ABP2 GRP1 STOP IP
+/** @defgroup SYSTEM_LL_EC_APB2_GRP1_STOP_IP DBGMCU APB2 GRP1 STOP IP
   * @{
   */
-#define LL_DBGMCU_ABP2_GRP1_TIM1_STOP      DBGMCU_APB2FZ_DBG_TIM1_STOP     /*!< The counter clock of TIM1 is stopped when the core is halted*/
-#define LL_DBGMCU_ABP2_GRP1_TIM8_STOP      DBGMCU_APB2FZ_DBG_TIM8_STOP     /*!< The counter clock of TIM8 is stopped when the core is halted*/
-#define LL_DBGMCU_ABP2_GRP1_TIM15_STOP     DBGMCU_APB2FZ_DBG_TIM15_STOP    /*!< The counter clock of TIM15 is stopped when the core is halted*/
-#define LL_DBGMCU_ABP2_GRP1_TIM16_STOP     DBGMCU_APB2FZ_DBG_TIM16_STOP    /*!< The counter clock of TIM16 is stopped when the core is halted*/
-#define LL_DBGMCU_ABP2_GRP1_TIM17_STOP     DBGMCU_APB2FZ_DBG_TIM17_STOP    /*!< The counter clock of TIM17 is stopped when the core is halted*/
+#define LL_DBGMCU_APB2_GRP1_TIM1_STOP      DBGMCU_APB2FZ_DBG_TIM1_STOP     /*!< The counter clock of TIM1 is stopped when the core is halted*/
+#if defined(TIM8)
+#define LL_DBGMCU_APB2_GRP1_TIM8_STOP      DBGMCU_APB2FZ_DBG_TIM8_STOP     /*!< The counter clock of TIM8 is stopped when the core is halted*/
+#endif /* TIM8 */
+#define LL_DBGMCU_APB2_GRP1_TIM15_STOP     DBGMCU_APB2FZ_DBG_TIM15_STOP    /*!< The counter clock of TIM15 is stopped when the core is halted*/
+#define LL_DBGMCU_APB2_GRP1_TIM16_STOP     DBGMCU_APB2FZ_DBG_TIM16_STOP    /*!< The counter clock of TIM16 is stopped when the core is halted*/
+#if defined(TIM17)
+#define LL_DBGMCU_APB2_GRP1_TIM17_STOP     DBGMCU_APB2FZ_DBG_TIM17_STOP    /*!< The counter clock of TIM17 is stopped when the core is halted*/
+#endif /* TIM17 */
 /**
   * @}
   */
 
+#if defined(VREFBUF)
 /** @defgroup SYSTEM_LL_EC_VOLTAGE VREFBUF VOLTAGE
   * @{
   */
@@ -300,6 +321,7 @@ extern "C" {
 /**
   * @}
   */
+#endif /* VREFBUF */
 
 /** @defgroup SYSTEM_LL_EC_LATENCY FLASH LATENCY
   * @{
@@ -455,11 +477,13 @@ __STATIC_INLINE void LL_SYSCFG_DisableAnalogBooster(void)
   * @param  ConfigFastModePlus This parameter can be a combination of the following values:
   *         @arg @ref LL_SYSCFG_I2C_FASTMODEPLUS_PB6
   *         @arg @ref LL_SYSCFG_I2C_FASTMODEPLUS_PB7
-  *         @arg @ref LL_SYSCFG_I2C_FASTMODEPLUS_PB8
-  *         @arg @ref LL_SYSCFG_I2C_FASTMODEPLUS_PB9
+  *         @arg @ref LL_SYSCFG_I2C_FASTMODEPLUS_PB8 (*)
+  *         @arg @ref LL_SYSCFG_I2C_FASTMODEPLUS_PB9 (*)
   *         @arg @ref LL_SYSCFG_I2C_FASTMODEPLUS_I2C1
-  *         @arg @ref LL_SYSCFG_I2C_FASTMODEPLUS_I2C2
+  *         @arg @ref LL_SYSCFG_I2C_FASTMODEPLUS_I2C2 (*)
   *         @arg @ref LL_SYSCFG_I2C_FASTMODEPLUS_I2C3
+  *
+  *         (*) value not defined in all devices
   * @retval None
   */
 __STATIC_INLINE void LL_SYSCFG_EnableFastModePlus(uint32_t ConfigFastModePlus)
@@ -474,11 +498,13 @@ __STATIC_INLINE void LL_SYSCFG_EnableFastModePlus(uint32_t ConfigFastModePlus)
   * @param  ConfigFastModePlus This parameter can be a combination of the following values:
   *         @arg @ref LL_SYSCFG_I2C_FASTMODEPLUS_PB6
   *         @arg @ref LL_SYSCFG_I2C_FASTMODEPLUS_PB7
-  *         @arg @ref LL_SYSCFG_I2C_FASTMODEPLUS_PB8
-  *         @arg @ref LL_SYSCFG_I2C_FASTMODEPLUS_PB9
+  *         @arg @ref LL_SYSCFG_I2C_FASTMODEPLUS_PB8 (*)
+  *         @arg @ref LL_SYSCFG_I2C_FASTMODEPLUS_PB9 (*)
   *         @arg @ref LL_SYSCFG_I2C_FASTMODEPLUS_I2C1
-  *         @arg @ref LL_SYSCFG_I2C_FASTMODEPLUS_I2C2
+  *         @arg @ref LL_SYSCFG_I2C_FASTMODEPLUS_I2C2 (*)
   *         @arg @ref LL_SYSCFG_I2C_FASTMODEPLUS_I2C3
+  *
+  *         (*) value not defined in all devices
   * @retval None
   */
 __STATIC_INLINE void LL_SYSCFG_DisableFastModePlus(uint32_t ConfigFastModePlus)
@@ -1024,106 +1050,114 @@ __STATIC_INLINE uint32_t LL_DBGMCU_GetTracePinAssignment(void)
 
 /**
   * @brief  Freeze APB1 peripherals (group1 peripherals)
-  * @rmtoll DBGMCU_APB1FZR1 DBG_xxxx_STOP  LL_DBGMCU_ABP1_GRP1_FreezePeriph
+  * @rmtoll DBGMCU_APB1FZR1 DBG_xxxx_STOP  LL_DBGMCU_APB1_GRP1_FreezePeriph
   * @param  Periphs This parameter can be a combination of the following values:
-  *         @arg @ref LL_DBGMCU_ABP1_GRP1_TIM2_STOP
-  *         @arg @ref LL_DBGMCU_ABP1_GRP1_TIM3_STOP
-  *         @arg @ref LL_DBGMCU_ABP1_GRP1_TIM4_STOP
-  *         @arg @ref LL_DBGMCU_ABP1_GRP1_TIM5_STOP
-  *         @arg @ref LL_DBGMCU_ABP1_GRP1_TIM6_STOP
-  *         @arg @ref LL_DBGMCU_ABP1_GRP1_TIM7_STOP
-  *         @arg @ref LL_DBGMCU_ABP1_GRP1_RTC_STOP
-  *         @arg @ref LL_DBGMCU_ABP1_GRP1_WWDG_STOP
-  *         @arg @ref LL_DBGMCU_ABP1_GRP1_IWDG_STOP
-  *         @arg @ref LL_DBGMCU_ABP1_GRP1_I2C1_STOP
-  *         @arg @ref LL_DBGMCU_ABP1_GRP1_I2C2_STOP
-  *         @arg @ref LL_DBGMCU_ABP1_GRP1_I2C3_STOP
-  *         @arg @ref LL_DBGMCU_ABP1_GRP1_CAN_STOP
-  *         @arg @ref LL_DBGMCU_ABP1_GRP1_LPTIM1_STOP
+  *         @arg @ref LL_DBGMCU_APB1_GRP1_TIM2_STOP
+  *         @arg @ref LL_DBGMCU_APB1_GRP1_TIM3_STOP (*)
+  *         @arg @ref LL_DBGMCU_APB1_GRP1_TIM4_STOP (*)
+  *         @arg @ref LL_DBGMCU_APB1_GRP1_TIM5_STOP (*)
+  *         @arg @ref LL_DBGMCU_APB1_GRP1_TIM6_STOP
+  *         @arg @ref LL_DBGMCU_APB1_GRP1_TIM7_STOP (*)
+  *         @arg @ref LL_DBGMCU_APB1_GRP1_RTC_STOP
+  *         @arg @ref LL_DBGMCU_APB1_GRP1_WWDG_STOP
+  *         @arg @ref LL_DBGMCU_APB1_GRP1_IWDG_STOP
+  *         @arg @ref LL_DBGMCU_APB1_GRP1_I2C1_STOP
+  *         @arg @ref LL_DBGMCU_APB1_GRP1_I2C2_STOP (*)
+  *         @arg @ref LL_DBGMCU_APB1_GRP1_I2C3_STOP
+  *         @arg @ref LL_DBGMCU_APB1_GRP1_CAN_STOP
+  *         @arg @ref LL_DBGMCU_APB1_GRP1_LPTIM1_STOP
+  *
+  *         (*) value not defined in all devices.
   * @retval None
   */
-__STATIC_INLINE void LL_DBGMCU_ABP1_GRP1_FreezePeriph(uint32_t Periphs)
+__STATIC_INLINE void LL_DBGMCU_APB1_GRP1_FreezePeriph(uint32_t Periphs)
 {
   SET_BIT(DBGMCU->APB1FZR1, Periphs);
 }
 
 /**
   * @brief  Freeze APB1 peripherals (group2 peripherals)
-  * @rmtoll DBGMCU_APB1FZR2 DBG_xxxx_STOP  LL_DBGMCU_ABP1_GRP2_FreezePeriph
+  * @rmtoll DBGMCU_APB1FZR2 DBG_xxxx_STOP  LL_DBGMCU_APB1_GRP2_FreezePeriph
   * @param  Periphs This parameter can be a combination of the following values:
-  *         @arg @ref LL_DBGMCU_ABP1_GRP2_LPTIM2_STOP
+  *         @arg @ref LL_DBGMCU_APB1_GRP2_LPTIM2_STOP
   * @retval None
   */
-__STATIC_INLINE void LL_DBGMCU_ABP1_GRP2_FreezePeriph(uint32_t Periphs)
+__STATIC_INLINE void LL_DBGMCU_APB1_GRP2_FreezePeriph(uint32_t Periphs)
 {
   SET_BIT(DBGMCU->APB1FZR2, Periphs);
 }
 
 /**
   * @brief  Unfreeze APB1 peripherals (group1 peripherals)
-  * @rmtoll DBGMCU_APB1FZR1 DBG_xxxx_STOP  LL_DBGMCU_ABP1_GRP1_UnFreezePeriph
+  * @rmtoll DBGMCU_APB1FZR1 DBG_xxxx_STOP  LL_DBGMCU_APB1_GRP1_UnFreezePeriph
   * @param  Periphs This parameter can be a combination of the following values:
-  *         @arg @ref LL_DBGMCU_ABP1_GRP1_TIM2_STOP
-  *         @arg @ref LL_DBGMCU_ABP1_GRP1_TIM3_STOP
-  *         @arg @ref LL_DBGMCU_ABP1_GRP1_TIM4_STOP
-  *         @arg @ref LL_DBGMCU_ABP1_GRP1_TIM5_STOP
-  *         @arg @ref LL_DBGMCU_ABP1_GRP1_TIM6_STOP
-  *         @arg @ref LL_DBGMCU_ABP1_GRP1_TIM7_STOP
-  *         @arg @ref LL_DBGMCU_ABP1_GRP1_RTC_STOP
-  *         @arg @ref LL_DBGMCU_ABP1_GRP1_WWDG_STOP
-  *         @arg @ref LL_DBGMCU_ABP1_GRP1_IWDG_STOP
-  *         @arg @ref LL_DBGMCU_ABP1_GRP1_I2C1_STOP
-  *         @arg @ref LL_DBGMCU_ABP1_GRP1_I2C2_STOP
-  *         @arg @ref LL_DBGMCU_ABP1_GRP1_I2C3_STOP
-  *         @arg @ref LL_DBGMCU_ABP1_GRP1_CAN_STOP
-  *         @arg @ref LL_DBGMCU_ABP1_GRP1_LPTIM1_STOP
+  *         @arg @ref LL_DBGMCU_APB1_GRP1_TIM2_STOP
+  *         @arg @ref LL_DBGMCU_APB1_GRP1_TIM3_STOP (*)
+  *         @arg @ref LL_DBGMCU_APB1_GRP1_TIM4_STOP (*)
+  *         @arg @ref LL_DBGMCU_APB1_GRP1_TIM5_STOP (*)
+  *         @arg @ref LL_DBGMCU_APB1_GRP1_TIM6_STOP
+  *         @arg @ref LL_DBGMCU_APB1_GRP1_TIM7_STOP (*)
+  *         @arg @ref LL_DBGMCU_APB1_GRP1_RTC_STOP
+  *         @arg @ref LL_DBGMCU_APB1_GRP1_WWDG_STOP
+  *         @arg @ref LL_DBGMCU_APB1_GRP1_IWDG_STOP
+  *         @arg @ref LL_DBGMCU_APB1_GRP1_I2C1_STOP
+  *         @arg @ref LL_DBGMCU_APB1_GRP1_I2C2_STOP (*)
+  *         @arg @ref LL_DBGMCU_APB1_GRP1_I2C3_STOP
+  *         @arg @ref LL_DBGMCU_APB1_GRP1_CAN_STOP
+  *         @arg @ref LL_DBGMCU_APB1_GRP1_LPTIM1_STOP
+  *
+  *         (*) value not defined in all devices.
   * @retval None
   */
-__STATIC_INLINE void LL_DBGMCU_ABP1_GRP1_UnFreezePeriph(uint32_t Periphs)
+__STATIC_INLINE void LL_DBGMCU_APB1_GRP1_UnFreezePeriph(uint32_t Periphs)
 {
   CLEAR_BIT(DBGMCU->APB1FZR1, Periphs);
 }
 
 /**
   * @brief  Unfreeze APB1 peripherals (group2 peripherals)
-  * @rmtoll DBGMCU_APB1FZR2 DBG_xxxx_STOP  LL_DBGMCU_ABP1_GRP2_UnFreezePeriph
+  * @rmtoll DBGMCU_APB1FZR2 DBG_xxxx_STOP  LL_DBGMCU_APB1_GRP2_UnFreezePeriph
   * @param  Periphs This parameter can be a combination of the following values:
-  *         @arg @ref LL_DBGMCU_ABP1_GRP2_LPTIM2_STOP
+  *         @arg @ref LL_DBGMCU_APB1_GRP2_LPTIM2_STOP
   * @retval None
   */
-__STATIC_INLINE void LL_DBGMCU_ABP1_GRP2_UnFreezePeriph(uint32_t Periphs)
+__STATIC_INLINE void LL_DBGMCU_APB1_GRP2_UnFreezePeriph(uint32_t Periphs)
 {
   CLEAR_BIT(DBGMCU->APB1FZR2, Periphs);
 }
 
 /**
   * @brief  Freeze APB2 peripherals
-  * @rmtoll DBGMCU_APB2FZ DBG_TIMx_STOP  LL_DBGMCU_ABP2_GRP1_FreezePeriph
+  * @rmtoll DBGMCU_APB2FZ DBG_TIMx_STOP  LL_DBGMCU_APB2_GRP1_FreezePeriph
   * @param  Periphs This parameter can be a combination of the following values:
-  *         @arg @ref LL_DBGMCU_ABP2_GRP1_TIM1_STOP
-  *         @arg @ref LL_DBGMCU_ABP2_GRP1_TIM8_STOP
-  *         @arg @ref LL_DBGMCU_ABP2_GRP1_TIM15_STOP
-  *         @arg @ref LL_DBGMCU_ABP2_GRP1_TIM16_STOP
-  *         @arg @ref LL_DBGMCU_ABP2_GRP1_TIM17_STOP
+  *         @arg @ref LL_DBGMCU_APB2_GRP1_TIM1_STOP
+  *         @arg @ref LL_DBGMCU_APB2_GRP1_TIM8_STOP (*)
+  *         @arg @ref LL_DBGMCU_APB2_GRP1_TIM15_STOP
+  *         @arg @ref LL_DBGMCU_APB2_GRP1_TIM16_STOP
+  *         @arg @ref LL_DBGMCU_APB2_GRP1_TIM17_STOP (*)
+  *
+  *         (*) value not defined in all devices.
   * @retval None
   */
-__STATIC_INLINE void LL_DBGMCU_ABP2_GRP1_FreezePeriph(uint32_t Periphs)
+__STATIC_INLINE void LL_DBGMCU_APB2_GRP1_FreezePeriph(uint32_t Periphs)
 {
   SET_BIT(DBGMCU->APB2FZ, Periphs);
 }
 
 /**
   * @brief  Unfreeze APB2 peripherals
-  * @rmtoll DBGMCU_APB2FZ DBG_TIMx_STOP  LL_DBGMCU_ABP2_GRP1_UnFreezePeriph
+  * @rmtoll DBGMCU_APB2FZ DBG_TIMx_STOP  LL_DBGMCU_APB2_GRP1_UnFreezePeriph
   * @param  Periphs This parameter can be a combination of the following values:
-  *         @arg @ref LL_DBGMCU_ABP2_GRP1_TIM1_STOP
-  *         @arg @ref LL_DBGMCU_ABP2_GRP1_TIM8_STOP
-  *         @arg @ref LL_DBGMCU_ABP2_GRP1_TIM15_STOP
-  *         @arg @ref LL_DBGMCU_ABP2_GRP1_TIM16_STOP
-  *         @arg @ref LL_DBGMCU_ABP2_GRP1_TIM17_STOP
+  *         @arg @ref LL_DBGMCU_APB2_GRP1_TIM1_STOP
+  *         @arg @ref LL_DBGMCU_APB2_GRP1_TIM8_STOP (*)
+  *         @arg @ref LL_DBGMCU_APB2_GRP1_TIM15_STOP
+  *         @arg @ref LL_DBGMCU_APB2_GRP1_TIM16_STOP
+  *         @arg @ref LL_DBGMCU_APB2_GRP1_TIM17_STOP (*)
+  *
+  *         (*) value not defined in all devices.
   * @retval None
   */
-__STATIC_INLINE void LL_DBGMCU_ABP2_GRP1_UnFreezePeriph(uint32_t Periphs)
+__STATIC_INLINE void LL_DBGMCU_APB2_GRP1_UnFreezePeriph(uint32_t Periphs)
 {
   CLEAR_BIT(DBGMCU->APB2FZ, Periphs);
 }
@@ -1132,6 +1166,7 @@ __STATIC_INLINE void LL_DBGMCU_ABP2_GRP1_UnFreezePeriph(uint32_t Periphs)
   * @}
   */
 
+#if defined(VREFBUF)
 /** @defgroup SYSTEM_LL_EF_VREFBUF VREFBUF
   * @{
   */
@@ -1235,7 +1270,7 @@ __STATIC_INLINE void LL_VREFBUF_SetTrimming(uint32_t Value)
 /**
   * @}
   */
-
+#endif /* VREFBUF */
 
 /** @defgroup SYSTEM_LL_EF_FLASH FLASH
   * @{
@@ -1290,6 +1325,16 @@ __STATIC_INLINE void LL_FLASH_EnablePrefetch(void)
 __STATIC_INLINE void LL_FLASH_DisablePrefetch(void)
 {
   CLEAR_BIT(FLASH->ACR, FLASH_ACR_PRFTEN);
+}
+
+/**
+  * @brief  Check if Prefetch buffer is enabled
+  * @rmtoll FLASH_ACR    PRFTEN        LL_FLASH_IsPrefetchEnabled
+  * @retval State of bit (1 or 0).
+  */
+__STATIC_INLINE uint32_t LL_FLASH_IsPrefetchEnabled(void)
+{
+  return (READ_BIT(FLASH->ACR, FLASH_ACR_PRFTEN) == (FLASH_ACR_PRFTEN));
 }
 
 /**

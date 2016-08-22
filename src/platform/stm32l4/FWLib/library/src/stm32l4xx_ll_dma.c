@@ -2,8 +2,8 @@
   ******************************************************************************
   * @file    stm32l4xx_ll_dma.c
   * @author  MCD Application Team
-  * @version V1.4.0
-  * @date    26-February-2016
+  * @version V1.5.1
+  * @date    31-May-2016
   * @brief   DMA LL module driver.
   ******************************************************************************
   * @attention
@@ -41,7 +41,7 @@
 #ifdef  USE_FULL_ASSERT
 #include "stm32_assert.h"
 #else
-#define assert_param(expr) ((void)0)
+#define assert_param(expr) ((void)0U)
 #endif
 
 #if defined(USE_FULL_LL_DRIVER)
@@ -227,8 +227,8 @@ uint32_t LL_DMA_DeInit(DMA_TypeDef *DMAx, uint32_t Channel)
     /* Reset DMAx_Channely memory address register */
     LL_DMA_WriteReg(tmp, CMAR, 0U);
 
-      /* Reset Request register field for DMAx Channel */
-      LL_DMA_SetPeriphRequest(DMAx, Channel, LL_DMA_REQUEST_0);
+    /* Reset Request register field for DMAx Channel */
+    LL_DMA_SetPeriphRequest(DMAx, Channel, LL_DMA_REQUEST_0);
 
     if (Channel == LL_DMA_CHANNEL_1)
     {
@@ -341,7 +341,7 @@ uint32_t LL_DMA_Init(DMA_TypeDef *DMAx, uint32_t Channel, LL_DMA_InitTypeDef *DM
    * - PeriphOrM2MSrcAddress: DMA_CPAR_PA[31:0] bits
    */
   LL_DMA_SetPeriphAddress(DMAx, Channel, DMA_InitStruct->PeriphOrM2MSrcAddress);
-  
+
   /*--------------------------- DMAx CNDTR Configuration -----------------------
    * Configure the peripheral base address with parameter :
    * - NbData: DMA_CNDTR_NDT[15:0] bits

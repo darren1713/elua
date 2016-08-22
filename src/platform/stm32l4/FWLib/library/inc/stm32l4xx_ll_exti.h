@@ -2,8 +2,8 @@
   ******************************************************************************
   * @file    stm32l4xx_ll_exti.h
   * @author  MCD Application Team
-  * @version V1.4.0
-  * @date    26-February-2016
+  * @version V1.5.1
+  * @date    31-May-2016
   * @brief   Header file of EXTI LL module.
   ******************************************************************************
   * @attention
@@ -296,8 +296,7 @@ typedef struct
   *         @arg @ref LL_EXTI_LINE_30
   *         @arg @ref LL_EXTI_LINE_31
   *         @arg @ref LL_EXTI_LINE_ALL_0_31
-  *
-  *         Please check each device line mapping for EXTI Line availability
+  * @note   Please check each device line mapping for EXTI Line availability
   * @retval None
   */
 __STATIC_INLINE void LL_EXTI_EnableIT_0_31(uint32_t ExtiLine)
@@ -367,8 +366,7 @@ __STATIC_INLINE void LL_EXTI_EnableIT_32_63(uint32_t ExtiLine)
   *         @arg @ref LL_EXTI_LINE_30
   *         @arg @ref LL_EXTI_LINE_31
   *         @arg @ref LL_EXTI_LINE_ALL_0_31
-  *
-  *         Please check each device line mapping for EXTI Line availability
+  * @note   Please check each device line mapping for EXTI Line availability
   * @retval None
   */
 __STATIC_INLINE void LL_EXTI_DisableIT_0_31(uint32_t ExtiLine)
@@ -439,8 +437,7 @@ __STATIC_INLINE void LL_EXTI_DisableIT_32_63(uint32_t ExtiLine)
   *         @arg @ref LL_EXTI_LINE_30
   *         @arg @ref LL_EXTI_LINE_31
   *         @arg @ref LL_EXTI_LINE_ALL_0_31
-  *
-  *         Please check each device line mapping for EXTI Line availability
+  * @note   Please check each device line mapping for EXTI Line availability
   * @retval State of bit (1 or 0).
   */
 __STATIC_INLINE uint32_t LL_EXTI_IsEnabledIT_0_31(uint32_t ExtiLine)
@@ -516,8 +513,7 @@ __STATIC_INLINE uint32_t LL_EXTI_IsEnabledIT_32_63(uint32_t ExtiLine)
   *         @arg @ref LL_EXTI_LINE_30
   *         @arg @ref LL_EXTI_LINE_31
   *         @arg @ref LL_EXTI_LINE_ALL_0_31
-  *
-  *         Please check each device line mapping for EXTI Line availability
+  * @note   Please check each device line mapping for EXTI Line availability
   * @retval None
   */
 __STATIC_INLINE void LL_EXTI_EnableEvent_0_31(uint32_t ExtiLine)
@@ -583,8 +579,7 @@ __STATIC_INLINE void LL_EXTI_EnableEvent_32_63(uint32_t ExtiLine)
   *         @arg @ref LL_EXTI_LINE_30
   *         @arg @ref LL_EXTI_LINE_31
   *         @arg @ref LL_EXTI_LINE_ALL_0_31
-  *
-  *         Please check each device line mapping for EXTI Line availability
+  * @note   Please check each device line mapping for EXTI Line availability
   * @retval None
   */
 __STATIC_INLINE void LL_EXTI_DisableEvent_0_31(uint32_t ExtiLine)
@@ -649,8 +644,7 @@ __STATIC_INLINE void LL_EXTI_DisableEvent_32_63(uint32_t ExtiLine)
   *         @arg @ref LL_EXTI_LINE_30
   *         @arg @ref LL_EXTI_LINE_31
   *         @arg @ref LL_EXTI_LINE_ALL_0_31
-  *
-  *         Please check each device line mapping for EXTI Line availability
+  * @note   Please check each device line mapping for EXTI Line availability
   * @retval State of bit (1 or 0).
   */
 __STATIC_INLINE uint32_t LL_EXTI_IsEnabledEvent_0_31(uint32_t ExtiLine)
@@ -720,6 +714,10 @@ __STATIC_INLINE uint32_t LL_EXTI_IsEnabledEvent_32_63(uint32_t ExtiLine)
   *         @arg @ref LL_EXTI_LINE_20
   *         @arg @ref LL_EXTI_LINE_21
   *         @arg @ref LL_EXTI_LINE_22
+  *         @arg @ref LL_EXTI_LINE_29
+  *         @arg @ref LL_EXTI_LINE_30
+  *         @arg @ref LL_EXTI_LINE_31
+  * @note   Please check each device line mapping for EXTI Line availability
   * @retval None
   */
 __STATIC_INLINE void LL_EXTI_EnableRisingTrig_0_31(uint32_t ExtiLine)
@@ -782,6 +780,10 @@ __STATIC_INLINE void LL_EXTI_EnableRisingTrig_32_63(uint32_t ExtiLine)
   *         @arg @ref LL_EXTI_LINE_20
   *         @arg @ref LL_EXTI_LINE_21
   *         @arg @ref LL_EXTI_LINE_22
+  *         @arg @ref LL_EXTI_LINE_29
+  *         @arg @ref LL_EXTI_LINE_30
+  *         @arg @ref LL_EXTI_LINE_31
+  * @note   Please check each device line mapping for EXTI Line availability
   * @retval None
   */
 __STATIC_INLINE void LL_EXTI_DisableRisingTrig_0_31(uint32_t ExtiLine)
@@ -838,6 +840,10 @@ __STATIC_INLINE void LL_EXTI_DisableRisingTrig_32_63(uint32_t ExtiLine)
   *         @arg @ref LL_EXTI_LINE_20
   *         @arg @ref LL_EXTI_LINE_21
   *         @arg @ref LL_EXTI_LINE_22
+  *         @arg @ref LL_EXTI_LINE_29
+  *         @arg @ref LL_EXTI_LINE_30
+  *         @arg @ref LL_EXTI_LINE_31
+  * @note   Please check each device line mapping for EXTI Line availability
   * @retval State of bit (1 or 0).
   */
 __STATIC_INLINE uint32_t LL_EXTI_IsEnabledRisingTrig_0_31(uint32_t ExtiLine)
@@ -901,6 +907,10 @@ __STATIC_INLINE uint32_t LL_EXTI_IsEnabledRisingTrig_32_63(uint32_t ExtiLine)
   *         @arg @ref LL_EXTI_LINE_20
   *         @arg @ref LL_EXTI_LINE_21
   *         @arg @ref LL_EXTI_LINE_22
+  *         @arg @ref LL_EXTI_LINE_29
+  *         @arg @ref LL_EXTI_LINE_30
+  *         @arg @ref LL_EXTI_LINE_31
+  * @note   Please check each device line mapping for EXTI Line availability
   * @retval None
   */
 __STATIC_INLINE void LL_EXTI_EnableFallingTrig_0_31(uint32_t ExtiLine)
@@ -962,6 +972,10 @@ __STATIC_INLINE void LL_EXTI_EnableFallingTrig_32_63(uint32_t ExtiLine)
   *         @arg @ref LL_EXTI_LINE_20
   *         @arg @ref LL_EXTI_LINE_21
   *         @arg @ref LL_EXTI_LINE_22
+  *         @arg @ref LL_EXTI_LINE_29
+  *         @arg @ref LL_EXTI_LINE_30
+  *         @arg @ref LL_EXTI_LINE_31
+  * @note   Please check each device line mapping for EXTI Line availability
   * @retval None
   */
 __STATIC_INLINE void LL_EXTI_DisableFallingTrig_0_31(uint32_t ExtiLine)
@@ -1016,6 +1030,10 @@ __STATIC_INLINE void LL_EXTI_DisableFallingTrig_32_63(uint32_t ExtiLine)
   *         @arg @ref LL_EXTI_LINE_20
   *         @arg @ref LL_EXTI_LINE_21
   *         @arg @ref LL_EXTI_LINE_22
+  *         @arg @ref LL_EXTI_LINE_29
+  *         @arg @ref LL_EXTI_LINE_30
+  *         @arg @ref LL_EXTI_LINE_31
+  * @note   Please check each device line mapping for EXTI Line availability
   * @retval State of bit (1 or 0).
   */
 __STATIC_INLINE uint32_t LL_EXTI_IsEnabledFallingTrig_0_31(uint32_t ExtiLine)
@@ -1077,6 +1095,10 @@ __STATIC_INLINE uint32_t LL_EXTI_IsEnabledFallingTrig_32_63(uint32_t ExtiLine)
   *         @arg @ref LL_EXTI_LINE_20
   *         @arg @ref LL_EXTI_LINE_21
   *         @arg @ref LL_EXTI_LINE_22
+  *         @arg @ref LL_EXTI_LINE_29
+  *         @arg @ref LL_EXTI_LINE_30
+  *         @arg @ref LL_EXTI_LINE_31
+  * @note   Please check each device line mapping for EXTI Line availability
   * @retval None
   */
 __STATIC_INLINE void LL_EXTI_GenerateSWI_0_31(uint32_t ExtiLine)
@@ -1140,6 +1162,10 @@ __STATIC_INLINE void LL_EXTI_GenerateSWI_32_63(uint32_t ExtiLine)
   *         @arg @ref LL_EXTI_LINE_20
   *         @arg @ref LL_EXTI_LINE_21
   *         @arg @ref LL_EXTI_LINE_22
+  *         @arg @ref LL_EXTI_LINE_29
+  *         @arg @ref LL_EXTI_LINE_30
+  *         @arg @ref LL_EXTI_LINE_31
+  * @note   Please check each device line mapping for EXTI Line availability
   * @retval State of bit (1 or 0).
   */
 __STATIC_INLINE uint32_t LL_EXTI_IsActiveFlag_0_31(uint32_t ExtiLine)
@@ -1192,6 +1218,10 @@ __STATIC_INLINE uint32_t LL_EXTI_IsActiveFlag_32_63(uint32_t ExtiLine)
   *         @arg @ref LL_EXTI_LINE_20
   *         @arg @ref LL_EXTI_LINE_21
   *         @arg @ref LL_EXTI_LINE_22
+  *         @arg @ref LL_EXTI_LINE_29
+  *         @arg @ref LL_EXTI_LINE_30
+  *         @arg @ref LL_EXTI_LINE_31
+  * @note   Please check each device line mapping for EXTI Line availability
   * @retval @note This bit is set when the selected edge event arrives on the interrupt
   */
 __STATIC_INLINE uint32_t LL_EXTI_ReadFlag_0_31(uint32_t ExtiLine)
@@ -1245,6 +1275,10 @@ __STATIC_INLINE uint32_t LL_EXTI_ReadFlag_32_63(uint32_t ExtiLine)
   *         @arg @ref LL_EXTI_LINE_20
   *         @arg @ref LL_EXTI_LINE_21
   *         @arg @ref LL_EXTI_LINE_22
+  *         @arg @ref LL_EXTI_LINE_29
+  *         @arg @ref LL_EXTI_LINE_30
+  *         @arg @ref LL_EXTI_LINE_31
+  * @note   Please check each device line mapping for EXTI Line availability
   * @retval None
   */
 __STATIC_INLINE void LL_EXTI_ClearFlag_0_31(uint32_t ExtiLine)

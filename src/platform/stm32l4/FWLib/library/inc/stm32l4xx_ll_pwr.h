@@ -2,8 +2,8 @@
   ******************************************************************************
   * @file    stm32l4xx_ll_pwr.h
   * @author  MCD Application Team
-  * @version V1.4.0
-  * @date    26-February-2016
+  * @version V1.5.1
+  * @date    31-May-2016
   * @brief   Header file of PWR LL module.
   ******************************************************************************
   * @attention
@@ -296,6 +296,26 @@ __STATIC_INLINE void LL_PWR_DisableLowPowerRunMode(void)
 __STATIC_INLINE uint32_t LL_PWR_IsEnabledLowPowerRunMode(void)
 {
   return (READ_BIT(PWR->CR1, PWR_CR1_LPR) == (PWR_CR1_LPR));
+}
+
+/**
+  * @brief  Switch from run main mode to run low-power mode.
+  * @rmtoll CR1          LPR           LL_PWR_EnterLowPowerRunMode
+  * @retval None
+  */
+__STATIC_INLINE void LL_PWR_EnterLowPowerRunMode(void)
+{
+  LL_PWR_EnableLowPowerRunMode();
+}
+
+/**
+  * @brief  Switch from run main mode to low-power mode.
+  * @rmtoll CR1          LPR           LL_PWR_ExitLowPowerRunMode
+  * @retval None
+  */
+__STATIC_INLINE void LL_PWR_ExitLowPowerRunMode(void)
+{
+  LL_PWR_DisableLowPowerRunMode();
 }
 
 /**

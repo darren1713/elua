@@ -2,8 +2,8 @@
   ******************************************************************************
   * @file    stm32l4xx_ll_opamp.c
   * @author  MCD Application Team
-  * @version V1.4.0
-  * @date    26-February-2016
+  * @version V1.5.1
+  * @date    31-May-2016
   * @brief   OPAMP LL module driver
   ******************************************************************************
   * @attention
@@ -65,8 +65,8 @@
   * @{
   */
 
-/* Check of parameters for configuration of OPAMP hierarchical scope:          */
-/* OPAMP instance.                                                             */
+/* Check of parameters for configuration of OPAMP hierarchical scope:         */
+/* OPAMP instance.                                                            */
 
 #define IS_LL_OPAMP_POWER_MODE(__POWER_MODE__)                                 \
   (   ((__POWER_MODE__) == LL_OPAMP_POWERMODE_NORMAL)                          \
@@ -202,6 +202,7 @@ ErrorStatus LL_OPAMP_Init(OPAMP_TypeDef *OPAMPx, LL_OPAMP_InitTypeDef *OPAMP_Ini
                | LL_OPAMP_INPUT_INVERT_CONNECT_NO
               );
   }
+  
   return SUCCESS;
 }
 

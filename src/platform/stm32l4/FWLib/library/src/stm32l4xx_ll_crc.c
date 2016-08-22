@@ -2,8 +2,8 @@
   ******************************************************************************
   * @file    stm32l4xx_ll_crc.c
   * @author  MCD Application Team
-  * @version V1.4.0
-  * @date    26-February-2016
+  * @version V1.5.1
+  * @date    31-May-2016
   * @brief   CRC LL module driver.
   ******************************************************************************
   * @attention

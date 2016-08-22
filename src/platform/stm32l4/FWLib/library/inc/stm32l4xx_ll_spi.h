@@ -2,8 +2,8 @@
   ******************************************************************************
   * @file    stm32l4xx_ll_spi.h
   * @author  MCD Application Team
-  * @version V1.4.0
-  * @date    26-February-2016
+  * @version V1.5.1
+  * @date    31-May-2016
   * @brief   Header file of SPI LL module.
   ******************************************************************************
   * @attention
@@ -62,7 +62,7 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 #if defined(USE_FULL_LL_DRIVER)
-/** @defgroup LL_ES_INIT SPI Exported Init structure
+/** @defgroup SPI_LL_ES_INIT SPI Exported Init structure
   * @{
   */
 
@@ -215,7 +215,7 @@ typedef struct
 /** @defgroup SPI_LL_EC_BIT_ORDER Transmission Bit Order
   * @{
   */
-#define LL_SPI_LSB_FIRST                   (SPI_CR1_LSBFIRST)        /*!< Data is transmitted/received withthe LSB first */
+#define LL_SPI_LSB_FIRST                   (SPI_CR1_LSBFIRST)        /*!< Data is transmitted/received with the LSB first */
 #define LL_SPI_MSB_FIRST                   ((uint32_t)0x00000000U)   /*!< Data is transmitted/received with the MSB first */
 /**
   * @}
@@ -266,8 +266,8 @@ typedef struct
 /** @defgroup SPI_LL_EC_CRC_CALCULATION CRC Calculation
   * @{
   */
-#define LL_SPI_CRCCALCULATION_DISABLE      ((uint32_t)0x00000000U)           /*!< CRC calculation disabled */
-#define LL_SPI_CRCCALCULATION_ENABLE       (SPI_CR1_CRCEN)                   /*!< CRC calculation enabled  */
+#define LL_SPI_CRCCALCULATION_DISABLE      ((uint32_t)0x00000000U)   /*!< CRC calculation disabled */
+#define LL_SPI_CRCCALCULATION_ENABLE       (SPI_CR1_CRCEN)           /*!< CRC calculation enabled  */
 /**
   * @}
   */
@@ -704,7 +704,7 @@ __STATIC_INLINE uint32_t LL_SPI_GetRxFIFOThreshold(SPI_TypeDef *SPIx)
   * @}
   */
 
-/** @defgroup SPI_EF_CRC_Management CRC Management
+/** @defgroup SPI_LL_EF_CRC_Management CRC Management
   * @{
   */
 
@@ -833,7 +833,7 @@ __STATIC_INLINE uint32_t LL_SPI_GetTxCRC(SPI_TypeDef *SPIx)
   * @}
   */
 
-/** @defgroup SPI_EF_NSS_Management Slave Select Pin Management
+/** @defgroup SPI_LL_EF_NSS_Management Slave Select Pin Management
   * @{
   */
 
@@ -939,17 +939,6 @@ __STATIC_INLINE uint32_t LL_SPI_IsActiveFlag_TXE(SPI_TypeDef *SPIx)
 }
 
 /**
-  * @brief  Get Underrun error flag
-  * @rmtoll SR           UDR           LL_SPI_IsActiveFlag_UDR
-  * @param  SPIx SPI Instance
-  * @retval State of bit (1 or 0).
-  */
-__STATIC_INLINE uint32_t LL_SPI_IsActiveFlag_UDR(SPI_TypeDef *SPIx)
-{
-  return (READ_BIT(SPIx->SR, SPI_SR_UDR) == (SPI_SR_UDR));
-}
-
-/**
   * @brief  Get CRC error flag
   * @rmtoll SR           CRCERR        LL_SPI_IsActiveFlag_CRCERR
   * @param  SPIx SPI Instance
@@ -1042,20 +1031,6 @@ __STATIC_INLINE uint32_t LL_SPI_GetTxFIFOLevel(SPI_TypeDef *SPIx)
 }
 
 /**
-  * @brief  Clear underrun error flag
-  * @note   Clearing this flag is done by reading SPIx_SR register
-  * @rmtoll SR           UDR           LL_SPI_ClearFlag_UDR
-  * @param  SPIx SPI Instance
-  * @retval None
-  */
-__STATIC_INLINE void LL_SPI_ClearFlag_UDR(SPI_TypeDef *SPIx)
-{
-  __IO uint32_t tmpreg;
-  tmpreg = SPIx->SR;
-  (void) tmpreg;
-}
-
-/**
   * @brief  Clear CRC error flag
   * @rmtoll SR           CRCERR        LL_SPI_ClearFlag_CRCERR
   * @param  SPIx SPI Instance
@@ -1124,7 +1099,7 @@ __STATIC_INLINE void LL_SPI_ClearFlag_FRE(SPI_TypeDef *SPIx)
 
 /**
   * @brief  Enable error interrupt
-  * @note   This bit controls the generation of an interrupt when an error condition occurs (CRCERR,OVR, MODF in SPI mode, FRE at TI mode).
+  * @note   This bit controls the generation of an interrupt when an error condition occurs (CRCERR, OVR, MODF in SPI mode, FRE at TI mode).
   * @rmtoll CR2          ERRIE         LL_SPI_EnableIT_ERR
   * @param  SPIx SPI Instance
   * @retval None
