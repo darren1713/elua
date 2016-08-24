@@ -29,6 +29,7 @@ end
 function get_platform_modules( board, cpu )
   return { pio = { lib = '"pio"', map = "stm32_pio_map", open = false },
            cpu = { lib = '"cpu"', map = "stm32_cpu_map", open = "luaopen_stm32_cpu" },
+		   pmu = { lib = '"pmu"', map = "pmu_map", open = "luaopen_pmu" },	
            enc = { guards = { 'ENABLE_ENC' }, lib = '"enc"' } }
 end
 

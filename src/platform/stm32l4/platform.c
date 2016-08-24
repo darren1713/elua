@@ -60,6 +60,12 @@
 //#define WATCHDOG_ENABLE
 #define WATCH_COUNTER_RESET     127
 
+// Sleep related stuff
+#include "stm32l4xx_ll_system.h"
+#include "stm32l4xx_ll_cortex.h"
+#include "stm32l4xx_ll_utils.h"
+#include "pmu.h"
+
 // ****************************************************************************
 // Platform initialization
 
@@ -151,6 +157,10 @@ int platform_init()
 #endif
 
   cmn_platform_init();
+
+  //Prepare RTC to wake up us. 
+  stm32l4_Configure_RTC();
+
 
   // All done
   return PLATFORM_OK;
@@ -1782,4 +1792,174 @@ void watchdog_counter_set( u16 value )
   wdt_reset_counter = value;
 }
 
+// ****************************************************************************
+// Sleep and wakeup functions
+
+/**
+  * Brief   This function configures RTC.
+  * Param   None
+  * Retval  None
+  */
+void stm32l4_Configure_RTC(void)
+{
+  /*##-1- Enables the PWR Clock and Enables access to the backup domain #######*/
+  /* To change the source clock of the RTC feature (LSE, LSI), you have to:
+     - Enable the power clock
+     - Enable write access to configure the RTC clock source (to be done once after reset).
+     - Reset the Back up Domain
+     - Configure the needed RTC clock source */
+  LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_PWR);
+  LL_PWR_EnableBkUpAccess();
+
+  /*##-2- Configure LSE as RTC clock source ###############################*/
+  /* Enable LSE only if disabled.*/
+  if (LL_RCC_LSE_IsReady() == 0)
+  {
+    LL_RCC_ForceBackupDomainReset();
+    LL_RCC_ReleaseBackupDomainReset();
+    LL_RCC_LSE_Enable();
+
+    while (LL_RCC_LSE_IsReady() != 1) {}
+
+    LL_RCC_SetRTCClockSource(LL_RCC_RTC_CLKSOURCE_LSE);
+
+    /*##-3- Enable RTC peripheral Clocks #######################################*/
+    /* Enable RTC Clock */
+    LL_RCC_EnableRTC();
+  }
+
+  /*##-4- Configure RTC ######################################################*/
+  /* Disable RTC registers write protection */
+  LL_RTC_DisableWriteProtection(RTC);
+
+  /* Set prescaler according to source clock */
+  /* ck_apre=LSEFreq/(0x7F + 1) = 256Hz with LSEFreq=32768Hz */
+  LL_RTC_SetAsynchPrescaler(RTC, 0x7F);
+  /* ck_spre=ck_apre/(0x00FF + 1) = 1 Hz */
+  LL_RTC_SetSynchPrescaler(RTC, 0x00FF);
+
+  /* Disable wake up timer to modify it */
+  LL_RTC_WAKEUP_Disable(RTC);
+
+  while (LL_RTC_IsActiveFlag_WUTW(RTC) != 1) {}
+
+  /* Setting the Wakeup time to default 5 s
+       If LL_RTC_WAKEUPCLOCK_CKSPRE is selected, the frequency is 1Hz, 
+       this allows to get a wakeup time equal to RTC_WUT_TIME s 
+       if the counter is RTC_WUT_TIME */
+  LL_RTC_WAKEUP_SetAutoReload(RTC, 5);
+  LL_RTC_WAKEUP_SetClock(RTC, LL_RTC_WAKEUPCLOCK_CKSPRE);
+
+  /* Enable RTC registers write protection */
+  LL_RTC_EnableWriteProtection(RTC);
+
+}
+
+/**
+  * @brief  Function to configure and enter in STANDBY Mode.
+  * @param  rtc_wakeup in seconds
+  * @retval None
+  */
+void stm32l4_EnterStop2Mode(int rtc_wakeup)
+{
+
+  //LL_GPIO_InitTypeDef gpio_initstruct = {LL_GPIO_PIN_ALL, LL_GPIO_MODE_ANALOG,
+  //                                         LL_GPIO_SPEED_FREQ_HIGH, LL_GPIO_OUTPUT_PUSHPULL,
+  //                                         LL_GPIO_PULL_NO, LL_GPIO_AF_0};
+
+  /* ######## ENABLE EXTI_LINE_20 Interrupt ##############################*/
+  LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_20);
+  LL_EXTI_EnableIT_0_31(LL_EXTI_LINE_20);
+  LL_EXTI_EnableRisingTrig_0_31(LL_EXTI_LINE_20);
+  LL_RCC_SetClkAfterWakeFromStop(LL_RCC_STOP_WAKEUPCLOCK_MSI);
+  NVIC_EnableIRQ(RTC_WKUP_IRQn);
+
+  /* ######## ENABLE WUT #################################################*/
+  /* Disable RTC registers write protection */
+  LL_RTC_DisableWriteProtection(RTC);
+
+
+  /* Set the Wakeup time to what is requested
+       If LL_RTC_WAKEUPCLOCK_CKSPRE is selected, the frequency is 1Hz, 
+       this allows to get a wakeup time equal to RTC_WUT_TIME s 
+       if the counter is RTC_WUT_TIME */
+  LL_RTC_WAKEUP_SetAutoReload(RTC, rtc_wakeup);
+
+  /* Enable wake up counter and wake up interrupt */
+  /* Note: Periodic wakeup interrupt should be enabled to exit the device 
+     from low-power modes.*/
+  LL_RTC_EnableIT_WUT(RTC);
+  LL_RTC_WAKEUP_Enable(RTC);
+
+  /* Enable RTC registers write protection */
+  LL_RTC_EnableWriteProtection(RTC);
+
+  /* ######## ENTER IN STANDBY MODE ######################################*/
+  /** Request to enter STANDBY mode
+    * Following procedure describe in STM32L4xx Reference Manual
+    * See PWR part, section Low-power modes, Standby mode
+    */
+  /* Reset Internal Wake up flag */
+  LL_RTC_ClearFlag_WUT(RTC);
+
+  /* Check that PWR Internal Wake-up is enabled */
+  if (LL_PWR_IsEnabledInternWU() == 0)
+  {
+    /* Need to enable the Internal Wake-up line */
+    LL_PWR_EnableInternWU();
+  }
+
+  /* Disable all ports                                                        */
+  /* Set all GPIO in analog state to reduce power consumption,                */
+  /* Note: Debug using ST-Link is not possible during the execution of this   */
+  /*       example because communication between ST-link and the device       */
+  /*       under test is done through UART. All GPIO pins are disabled (set   */
+  /*       to analog input mode) including  UART I/O pins.                    */
+  /*
+  LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOA |
+                           LL_AHB2_GRP1_PERIPH_GPIOB |
+                           LL_AHB2_GRP1_PERIPH_GPIOC |
+                           LL_AHB2_GRP1_PERIPH_GPIOD |
+                           LL_AHB2_GRP1_PERIPH_GPIOE |
+                           LL_AHB2_GRP1_PERIPH_GPIOF |
+                           LL_AHB2_GRP1_PERIPH_GPIOG |
+                           LL_AHB2_GRP1_PERIPH_GPIOH);
+  LL_GPIO_Init(GPIOA, &gpio_initstruct);
+  LL_GPIO_Init(GPIOB, &gpio_initstruct);
+  LL_GPIO_Init(GPIOC, &gpio_initstruct);
+  LL_GPIO_Init(GPIOD, &gpio_initstruct);
+  LL_GPIO_Init(GPIOE, &gpio_initstruct);
+  LL_GPIO_Init(GPIOF, &gpio_initstruct);
+  LL_GPIO_Init(GPIOG, &gpio_initstruct);
+  LL_GPIO_Init(GPIOH, &gpio_initstruct);
+  LL_AHB2_GRP1_DisableClock(LL_AHB2_GRP1_PERIPH_GPIOA |
+                            LL_AHB2_GRP1_PERIPH_GPIOB |
+                            LL_AHB2_GRP1_PERIPH_GPIOC |
+                            LL_AHB2_GRP1_PERIPH_GPIOD |
+                            LL_AHB2_GRP1_PERIPH_GPIOE |
+                            LL_AHB2_GRP1_PERIPH_GPIOF |
+                            LL_AHB2_GRP1_PERIPH_GPIOG |
+                            LL_AHB2_GRP1_PERIPH_GPIOH);
+  */
+
+  /* Set Stand-by mode */
+  LL_PWR_SetPowerMode(LL_PWR_MODE_STOP2);
+
+  /* Set SLEEPDEEP bit of Cortex System Control Register */
+  LL_LPM_EnableDeepSleep();
+
+  /* Request Wait For Interrupt */
+  __WFI();
+
+}
+
+
+void RTC_WKUP_IRQHandler(void){
+    
+    LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_20);
+    LL_RTC_DisableWriteProtection(RTC);
+    LL_RTC_ClearFlag_WUT(RTC);
+    LL_RTC_DisableWriteProtection(RTC);
+
+}
 

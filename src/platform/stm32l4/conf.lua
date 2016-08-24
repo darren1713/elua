@@ -11,7 +11,7 @@ local fwlib_files = utils.get_files( "src/platform/" .. platform .. "/FWLib/libr
 if comp.board ~= "stm32l4-nucleo" and comp.board ~= "nucleo-l476rg" then
   fwlib_files = fwlib_files .. " " .. utils.get_files( "src/platform/" .. platform .. "/FWLib/USB/", "%.c$" )
 end
-specific_files = "system_stm32l4xx.c startup_stm32l476xx.s platform.c platform_int.c cpu.c stm32_pio.c enc.c stm32l4xx_it.c"
+specific_files = "system_stm32l4xx.c startup_stm32l476xx.s platform.c platform_int.c cpu.c stm32_pio.c enc.c pmu.c stm32l4xx_it.c"
 local ldscript = comp.cpu == "STM32L476RG" and "stm32l476xx.ld"
 
 -- Prepend with path
@@ -30,7 +30,8 @@ addlf( { '-nostartfiles','-nostdlib', '-T', ldscript, '-Wl,--gc-sections', '-Wl,
 addaf( { '-x', 'assembler-with-cpp', '-c', '-Wall' } )
 addlib( { 'c','gcc','m' } )
 
-local target_flags = { '-mcpu=cortex-m4', '-mthumb','-mfloat-abi=hard', '-mfpu=fpv4-sp-d16' }
+-- Penev: was hard but got error, this may be toolchain error
+local target_flags = { '-mcpu=cortex-m4', '-mthumb','-mfloat-abi=soft', '-mfpu=fpv4-sp-d16' }
 
 -- Configure general flags for target
 addcf( { target_flags, '-mlittle-endian' } )
