@@ -161,6 +161,8 @@ int platform_init()
   //Prepare RTC to wake up us. 
   stm32l4_Configure_RTC();
 
+  //Configures User push-button of NUCLEO-L476RG in EXTI mode.
+  stm32l4_UserButton_Init();
 
   // All done
   return PLATFORM_OK;
@@ -1950,6 +1952,45 @@ void stm32l4_EnterStop2Mode(int rtc_wakeup)
 
   /* Request Wait For Interrupt */
   __WFI();
+
+}
+
+/**
+  * @brief Key push-button
+  */
+#define USER_BUTTON_PIN                         LL_GPIO_PIN_13
+#define USER_BUTTON_GPIO_PORT                   GPIOC
+#define USER_BUTTON_GPIO_CLK_ENABLE()           LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOC)   
+#define USER_BUTTON_EXTI_IRQn                   EXTI15_10_IRQn
+#define USER_BUTTON_EXTI_LINE_ENABLE()          LL_EXTI_EnableIT_0_31(LL_EXTI_LINE_13)   
+#define USER_BUTTON_EXTI_FALLING_TRIG_ENABLE()  LL_EXTI_EnableFallingTrig_0_31(LL_EXTI_LINE_13)   
+#define USER_BUTTON_SYSCFG_SET_EXTI()           do {                                                                     \
+                                                  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_SYSCFG);                  \
+                                                  LL_SYSCFG_SetEXTISource(LL_SYSCFG_EXTI_PORTC, LL_SYSCFG_EXTI_LINE13);  \
+                                                } while(0)
+/**
+  * @brief  Configures User push-button of NUCLEO-L476RG in EXTI mode.
+  * @param  None  
+  * @retval None
+  */
+void stm32l4_UserButton_Init(void)
+{
+  /* Enable the BUTTON Clock */
+  USER_BUTTON_GPIO_CLK_ENABLE();
+  
+  /* Configure GPIO for BUTTON */
+  LL_GPIO_SetPinMode(USER_BUTTON_GPIO_PORT, USER_BUTTON_PIN, LL_GPIO_MODE_INPUT);
+  LL_GPIO_SetPinPull(USER_BUTTON_GPIO_PORT, USER_BUTTON_PIN, LL_GPIO_PULL_NO);
+  /* Connect External Line to the GPIO*/
+  USER_BUTTON_SYSCFG_SET_EXTI();
+  
+  /* Enable a rising trigger EXTI line 13 Interrupt */
+  USER_BUTTON_EXTI_LINE_ENABLE();
+  USER_BUTTON_EXTI_FALLING_TRIG_ENABLE();
+  
+  /* Configure NVIC for USER_BUTTON_EXTI_IRQn */
+  NVIC_EnableIRQ(USER_BUTTON_EXTI_IRQn); 
+  NVIC_SetPriority(USER_BUTTON_EXTI_IRQn,0x03);  
 
 }
 

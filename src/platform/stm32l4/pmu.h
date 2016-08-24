@@ -8,5 +8,6 @@
 void    stm32l4_SystemClock_Config(void);
 void    stm32l4_Configure_RTC(void);
 void    stm32l4_EnterStop2Mode(int rtc_timeout);
+void 	stm32l4_UserButton_Init(void);
 void    RTC_WKUP_IRQHandler(void);
 #endif
