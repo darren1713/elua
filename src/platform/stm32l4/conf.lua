@@ -31,7 +31,8 @@ addaf( { '-x', 'assembler-with-cpp', '-c', '-Wall' } )
 addlib( { 'c','gcc','m' } )
 
 -- Penev: was hard but got error, this may be toolchain error
-local target_flags = { '-mcpu=cortex-m4', '-mthumb','-mfloat-abi=soft', '-mfpu=fpv4-sp-d16' }
+-- Palmer: hard works on OS X with arm-none-eabi-gcc (GNU Tools for ARM Embedded Processors) 5.3.1 20160307 (release) [ARM/embedded-5-branch revision 234589]
+local target_flags = { '-mcpu=cortex-m4', '-mthumb','-mfloat-abi=hard', '-mfpu=fpv4-sp-d16' }
 
 -- Configure general flags for target
 addcf( { target_flags, '-mlittle-endian' } )

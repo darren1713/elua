@@ -1,2 +1,0 @@
-rm romfs/*
-lua build_elua.lua board=stm32l4-nucleo toolchain=codesourcery allocator=multiple target=lualong prog

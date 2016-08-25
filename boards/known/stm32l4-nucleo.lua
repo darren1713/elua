@@ -25,7 +25,7 @@ return {
   },
   modules = {
     generic = { 'all', "-i2c", "-net", "-can", "-adc", "-pwm", "-enc" },
-    platform = 'all',
+    --platform = 'all',
   },
 }
 
