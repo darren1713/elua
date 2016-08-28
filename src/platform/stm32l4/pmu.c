@@ -1,4 +1,4 @@
-// eLua Module for SIM3 power features
+// eLua Module for STM32L4 power features
 
 #include "lua.h"
 #include "lualib.h"

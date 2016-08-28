@@ -66,6 +66,9 @@
 #include "stm32l4xx_ll_utils.h"
 #include "pmu.h"
 
+//i2c related stuff
+#include "iic.h"
+
 // ****************************************************************************
 // Platform initialization
 
@@ -161,8 +164,16 @@ int platform_init()
   //Prepare RTC to wake up us. 
   stm32l4_Configure_RTC();
 
-  //Configures User push-button of NUCLEO-L476RG in EXTI mode.
+  //Configures User push-button of NUCLEO-L476RG in EXTI mode to wakeup us from sleep.
   stm32l4_UserButton_Init();
+
+
+  // Configure I2C1 (I2C IP configuration in Slave mode and related GPIO initialization)
+  stm32l4_Configure_I2C_Slave();
+
+
+  // Configure I2C3 (I2C IP configuration in Master mode and related GPIO initialization)
+  stm32l4_Configure_I2C_Master();
 
   // All done
   return PLATFORM_OK;
@@ -1794,8 +1805,9 @@ void watchdog_counter_set( u16 value )
   wdt_reset_counter = value;
 }
 
-// ****************************************************************************
+// *******************************************************************************************
 // Sleep and wakeup functions
+// *******************************************************************************************
 
 /**
   * Brief   This function configures RTC.
@@ -2002,5 +2014,470 @@ void RTC_WKUP_IRQHandler(void){
     LL_RTC_ClearFlag_WUT(RTC);
     LL_RTC_DisableWriteProtection(RTC);
 
+}
+
+
+// *******************************************************************************************
+// I2C related functions
+// I2C3 (Master); I2C1 (Slave)
+// In order to work on Nucleo it requires SB46 and SB52 to be shorted so both I2C interfaces
+// are looped back  
+// The master can initiate Write and read transaction. A single data byte is transmitted.
+// On read I2C transaction the Slave returnes the last byte it has received from 
+// Master (last write transaction)   
+// *******************************************************************************************
+
+
+//Send a byte thru I2C from Master I2C3 to Slave I2C1
+void stm32l4_i2c_write(unsigned char data)
+{
+
+
+   //Set our sending byte buffer with the lua provided byte	
+   master_data_to_send = data;
+	
+  /* Master Generate Start condition for a 1 byte write transaction:
+   *  - to the Slave with a 7-Bit SLAVE_OWN_ADDRESS
+   *  - with a auto stop condition generation when receive 1 byte
+   */
+  LL_I2C_HandleTransfer(I2C3, SLAVE_OWN_ADDRESS, LL_I2C_ADDRSLAVE_7BIT, 1, LL_I2C_MODE_AUTOEND, LL_I2C_GENERATE_START_WRITE);
+
+  /* Penev: Enable transmit interrupt so we get TXIS flag after Slave responds with ACK to the slave address */
+  LL_I2C_EnableIT_TX(I2C3);
+
+  
+}
+
+//Send a byte thru I2C from Master I2C3 to Slave I2C1
+void stm32l4_i2c_read(void)
+{
+
+   //Clear some global valiables
+   I2C_Master_read_complete = 0;
+   master_received_data = 0;
+
+  /* Master Generate Start condition for a 1 byte read request:
+   *  - to the Slave with a 7-Bit SLAVE_OWN_ADDRESS
+   *  - with a auto stop condition generation when receive 1 byte
+   */
+  LL_I2C_HandleTransfer(I2C3, SLAVE_OWN_ADDRESS, LL_I2C_ADDRSLAVE_7BIT, 1, LL_I2C_MODE_AUTOEND, LL_I2C_GENERATE_START_READ);
+
+}
+
+//stm32l4_i2c_read() and stm32l4_i2c_write() are interrupt based
+//We loop here for the read to complete and return result to Lua 
+unsigned char stm32l4_i2c_read_result(void)
+{
+
+  while (!I2C_Master_read_complete){}  
+
+  return(master_received_data);
+}
+
+
+/**
+  * @brief  This function configures I2C1 in Slave mode.
+  * @note   This function is used to :
+  *         -1- Enables GPIO clock and configures the I2C1 pins.
+  *         -2- Enable the I2C1 peripheral clock and I2C1 clock source.
+  *         -3- Configure NVIC for I2C1.
+  *         -4- Configure I2C1 functional parameters.
+  *         -5- Enable I2C1.
+  *         -6- Enable I2C1 address match/error interrupts.
+  * @note   Peripheral configuration is minimal configuration from reset values.
+  *         Thus, some useless LL unitary functions calls below are provided as
+  *         commented examples - setting is default configuration from reset.
+  * @param  None
+  * @retval None
+  */
+void stm32l4_Configure_I2C_Slave(void)
+{
+  uint32_t timing = 0;
+
+  /* (1) Enables GPIO clock and configures the I2C1 pins **********************/
+  /*    (SCL on PB.8, SDA on PB.9)                     **********************/
+
+  /* Enable the peripheral clock of GPIOB */
+  LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOB);
+
+  /* Configure SCL Pin as : Alternate function, High Speed, Open drain, Pull up */
+  LL_GPIO_SetPinMode(GPIOB, LL_GPIO_PIN_8, LL_GPIO_MODE_ALTERNATE);
+  LL_GPIO_SetAFPin_8_15(GPIOB, LL_GPIO_PIN_8, LL_GPIO_AF_4);
+  LL_GPIO_SetPinSpeed(GPIOB, LL_GPIO_PIN_8, LL_GPIO_SPEED_FREQ_VERY_HIGH);
+  LL_GPIO_SetPinOutputType(GPIOB, LL_GPIO_PIN_8, LL_GPIO_OUTPUT_OPENDRAIN);
+  LL_GPIO_SetPinPull(GPIOB, LL_GPIO_PIN_8, LL_GPIO_PULL_UP);
+
+  /* Configure SDA Pin as : Alternate function, High Speed, Open drain, Pull up */
+  LL_GPIO_SetPinMode(GPIOB, LL_GPIO_PIN_9, LL_GPIO_MODE_ALTERNATE);
+  LL_GPIO_SetAFPin_8_15(GPIOB, LL_GPIO_PIN_9, LL_GPIO_AF_4);
+  LL_GPIO_SetPinSpeed(GPIOB, LL_GPIO_PIN_9, LL_GPIO_SPEED_FREQ_VERY_HIGH);
+  LL_GPIO_SetPinOutputType(GPIOB, LL_GPIO_PIN_9, LL_GPIO_OUTPUT_OPENDRAIN);
+  LL_GPIO_SetPinPull(GPIOB, LL_GPIO_PIN_9, LL_GPIO_PULL_UP);
+
+  /* (2) Enable the I2C1 peripheral clock and I2C1 clock source ***************/
+
+  /* Enable the peripheral clock for I2C1 */
+  LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_I2C1);
+
+  /* Set I2C1 clock source as SYSCLK */
+  LL_RCC_SetI2CClockSource(LL_RCC_I2C1_CLKSOURCE_SYSCLK);
+  
+  /* (3) Configure NVIC for I2C1 **********************************************/
+
+  /* Configure Event IT:
+   *  - Set priority for I2C1_EV_IRQn
+   *  - Enable I2C1_EV_IRQn
+   */
+  NVIC_SetPriority(I2C1_EV_IRQn, 0);  
+  NVIC_EnableIRQ(I2C1_EV_IRQn);
+
+  /* Configure Error IT:
+   *  - Set priority for I2C1_ER_IRQn
+   *  - Enable I2C1_ER_IRQn
+   */
+  NVIC_SetPriority(I2C1_ER_IRQn, 0);  
+  NVIC_EnableIRQ(I2C1_ER_IRQn);
+
+  /* (4) Configure I2C1 functional parameters *********************************/
+
+  /* Disable I2C1 prior modifying configuration registers */
+  LL_I2C_Disable(I2C1);
+
+  /* Configure the SDA setup, hold time and the SCL high, low period */
+  /* Timing register value is computed with the STM32CubeMX Tool,
+    * Fast Mode @400kHz with I2CCLK = 80 MHz,
+    * rise time = 100ns, fall time = 10ns
+    * Timing Value = (uint32_t)0x00F02B86
+    */
+  timing = __LL_I2C_CONVERT_TIMINGS(0x0, 0xF, 0x0, 0x2B, 0x86);
+  LL_I2C_SetTiming(I2C1, timing);
+
+  /* Configure the Own Address1 :
+   *  - OwnAddress1 is SLAVE_OWN_ADDRESS
+   *  - OwnAddrSize is LL_I2C_OWNADDRESS1_7BIT
+   *  - Own Address1 is enabled
+   */
+  LL_I2C_SetOwnAddress1(I2C1, SLAVE_OWN_ADDRESS, LL_I2C_OWNADDRESS1_7BIT);
+  LL_I2C_EnableOwnAddress1(I2C1);
+
+  /* Enable Clock stretching */
+  /* Reset Value is Clock stretching enabled */
+  //LL_I2C_EnableClockStretching(I2C1);
+
+  /* Configure Digital Noise Filter */
+  /* Reset Value is 0x00            */
+  //LL_I2C_SetDigitalFilter(I2C1, 0x00);
+
+  /* Enable Analog Noise Filter           */
+  /* Reset Value is Analog Filter enabled */
+  //LL_I2C_EnableAnalogFilter(I2C1);
+
+  /* Enable General Call                  */
+  /* Reset Value is General Call disabled */
+  //LL_I2C_EnableGeneralCall(I2C1);
+
+  /* Configure the 7bits Own Address2               */
+  /* Reset Values of :
+   *     - OwnAddress2 is 0x00
+   *     - OwnAddrMask is LL_I2C_OWNADDRESS2_NOMASK
+   *     - Own Address2 is disabled
+   */
+  //LL_I2C_SetOwnAddress2(I2C1, 0x00, LL_I2C_OWNADDRESS2_NOMASK);
+  //LL_I2C_DisableOwnAddress2(I2C1);
+
+  /* Enable Peripheral in I2C mode */
+  /* Reset Value is I2C mode */
+  //LL_I2C_SetMode(I2C1, LL_I2C_MODE_I2C);
+
+  /* (5) Enable I2C1 **********************************************************/
+  LL_I2C_Enable(I2C1);
+
+  /* (6) Enable I2C1 address match/error interrupts:
+   *  - Enable Address Match Interrupt
+   *  - Enable Not acknowledge received interrupt
+   *  - Enable Error interrupts
+   *  - Enable Stop interrupt
+   */
+  LL_I2C_EnableIT_ADDR(I2C1);
+  LL_I2C_EnableIT_NACK(I2C1);
+  LL_I2C_EnableIT_ERR(I2C1);
+  LL_I2C_EnableIT_STOP(I2C1);
+}
+
+void Error_Callback(void)
+{
+  /* Disable I2C1_EV_IRQn and I2C3_EV_IRQn */
+  NVIC_DisableIRQ(I2C1_EV_IRQn);
+  NVIC_DisableIRQ(I2C3_EV_IRQn);
+
+  /* Disable I2C1_ER_IRQn and I2C3_ER_IRQn */
+  NVIC_DisableIRQ(I2C1_ER_IRQn);
+  NVIC_DisableIRQ(I2C3_ER_IRQn);
+
+  /* Unexpected event : Hang in a loop*/
+  while(1) {}
+}
+
+
+/**
+  * @brief  This function configures I2C3 in Master mode.
+  * @note   This function is used to :
+  *         -1- Enables GPIO clock and configures the I2C3 pins.
+  *         -2- Enable the I2C3 peripheral clock and I2C3 clock source.
+  *         -3- Configure NVIC for I2C3.
+  *         -4- Configure I2C3 functional parameters.
+  *         -5- Enable I2C3.
+  *         -6- Enable I2C3 transfer complete/error interrupts.
+  * @note   Peripheral configuration is minimal configuration from reset values.
+  *         Thus, some useless LL unitary functions calls below are provided as
+  *         commented examples - setting is default configuration from reset.
+  * @param  None
+  * @retval None
+  */
+void stm32l4_Configure_I2C_Master(void)
+{
+
+  /* (1) Enables GPIO clock and configures the I2C3 pins **********************/
+  /*    (SCL on PC.0, SDA on PC.1)                     **********************/
+
+  /* Enable the peripheral clock of GPIOC */
+  LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOC);
+
+  /* Configure SCL Pin as : Alternate function, High Speed, Open drain, Pull up */
+  LL_GPIO_SetPinMode(GPIOC, LL_GPIO_PIN_0, LL_GPIO_MODE_ALTERNATE);
+  LL_GPIO_SetAFPin_0_7(GPIOC, LL_GPIO_PIN_0, LL_GPIO_AF_4);
+  LL_GPIO_SetPinSpeed(GPIOC, LL_GPIO_PIN_0, LL_GPIO_SPEED_FREQ_VERY_HIGH);
+  LL_GPIO_SetPinOutputType(GPIOC, LL_GPIO_PIN_0, LL_GPIO_OUTPUT_OPENDRAIN);
+  LL_GPIO_SetPinPull(GPIOC, LL_GPIO_PIN_0, LL_GPIO_PULL_UP);
+
+  /* Configure SDA Pin as : Alternate function, High Speed, Open drain, Pull up */
+  LL_GPIO_SetPinMode(GPIOC, LL_GPIO_PIN_1, LL_GPIO_MODE_ALTERNATE);
+  LL_GPIO_SetAFPin_0_7(GPIOC, LL_GPIO_PIN_1, LL_GPIO_AF_4);
+  LL_GPIO_SetPinSpeed(GPIOC, LL_GPIO_PIN_1, LL_GPIO_SPEED_FREQ_VERY_HIGH);
+  LL_GPIO_SetPinOutputType(GPIOC, LL_GPIO_PIN_1, LL_GPIO_OUTPUT_OPENDRAIN);
+  LL_GPIO_SetPinPull(GPIOC, LL_GPIO_PIN_1, LL_GPIO_PULL_UP);
+
+  /* (2) Enable the I2C3 peripheral clock and I2C3 clock source ***************/
+
+  /* Enable the peripheral clock for I2C3 */
+  LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_I2C3);
+
+  /* Set I2C3 clock source as SYSCLK */
+  LL_RCC_SetI2CClockSource(LL_RCC_I2C3_CLKSOURCE_SYSCLK);
+  
+  /* (3) Configure NVIC for I2C3 **********************************************/
+
+  /* Configure Event IT:
+   *  - Set priority for I2C3_EV_IRQn
+   *  - Enable I2C3_EV_IRQn
+   */
+  NVIC_SetPriority(I2C3_EV_IRQn, 0);  
+  NVIC_EnableIRQ(I2C3_EV_IRQn);
+
+  /* Configure Error IT:
+   *  - Set priority for I2C3_ER_IRQn
+   *  - Enable I2C3_ER_IRQn
+   */
+  NVIC_SetPriority(I2C3_ER_IRQn, 0);  
+  NVIC_EnableIRQ(I2C3_ER_IRQn);
+
+  /* (4) Configure I2C3 functional parameters *********************************/
+
+  /* Disable I2C3 prior modifying configuration registers */
+  LL_I2C_Disable(I2C3);
+
+  /* Configure the SDA setup, hold time and the SCL high, low period */
+  /* (uint32_t)0x00F02B86 = I2C_TIMING*/
+  LL_I2C_SetTiming(I2C3, I2C_TIMING);
+
+  /* Configure the Own Address1                   */
+  /* Reset Values of :
+   *     - OwnAddress1 is 0x00
+   *     - OwnAddrSize is LL_I2C_OWNADDRESS1_7BIT
+   *     - Own Address1 is disabled
+   */
+  //LL_I2C_SetOwnAddress1(I2C3, 0x00, LL_I2C_OWNADDRESS1_7BIT);
+  //LL_I2C_DisableOwnAddress1(I2C3);
+
+  /* Enable Clock stretching */
+  /* Reset Value is Clock stretching enabled */
+  //LL_I2C_EnableClockStretching(I2C3);
+
+  /* Configure Digital Noise Filter */
+  /* Reset Value is 0x00            */
+  //LL_I2C_SetDigitalFilter(I2C3, 0x00);
+
+  /* Enable Analog Noise Filter           */
+  /* Reset Value is Analog Filter enabled */
+  //LL_I2C_EnableAnalogFilter(I2C3);
+
+  /* Enable General Call                  */
+  /* Reset Value is General Call disabled */
+  //LL_I2C_EnableGeneralCall(I2C3);
+
+  /* Configure the 7bits Own Address2               */
+  /* Reset Values of :
+   *     - OwnAddress2 is 0x00
+   *     - OwnAddrMask is LL_I2C_OWNADDRESS2_NOMASK
+   *     - Own Address2 is disabled
+   */
+  //LL_I2C_SetOwnAddress2(I2C3, 0x00, LL_I2C_OWNADDRESS2_NOMASK);
+  //LL_I2C_DisableOwnAddress2(I2C3);
+
+  /* Configure the Master to operate in 7-bit or 10-bit addressing mode */
+  /* Reset Value is LL_I2C_ADDRESSING_MODE_7BIT                         */
+  //LL_I2C_SetMasterAddressingMode(I2C3, LL_I2C_ADDRESSING_MODE_7BIT);
+
+  /* Enable Peripheral in I2C mode */
+  /* Reset Value is I2C mode */
+  //LL_I2C_SetMode(I2C3, LL_I2C_MODE_I2C);
+
+  /* (5) Enable I2C3 **********************************************************/
+  LL_I2C_Enable(I2C3);
+
+  /* (6) Enable I2C3 transfer complete/error interrupts:
+   *  - Enable Receive Interrupt
+   *  - Enable Not acknowledge received interrupt
+   *  - Enable Error interrupts
+   *  - Enable Stop interrupt
+   */
+  LL_I2C_EnableIT_RX(I2C3);
+  LL_I2C_EnableIT_NACK(I2C3);
+  LL_I2C_EnableIT_ERR(I2C3);
+  LL_I2C_EnableIT_STOP(I2C3);
+}
+
+/**
+  * Brief   This function handles I2C1 (Slave) event interrupt request.
+  * Param   None
+  * Retval  None
+  */
+void I2C1_EV_IRQHandler(void)
+{
+  /* Check ADDR flag value in ISR register */
+  if(LL_I2C_IsActiveFlag_ADDR(I2C1))
+  {
+    /* Verify the Address Match with the OWN Slave address */
+    if(LL_I2C_GetAddressMatchCode(I2C1) == SLAVE_OWN_ADDRESS)
+    {
+      /* Verify the transfer direction, a read direction, Slave enters transmitter mode */
+      if(LL_I2C_GetTransferDirection(I2C1) == LL_I2C_DIRECTION_READ)
+      {
+        I2C_Master_read_write = 1;
+          
+        /* Clear ADDR flag value in ISR register */
+        LL_I2C_ClearFlag_ADDR(I2C1);
+
+        /* Enable Transmit Interrupt */
+        LL_I2C_EnableIT_TX(I2C1);
+      }
+      else //Penev: Write transaction
+      {
+
+        I2C_Master_read_write = 0;
+        
+        /* Clear ADDR flag value in ISR register */
+        LL_I2C_ClearFlag_ADDR(I2C1);
+        
+        /* Enable Receive Interrupt */
+        LL_I2C_EnableIT_RX(I2C1);
+        
+      }
+    }
+    else
+    {
+      /* Clear ADDR flag value in ISR register */
+      LL_I2C_ClearFlag_ADDR(I2C1);
+        
+      /* Call Error function */
+      Error_Callback();
+    }
+  }
+  /* Penev Check if we have data to receive*/  
+  else if(LL_I2C_IsActiveFlag_RXNE(I2C1))
+  {
+        /* read the received data */
+        slave_received_data=LL_I2C_ReceiveData8(I2C1);
+  }  
+  /* Check NACK flag value in ISR register */
+  else if(LL_I2C_IsActiveFlag_NACK(I2C1))
+  {
+    /* End of Transfer */
+    LL_I2C_ClearFlag_NACK(I2C1);
+  }
+  /* Check TXIS flag value in ISR register */
+  else if(LL_I2C_IsActiveFlag_TXIS(I2C1))
+  {
+    /* We transmit the same data we have received during write transaction */
+    LL_I2C_TransmitData8(I2C1, slave_received_data);
+
+  }
+  /* Check STOP flag value in ISR register */
+  else if(LL_I2C_IsActiveFlag_STOP(I2C1))
+  {
+    /* Clear STOP flag value in ISR register */
+    LL_I2C_ClearFlag_STOP(I2C1);
+    
+    /* Check TXE flag value in ISR register */
+    if(!LL_I2C_IsActiveFlag_TXE(I2C1))
+    {
+      /* Flush the TXDR register */
+      LL_I2C_ClearFlag_TXE(I2C1);
+    }
+  }
+  /* Check TXE flag value in ISR register */
+  else if(!LL_I2C_IsActiveFlag_TXE(I2C1))
+  {
+    /* Do nothing */
+    /* This Flag will be set by hardware when the TXDR register is empty */
+    /* If needed, use LL_I2C_ClearFlag_TXE() interface to flush the TXDR register  */
+  }
+  else
+  {
+    /* Call Error function */
+    Error_Callback();
+  }
+}
+
+/**
+  * Brief   This function handles I2C3 (Master) interrupt request.
+  * Param   None
+  * Retval  None
+  */
+void I2C3_EV_IRQHandler(void)
+{
+  
+  /* Penev: We get this flag after the slave has received address and responds with ACK */
+  if(LL_I2C_IsActiveFlag_TXIS(I2C3))
+  {
+    /* Master sends data to the slave */
+    LL_I2C_TransmitData8(I2C3, master_data_to_send);
+  }  
+  /* Check RXNE flag value in ISR register */
+  else if(LL_I2C_IsActiveFlag_RXNE(I2C3))
+  {
+ 
+    /* Read character in Receive Data register.
+       RXNE flag is cleared by reading data in RXDR register */
+    master_received_data = LL_I2C_ReceiveData8(I2C3);
+
+  }
+  /* Check STOP flag value in ISR register */
+  else if(LL_I2C_IsActiveFlag_STOP(I2C3))
+  {
+    /* End of Transfer */
+    LL_I2C_ClearFlag_STOP(I2C3);
+
+    /* Read transaction complete */
+    if(I2C_Master_read_write)
+	{
+      I2C_Master_read_complete = 1;
+	}
+  }
+  else
+  {
+    /* Call Error function */
+    Error_Callback();
+  }
 }
 
