@@ -32,13 +32,32 @@
 #include "usbd_desc.h"
 #endif
 
-#if defined( ELUA_BOARD_INTERNAL_CLOCK_HZ )
+
+/* In NUCLEO we use MSI as source clock as follows:
+ * MSI selected => SYSCLK = 4MHz
+ * HPRE = 1     =>HCLK = 4MHz       
+ * PPRE1 =1   =>PCLK1= 4MHz
+ * PPRE2 =1   =>PCLK2= 4MHz
+ * MSI for wake up
+ * MCO output disabled
+ * MCO is divided by 1
+ * No clock sent to PLL
+ *
+ * Note that PLL may be set but it is not used at the moment 
+ */
+
+#if defined( ELUA_BOARD_MSI_CLOCK_HZ )
+#define HCLK    4000000
+#elif defined( ELUA_BOARD_INTERNAL_CLOCK_HZ )
 #define HCLK        ( (HSI_VALUE / PLL_M) * PLL_N / PLL_P)
 #else
 #define HCLK        ( (HSE_VALUE / PLL_M) * PLL_N / PLL_P)
 #endif
 
-#if defined( FORSTM32F411RE ) || defined( FORSTM32F401RE )
+#if defined( ELUA_BOARD_MSI_CLOCK_HZ )
+#define PCLK1_DIV   1
+#define PCLK2_DIV   1
+#elif defined( FORSTM32F411RE ) || defined( FORSTM32F401RE )
 #define PCLK1_DIV   2
 #define PCLK2_DIV   1
 #else
@@ -94,6 +113,7 @@ static void cans_init();
 
 int platform_init()
 {
+
   // Setup IRQ's
   NVIC_Configuration();
 

@@ -20,7 +20,7 @@ return {
     egc = { mode = "alloc" },
     vtmr = { num = 4, freq = 10 },
     ram = { internal_rams = 1 },
-    clocks = { internal = 4000000, cpu = 80000000 },
+    clocks = { internal = 4000000, cpu = 80000000, msi = 4000000 },
     stm32l4_uart_pins = { con_rx_port = 0, con_rx_pin = 3, con_tx_port = 0, con_tx_pin = 2 }
   },
   modules = {
