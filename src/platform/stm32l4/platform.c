@@ -69,7 +69,7 @@
 // NOTE: when using virtual timers, SYSTICKHZ and VTMR_FREQ_HZ should have the
 // same value, as they're served by the same timer (the systick)
 // Max SysTick preload value is 16777215, for STM32F103RET6 @ 72 MHz, lowest acceptable rate would be about 5 Hz
-#define SYSTICKHZ               20
+#define SYSTICKHZ               10
 #define SYSTICKMS               (1000 / SYSTICKHZ)
 
 #if ( (HCLK / SYSTICKHZ)  > SysTick_LOAD_RELOAD_Msk)
@@ -87,6 +87,10 @@
 
 //i2c related stuff
 #include "iic.h"
+
+void virt_timer(unsigned int vtmr, unsigned int timeout_ms);
+enum {VTMR0=0, VTMR1, VTMR2, VTMR3}; 
+
 
 // ****************************************************************************
 // Platform initialization
@@ -746,6 +750,7 @@ static u32 platform_timer_set_clock( unsigned id, u32 clock );
 
 void SysTick_Handler( void )
 {
+
   // Handle virtual timers
   cmn_virtual_timer_cb();
 
@@ -2065,6 +2070,8 @@ void stm32l4_i2c_write(unsigned char data)
   /* Penev: Enable transmit interrupt so we get TXIS flag after Slave responds with ACK to the slave address */
   LL_I2C_EnableIT_TX(I2C3);
 
+  /* Start waiting for the first ACK */
+  virt_timer(VTMR0, 300);
   
 }
 
@@ -2081,6 +2088,11 @@ void stm32l4_i2c_read(void)
    *  - with a auto stop condition generation when receive 1 byte
    */
   LL_I2C_HandleTransfer(I2C3, SLAVE_OWN_ADDRESS, LL_I2C_ADDRSLAVE_7BIT, 1, LL_I2C_MODE_AUTOEND, LL_I2C_GENERATE_START_READ);
+
+
+
+  /* Start waiting for data */
+  virt_timer(VTMR0, 300);
 
 }
 
@@ -2470,21 +2482,37 @@ void I2C3_EV_IRQHandler(void)
   /* Penev: We get this flag after the slave has received address and responds with ACK */
   if(LL_I2C_IsActiveFlag_TXIS(I2C3))
   {
+	/* Stop ACK timeout */
+	virt_timer(VTMR0, 0);
+
     /* Master sends data to the slave */
     LL_I2C_TransmitData8(I2C3, master_data_to_send);
+
+	/* Start waiting for STOP bit */
+	virt_timer(VTMR0, 300);
   }  
   /* Check RXNE flag value in ISR register */
   else if(LL_I2C_IsActiveFlag_RXNE(I2C3))
   {
+
+	/* Stop waiting for data */
+    virt_timer(VTMR0, 0);
  
     /* Read character in Receive Data register.
        RXNE flag is cleared by reading data in RXDR register */
     master_received_data = LL_I2C_ReceiveData8(I2C3);
 
+    /* Start waiting for STOP bit */
+    virt_timer(VTMR0, 300);
+
   }
   /* Check STOP flag value in ISR register */
   else if(LL_I2C_IsActiveFlag_STOP(I2C3))
   {
+
+	/* Stop STOP timeout */ 
+	virt_timer(VTMR0, 0);
+
     /* End of Transfer */
     LL_I2C_ClearFlag_STOP(I2C3);
 
@@ -2498,6 +2526,51 @@ void I2C3_EV_IRQHandler(void)
   {
     /* Call Error function */
     Error_Callback();
+  }
+}
+
+#define VIRT0   512
+/**
+  * @Brief   Timeout handler
+  * @Param   None 
+  * @Retval  None
+  */
+static void tmr_handler(elua_int_resnum resnum )
+{
+
+    //Halt here
+    while(1);
+}
+
+/**
+  * @Brief   Timer wrapper based on the eLua Virtual timers (System Tick).
+  * @Param   vtmr: Index of the virtual timer (in our case 0 .. 3) 
+  * @Param   timeout_ms: timeout in ms. Minimum value 100 
+  *          0 stops the timeout  
+  * @Retval  None
+  */
+void virt_timer(unsigned int vtmr, unsigned int timeout_ms){
+
+
+  if(timeout_ms){
+
+  	//Hook interrupt handler to the timer. Previous handler ignored   
+  	elua_int_set_c_handler(INT_TMR_MATCH, tmr_handler);
+
+  	//Enable interrupt from the timer
+  	platform_cpu_set_interrupt(INT_TMR_MATCH, VIRT0+vtmr,  PLATFORM_CPU_ENABLE);
+
+  	//Fire a single shot timer
+  	platform_timer_set_match_int(VIRT0+vtmr, 1000*timeout_ms, PLATFORM_TIMER_INT_ONESHOT);
+
+  } else { //Stop the timeout
+
+	//Remove the timer handler
+	elua_int_set_c_handler(INT_TMR_MATCH, NULL);
+
+    //Disable interrupt from the timer
+    platform_cpu_set_interrupt(INT_TMR_MATCH, VIRT0+vtmr,  PLATFORM_CPU_DISABLE);
+
   }
 }
 

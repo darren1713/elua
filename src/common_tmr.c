@@ -58,8 +58,10 @@ void cmn_virtual_timer_cb(void)
     if( vtmr_counters[ i ] >= vtmr_period_limit[ i ] )
     {
       vtmr_int_flag[ i >> 3 ] |= msk;
-      if( vtmr_int_enabled[ i >> 3 ] & msk )      
+      if( vtmr_int_enabled[ i >> 3 ] & msk ){
+		cmn_int_handler(INT_TMR_MATCH, i + VTMR_FIRST_ID);      
         elua_int_add( INT_TMR_MATCH, i + VTMR_FIRST_ID );
+	  }	
       if( vtmr_int_periodic_flag[ i >> 3 ] & msk )
         vtmr_counters[ i ] = 0;
       else
@@ -118,7 +120,8 @@ static int vtmr_set_match_int( unsigned vid, timer_data_type period_us, int type
   else
     vtmr_int_periodic_flag[ id >> 3 ] |= msk;
   vtmr_int_flag[ id >> 3 ] &= ( u8 )~msk;
-  vtmr_reset_timer( vid ); 
+  vtmr_counters[ id ] = 0; //Penev
+  //vtmr_reset_timer( vid ); //Penev
   vtmr_int_enabled[ id >> 3 ] |= msk;
   return PLATFORM_TIMER_INT_OK;
 }
