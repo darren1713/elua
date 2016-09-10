@@ -2539,7 +2539,7 @@ static void tmr_handler(elua_int_resnum resnum )
 {
 
     //Halt here
-    while(1);
+    while(1) {};
 }
 
 /**
