@@ -25,21 +25,27 @@ static int iic_write( lua_State *L )
 }
 
 //Lua: data=iic.read()
+//In case of timeout no data is returned
 static int iic_read( lua_State *L )
 {
   unsigned char data;
+  int res;
 
   //Invoke the platform function    
   stm32l4_i2c_read();
 
   //stm32l4_i2c_read() and stm32l4_i2c_write() are interrupt based
   //We loop here for the read to complete and return result to Lua 	
-  data = stm32l4_i2c_read_result();
+  res=stm32l4_i2c_read_result(&data);
+  
+  if(res != -1){
+  	lua_pushnumber(L, data);
 
-  lua_pushnumber(L, data);
-
-  //One value returned to Lua
-  return 1; 
+  	//One value returned to Lua
+  	return 1;
+  } else
+    //No value returned to Lua
+	return 0; 
 }
 
 

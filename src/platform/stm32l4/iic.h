@@ -27,6 +27,5 @@ void stm32l4_Configure_I2C_Master(void);
 void stm32l4_Configure_I2C_Slave(void);
 void stm32l4_i2c_read(void);
 void stm32l4_i2c_write(unsigned char);
-unsigned char stm32l4_i2c_read_result(void);
-
+int stm32l4_i2c_read_result(unsigned char *data);
 #endif
