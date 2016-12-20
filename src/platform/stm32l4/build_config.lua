@@ -11,6 +11,7 @@ function add_platform_components( t, board, cpu )
   t.stm32l4_enc = { macro = 'ENABLE_ENC' }
   t.stm32l4_pmu = { macro = 'ENABLE_PMU' }
   t.stm32l4_iic = { macro = 'ENABLE_IIC' }
+  t.stm32l4_ble = { macro = 'ENABLE_BLE' }
 end
 
 -- Add specific configuration to the 'configs' table
@@ -33,7 +34,8 @@ function get_platform_modules( board, cpu )
   return { pio = { lib = '"pio"', map = "stm32_pio_map", open = false },
            cpu = { lib = '"cpu"', map = "stm32_cpu_map", open = "luaopen_stm32_cpu" },
            pmu = { guards = { 'ENABLE_PMU' }, lib = '"pmu"' },
-		   iic = { guards = { 'ENABLE_IIC' }, lib = '"iic"' },	
+		   iic = { guards = { 'ENABLE_IIC' }, lib = '"iic"' },
+		   ble = { guards = { 'ENABLE_BLE' }, lib = '"ble"' },
            enc = { guards = { 'ENABLE_ENC' }, lib = '"enc"' } }
 end
 

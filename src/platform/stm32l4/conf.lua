@@ -11,7 +11,7 @@ local fwlib_files = utils.get_files( "src/platform/" .. platform .. "/FWLib/libr
 if comp.board ~= "stm32l4-nucleo" and comp.board ~= "nucleo-l476rg" then
   fwlib_files = fwlib_files .. " " .. utils.get_files( "src/platform/" .. platform .. "/FWLib/USB/", "%.c$" )
 end
-specific_files = "system_stm32l4xx.c startup_stm32l476xx.s platform.c platform_int.c cpu.c stm32_pio.c enc.c pmu.c iic.c stm32l4xx_it.c"
+specific_files = "system_stm32l4xx.c startup_stm32l476xx.s platform.c platform_int.c cpu.c stm32_pio.c enc.c pmu.c iic.c ble.c stm32l4xx_it.c"
 local ldscript = comp.cpu == "STM32L476RG" and "stm32l476xx.ld"
 
 -- Prepend with path
@@ -32,6 +32,7 @@ addlib( { 'c','gcc','m' } )
 
 -- Penev: was hard but got error, this may be toolchain error
 -- Palmer: hard works on OS X with arm-none-eabi-gcc (GNU Tools for ARM Embedded Processors) 5.3.1 20160307 (release) [ARM/embedded-5-branch revision 234589]
+-- Penev: hard started working for me after upgrade to arm-none-eabi-gcc (GNU Tools for ARM Embedded Processors) 5.4.1 20160919 (release) [ARM/embedded-5-branch revision 240496]
 local target_flags = { '-mcpu=cortex-m4', '-mthumb','-mfloat-abi=hard', '-mfpu=fpv4-sp-d16' }
 
 -- Configure general flags for target
