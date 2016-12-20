@@ -227,6 +227,8 @@ int platform_uart_recv( unsigned id, unsigned timer_id, timer_data_type timeout 
 int platform_s_uart_recv( unsigned id, timer_data_type timeout );
 int platform_uart_set_flow_control( unsigned id, int type );
 int platform_s_uart_set_flow_control( unsigned id, int type );
+int platform_ble_uart_recv( unsigned id, unsigned char *data);
+int platform_ble_ibeacons_uart_recv( unsigned id, unsigned char *data);
 
 // *****************************************************************************
 // PWM subsection
