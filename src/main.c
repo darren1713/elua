@@ -142,6 +142,9 @@ int main( void )
     shell_start();
 #endif // #ifdef ELUA_BOOT_RPC
 
+  //Setup USART0 for BLE comunication. 
+  platform_uart_setup(0, 115200, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1);
+
 #ifdef ELUA_SIMULATOR
   hostif_exit(0);
   return 0;
