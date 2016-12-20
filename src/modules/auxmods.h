@@ -64,6 +64,9 @@ LUALIB_API int ( luaopen_pmu )( lua_State *L );
 #define AUXLIB_IIC  "iic"
 LUALIB_API int ( luaopen_iic )( lua_State *L );
 
+#define AUXLIB_BLE  "ble"
+LUALIB_API int ( luaopen_ble )( lua_State *L );
+
 // Helper macros
 #define MOD_CHECK_ID( mod, id )\
   if( !platform_ ## mod ## _exists( id ) )\
