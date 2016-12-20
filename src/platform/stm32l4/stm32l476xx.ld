@@ -1,6 +1,7 @@
 /* Linker script to configure memory regions. */
 MEMORY
-{ 
+{
+ /*  FLASH (rx) : ORIGIN = 0x0800C000, LENGTH = 1024K */ /* For bootloader version */ 
   FLASH (rx) : ORIGIN = 0x08000000, LENGTH = 1024K
   SRAM2 (rwx)  : ORIGIN = 0x10000188, LENGTH = 32k - 0x188
   SRAM1 (rwx)  : ORIGIN = 0x20000000, LENGTH = 96k

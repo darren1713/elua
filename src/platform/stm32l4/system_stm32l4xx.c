@@ -141,8 +141,12 @@
 /*!< Uncomment the following line if you need to relocate your vector Table in
      Internal SRAM. */
 /* #define VECT_TAB_SRAM */
-#define VECT_TAB_OFFSET  0x00 /*!< Vector Table base offset field.
-                                   This value must be a multiple of 0x200. */
+//#define VECT_TAB_OFFSET  0x00 /*!< Vector Table base offset field.
+//                                   This value must be a multiple of 0x200. */
+
+#define VECT_TAB_OFFSET  0x08000000 
+//#define VECT_TAB_OFFSET  0x0800C000	// For bootloader version elua image starts at 0x0800C000,
+								    // so set the pointer to the vector table at the proper location 
 /******************************************************************************/
 /**
   * @}
