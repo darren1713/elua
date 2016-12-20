@@ -24,6 +24,9 @@
 #include "platform.h"
 #endif
 
+#include "ble.h"
+#include "stm32l4xx_conf.h"
+
 static lua_State *globalL = NULL;
 
 static const char *progname = LUA_PROGNAME;
@@ -351,6 +354,53 @@ int lua_command_pending ( void )
 int prev_line_end = -1;
 #include "utils.h"
 
+//Check for CDC packet from the BLE and remove the header infomation.
+//The data are considered stream a like so no check sum is verified
+int receive_ble_cdc(){
+
+	static int state = WAITING_FOR_START, c, c_old, j, length, line_received;
+
+    //Not sure why this needs to be called each time
+    //platform_uart_setup(UART_BLE, 115200, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1);
+
+
+	if(line_received){
+		line_received = 0;
+		return 10; //Append LF to the end of line
+    }else if (!LL_USART_IsActiveFlag_RXNE(USART1))
+		return -1;
+
+	c_old=c;
+	c = LL_USART_ReceiveData8(USART1);
+
+	switch(state){
+		case WAITING_FOR_START :
+			if((c_old==0x5A) && (c==0x7E)){
+				state = WAITING_FOR_LENGTH;
+				j=0; //counts amount of bytes after some "mark" has been receive
+			}
+			return -1;
+
+		case WAITING_FOR_LENGTH :
+			if((++j == 1) && (c != 0x08) ){
+				state = WAITING_FOR_START;
+			} else if(j == 4){
+				length = c_old+c*256;
+				j=0;
+				state = WAITING_FOR_DATACOMPLETE;
+			}
+			return -1;
+
+		case WAITING_FOR_DATACOMPLETE :
+			if((++j) == (length - 7)){
+				state = WAITING_FOR_START;
+				line_received = 1;
+			}
+			return c;
+	}
+
+}
+ 
 int slip_readline(lua_State *L, char *b, const char *p)
 {
   char *ptr = b;
@@ -359,7 +409,12 @@ int slip_readline(lua_State *L, char *b, const char *p)
 
   while( 1 )
   {
-    c = platform_uart_recv( CON_UART_ID, PLATFORM_TIMER_SYS_ID, 0 );
+
+    //if(!BLE_CDC_ENABLED) 
+		c = platform_uart_recv( CON_UART_ID, PLATFORM_TIMER_SYS_ID, 0 );
+	//else
+		//BLE_CDC
+	//	if(c == -1) c = receive_ble_cdc(); 
 
     if( c != -1 )
     {
