@@ -34,10 +34,10 @@
 
 
 /* In NUCLEO we use MSI as source clock as follows:
- * MSI selected => SYSCLK = 4MHz
- * HPRE = 1     =>HCLK = 4MHz       
- * PPRE1 =1   =>PCLK1= 4MHz
- * PPRE2 =1   =>PCLK2= 4MHz
+ * MSI selected => SYSCLK = 48MHz (so USB is working)
+ * HPRE = 1   =>HCLK = 48MHz       
+ * PPRE1 =1   =>PCLK1= 48MHz
+ * PPRE2 =2   =>PCLK2= 24MHz
  * MSI for wake up
  * MCO output disabled
  * MCO is divided by 1
@@ -47,7 +47,7 @@
  */
 
 #if defined( ELUA_BOARD_MSI_CLOCK_HZ )
-#define HCLK    4000000
+#define HCLK    48000000
 #elif defined( ELUA_BOARD_INTERNAL_CLOCK_HZ )
 #define HCLK        ( (HSI_VALUE / PLL_M) * PLL_N / PLL_P)
 #else
@@ -88,9 +88,14 @@
 //i2c related stuff
 #include "iic.h"
 
+//BLE related stuff
+#include "ble.h"
+
 void virt_timer(unsigned int vtmr, unsigned int timeout_ms);
 enum {VTMR0=0, VTMR1, VTMR2, VTMR3}; 
+int vtmr_expired[4]; //shows if n-th (0,1,2 or 3) timer has expired
 
+inline void pulse(unsigned int duty); //For debug purpose 
 
 // ****************************************************************************
 // Platform initialization
@@ -198,6 +203,15 @@ int platform_init()
 
   // Configure I2C3 (I2C IP configuration in Master mode and related GPIO initialization)
   stm32l4_Configure_I2C_Master();
+
+
+  //Set SCB->VTOR to the proper offset for bootloader 
+  //SCB->VTOR = 0x800C000;
+
+
+  //Setup USART0 for BLE comunication. 
+  platform_uart_setup(0, 115200, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1);
+
 
   // All done
   return PLATFORM_OK;
@@ -676,6 +690,115 @@ int platform_s_uart_recv( unsigned id, timer_data_type timeout )
   while(LL_USART_IsActiveFlag_RXNE(stm32_usart[id]) == 0);
   return LL_USART_ReceiveData8(stm32_usart[id]);
 }
+
+//Receive a packet from the BLE with timeout occur 
+int platform_ble_uart_recv( unsigned id, unsigned char *data)
+{
+
+  int i,timeout;
+  
+  i=0; timeout=0;	
+ 
+  //For 100ms we should get the UART packet
+  //virt_timer(VTMR1, 200); //Seems to be slow
+ 
+  while(/*(!vtmr_expired[VTMR1]) && */(i<512)){
+
+	if (LL_USART_IsActiveFlag_RXNE(stm32_usart[id])){
+		*(data+i++) = LL_USART_ReceiveData8(stm32_usart[id]);
+		timeout=0;
+	}
+
+	if(timeout++ > BLE_TIMEOUT) break;
+
+	//platform_s_timer_delay(0, 5);
+  }
+
+  //Stop the timer
+  //virt_timer(VTMR1, 0);
+
+  //return the amount of data in the buffer. 
+  return i;
+}
+
+
+//Receive an response of iBeacon() packet from the BLE with timeout
+//Format of the returned data is:
+//			[ iBeacon1 0x5A 0x7E iBeacon2 0x5A 0x7E ... iBeaconN 0 ]
+int platform_ble_ibeacons_uart_recv( unsigned id, unsigned char *data)
+{
+
+  int i,j, iBeacon, timeout, state, length, last_iBeacon_i, complete;
+  unsigned char byte, byte_old, check_sum; 	
+
+  iBeacon=0; i=0, timeout=0, last_iBeacon_i=0;
+
+  
+  state = WAITING_FOR_START;
+
+  while((timeout < BLE_TIMEOUT)){
+
+  	if (LL_USART_IsActiveFlag_RXNE(stm32_usart[id])){
+		byte_old=byte;
+        byte = LL_USART_ReceiveData8(stm32_usart[id]);
+			
+        timeout=0;
+		complete = 0;
+
+		switch(state){
+			case WAITING_FOR_START :
+				if((byte_old==0x5A) && (byte==0x7E)){
+					state = WAITING_FOR_LENGTH;
+					j=0; //counts amount of bytes after some "mark" has been receive
+						
+					check_sum = byte + byte_old; 	
+				}
+				break;
+
+			case WAITING_FOR_LENGTH :
+				check_sum += byte;
+				if(++j == 4){
+					length = byte_old+byte*256;
+					j=0;
+					state = WAITING_FOR_DATACOMPLETE;
+				}	 
+                break;
+
+            case WAITING_FOR_DATACOMPLETE :
+				*(data+i++) = byte;
+				check_sum += byte;
+				if((++j) == (length - 7)){
+                	state = CHECK_SUM;
+                }
+                break;
+
+			case CHECK_SUM :
+				if (byte != check_sum){
+					i = last_iBeacon_i;
+				} else {
+					*(data+i++) = 0x5A; // Put unique marker between beacons 0x5A 0X7E
+					*(data+i++) = 0x7E; 
+					last_iBeacon_i = i; // This is the index after the last succesifully received iBeacon
+					iBeacon++;
+					complete = 1;
+				}
+				state = WAITING_FOR_START;
+				break;
+		}	
+    }
+
+    timeout++; 
+
+  }
+	
+	
+  if(complete && iBeacon)		 	
+  	//return the amount of data in the buffer.
+  	return i;
+  else
+	return 0; //We got Timeout before geting full packet
+}
+
 
 int platform_s_uart_set_flow_control( unsigned id, int type )
 {
@@ -2060,19 +2183,20 @@ void stm32l4_i2c_write(unsigned char data)
 
    //Set our sending byte buffer with the lua provided byte	
    master_data_to_send = data;
-	
+
   /* Master Generate Start condition for a 1 byte write transaction:
    *  - to the Slave with a 7-Bit SLAVE_OWN_ADDRESS
    *  - with a auto stop condition generation when receive 1 byte
    */
   LL_I2C_HandleTransfer(I2C3, SLAVE_OWN_ADDRESS, LL_I2C_ADDRSLAVE_7BIT, 1, LL_I2C_MODE_AUTOEND, LL_I2C_GENERATE_START_WRITE);
 
+
   /* Penev: Enable transmit interrupt so we get TXIS flag after Slave responds with ACK to the slave address */
   LL_I2C_EnableIT_TX(I2C3);
 
   /* Start waiting for the first ACK */
   virt_timer(VTMR0, 300);
-  
+
 }
 
 //Send a byte thru I2C from Master I2C3 to Slave I2C1
@@ -2097,13 +2221,20 @@ void stm32l4_i2c_read(void)
 }
 
 //stm32l4_i2c_read() and stm32l4_i2c_write() are interrupt based
-//We loop here for the read to complete and return result to Lua 
-unsigned char stm32l4_i2c_read_result(void)
+//We loop here for the read to complete and return result in data
+//returns -1 if timeout  
+int stm32l4_i2c_read_result(unsigned char *data)
 {
 
-  while (!I2C_Master_read_complete){}  
+  while (!I2C_Master_read_complete || vtmr_expired[VTMR0]){}  
 
-  return(master_received_data);
+  if(vtmr_expired[VTMR0]){
+	return -1;
+
+  }else{
+	*data = master_received_data;
+	return 0;
+  }
 }
 
 
@@ -2535,12 +2666,41 @@ void I2C3_EV_IRQHandler(void)
   * @Param   None 
   * @Retval  None
   */
-static void tmr_handler(elua_int_resnum resnum )
+static void vtmr0_handler(elua_int_resnum resnum )
 {
 
-    //Halt here
-    while(1) {};
+   vtmr_expired[0] = 1;
 }
+
+/**
+  * @Brief   Timeout handler
+  * @Param   None 
+  * @Retval  None
+  */
+static void vtmr1_handler(elua_int_resnum resnum )
+{
+	vtmr_expired[1] = 1;
+}
+/**
+  * @Brief   Timeout handler
+  * @Param   None 
+  * @Retval  None
+  */
+static void vtmr2_handler(elua_int_resnum resnum )
+{
+	vtmr_expired[2] = 1;
+}
+
+/**
+  * @Brief   Timeout handler
+  * @Param   None 
+  * @Retval  None
+  */
+static void vtmr3_handler(elua_int_resnum resnum )
+{
+	vtmr_expired[3] = 1;
+}
+
 
 /**
   * @Brief   Timer wrapper based on the eLua Virtual timers (System Tick).
@@ -2551,11 +2711,12 @@ static void tmr_handler(elua_int_resnum resnum )
   */
 void virt_timer(unsigned int vtmr, unsigned int timeout_ms){
 
+  vtmr_expired[vtmr]=0; //Timer is not expired
 
   if(timeout_ms){
 
   	//Hook interrupt handler to the timer. Previous handler ignored   
-  	elua_int_set_c_handler(INT_TMR_MATCH, tmr_handler);
+  	elua_int_set_c_handler(INT_TMR_MATCH, (vtmr==VTMR0)?vtmr0_handler:((vtmr==VTMR1)?vtmr1_handler:((vtmr==VTMR2)?vtmr2_handler:vtmr3_handler)));
 
   	//Enable interrupt from the timer
   	platform_cpu_set_interrupt(INT_TMR_MATCH, VIRT0+vtmr,  PLATFORM_CPU_ENABLE);
@@ -2573,4 +2734,37 @@ void virt_timer(unsigned int vtmr, unsigned int timeout_ms){
 
   }
 }
+
+
+/* For test purpose. 
+ * Makes a pulse on LED LD2 on Nucleo L467RG with variable duty cycle in %
+ * The function is meant to be put in a while loop for example:
+ * {
+ * 	int i=0;
+ *   while(i++<100){
+ *   	pulse(5);
+ *   }
+ *
+ * }
+ *
+ * This fragment can be put on a different places (with different duty cycles) in the 
+ * so the program execution can be traced. 
+*/
+inline void pulse(unsigned int duty){
+
+	volatile unsigned int i; 
+
+	LL_GPIO_SetOutputPin(GPIOA, LL_GPIO_PIN_5);
+	
+	for(i=0;i<duty*100;i++){
+		__NOP();
+	}
+	
+	LL_GPIO_ResetOutputPin(GPIOA, LL_GPIO_PIN_5);
+    
+	for(i=0;i<(100-duty)*100;i++){
+        __NOP();
+    }
+}
+
 
