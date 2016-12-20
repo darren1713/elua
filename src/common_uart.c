@@ -2,6 +2,8 @@
 
 #include "common.h"
 #include "platform_conf.h"
+#include "ble.h"
+
 
 // ****************************************************************************
 // UART functions
@@ -175,6 +177,32 @@ void platform_uart_send( unsigned id, u8 data )
 #endif // #ifdef BUILD_SERMUX
   if( id < NUM_UART || id == CDC_UART_ID )
     platform_s_uart_send( id, data );
+
+  //BLE_CDC
+  if(BLE_CDC_ENABLED){
+  	static unsigned char ble_cdc_buff[PACKET_LEN(BLE_CDC_PACKET_SIZE)];
+    static int i=0;
+    int j;
+
+	ble_cdc_buff[i++] = data;
+
+	//Even the following if statement (without anything else) makes paste in the console thru the USB_CDC hangging the unit??
+    if((i == BLE_CDC_PACKET_SIZE) || (data == 10)){
+
+        //Create CDC packet
+        create_packet(0x08, ble_cdc_buff, i);
+
+        //Not sure why this needs to be called each time
+        platform_uart_setup(0, 115200, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1);
+
+        //Send packet thru UART to the BLE
+        for(j=0; j<PACKET_LEN(i); j++)
+            platform_s_uart_send(UART_BLE, ble_cdc_buff[j]);
+
+        i=0;
+    }
+  }
+
 }
 
 #ifdef BUF_ENABLE_UART
@@ -198,6 +226,7 @@ static void cmn_uart_rx_inthandler( elua_int_resnum resnum )
 
 int platform_uart_set_buffer( unsigned id, unsigned log2size )
 {
+
   if( id == SERMUX_PHYS_ID ) // mere mortals aren't allowed to mess with VUART physical interface buffering
     return PLATFORM_ERR;
 #ifdef BUF_ENABLE_UART
