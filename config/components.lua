@@ -97,6 +97,7 @@ function init()
   }
   -- Shell
   components.shell = { macro = 'BUILD_SHELL' }
+  components.shell_basic = { macro = 'BUILD_SHELL_BASIC' }
   -- Advanced shell
   components.advanced_shell = { macro = 'BUILD_ADVANCED_SHELL', autoenable = 'shell' }
   -- Term

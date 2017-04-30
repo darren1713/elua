@@ -196,21 +196,31 @@ void shellh_show_help( const char *cmd, const char *helptext )
 // Insert shell commands here
 static const SHELL_COMMAND shell_commands[] =
 {
+#ifndef BUILD_SHELL_BASIC
   { "help", shell_help },
+#endif
   { "lua", shell_lua },
+#ifndef BUILD_SHELL_BASIC
   { "recv", shell_recv },
+#endif
   { "ver", shell_ver },
   { "exit", NULL },
   { "ls", shell_ls },
+#ifndef BUILD_SHELL_BASIC
   { "dir", shell_ls },
+#endif
   { "cat", shell_cat },
   { "type", shell_cat },
+#ifndef BUILD_SHELL_BASIC
   { "cp", shell_cp },
   { "wofmt", shell_wofmt },
   { "worepack", shell_worepack },
+#endif
   { "mkdir", shell_mkdir },
+#ifndef BUILD_SHELL_BASIC
   { "rm", shell_adv_rm },
   { "mv", shell_adv_mv },
+#endif
   { NULL, NULL }
 };
 

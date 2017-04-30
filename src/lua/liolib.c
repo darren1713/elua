@@ -18,6 +18,7 @@
 #include "lauxlib.h"
 #include "lualib.h"
 #include "lrotable.h"
+#include "common.h"
 
 
 #define IO_INPUT	1
@@ -191,6 +192,12 @@ static int io_open (lua_State *L) {
   return (*pf == NULL) ? pushresult(L, 0, filename) : 1;
 }
 
+static int io_remove (lua_State *L) {
+  const char *filename = luaL_checkstring(L, 1);
+  unlink(filename);
+  lua_pushboolean(L, 1);
+  return 1;
+}
 
 /*
 ** this function has a separated environment, which defines the
@@ -519,6 +526,7 @@ const LUA_REG_TYPE iolib[] = {
   {LSTRKEY("tmpfile"), LFUNCVAL(io_tmpfile)},
   {LSTRKEY("type"), LFUNCVAL(io_type)},
   {LSTRKEY("write"), LFUNCVAL(io_write)},
+  {LSTRKEY("remove"), LFUNCVAL(io_remove)},
   {LNILKEY, LNILVAL}
 };
 

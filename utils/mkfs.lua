@@ -50,6 +50,8 @@ function mkfs( dirname, outname, flist, mode, compcmd )
     return false
   end
 
+  print( sf( "Generating file %s/%s", dirname, outfname ) )
+
   _crtline = '  '
   _numdata = 0
   _bytecnt = 0
