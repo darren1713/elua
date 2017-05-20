@@ -384,9 +384,9 @@ static int g_read (lua_State *L, FILE *f, int first) {
         const char *p = lua_tostring(L, n);
         luaL_argcheck(L, p && p[0] == '*', n, "invalid option");
         switch (p[1]) {
-          case 'n':  /* number */
-            success = read_number(L, f);
-            break;
+//          case 'n':  /* number */
+//            success = read_number(L, f);
+//            break;
           case 'l':  /* line */
             success = read_line(L, f);
             break;

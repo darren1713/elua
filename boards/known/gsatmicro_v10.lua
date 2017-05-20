@@ -11,8 +11,8 @@ return {
     wofs = true,
     cdc = { buf_size = 128 },
     advanced_shell = false,
+    shell = false,
     term = { lines = 25, cols = 80 },
-    rpc = { uart = 0, speed = 115200 },
     adc = { buf_size = 2 },
     xmodem = false,
     cints = true,
@@ -23,6 +23,6 @@ return {
     vtmr = { num = 4, freq = 10 },
   },
   modules = {
-    generic = { 'all', "-spi", "-pwm", "-can", "-net" },
+    generic = { 'all', "-spi", "-pwm", "-can", "-net", "-lua_string", "-lua_math", "-rpc", "-lua_table" },
   },
 }

@@ -610,7 +610,6 @@ int platform_init()
   rtc_remaining = (SI32_RTC_A_read_alarm0(SI32_RTC_0)-SI32_RTC_A_read_setcap(SI32_RTC_0))/platform_timer_op(0, PLATFORM_TIMER_OP_GET_CLOCK, 0);
   rtc_init();
 
-  // Set the Systick as the highest priority, then uarts, then the rest
   // __NVIC_PRIO_BITS = 4 so there are 16 priorities. It seems as though the first bit is not used as SPI1 has to be set 2 lower than systick?
 
   uint32_t priorityGroup;
@@ -940,15 +939,16 @@ void TIMER0H_IRQHandler(void)
   usb_poll();
 #endif
 
+#if defined( INT_SYSTICK )
+  cmn_int_handler( INT_SYSTICK, 0 );
+#endif
+
+
   if(seconds_tick_pending)
   {
     SecondsTick_Handler();
     seconds_tick_pending = 0;
   }
-
-#if defined( INT_SYSTICK )
-  cmn_int_handler( INT_SYSTICK, 0 );
-#endif
 
   // Clear the interrupt flag
   SI32_TIMER_A_clear_high_overflow_interrupt(SI32_TIMER_0);
@@ -1227,7 +1227,6 @@ void SysTick_Handler()
   // Handle virtual timers
   cmn_virtual_timer_cb();
 
-  // Handle system timer call
   cmn_systimer_periodic();
 
   tickSeconds++;
