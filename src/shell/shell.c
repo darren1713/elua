@@ -411,8 +411,12 @@ void shell_start( void )
 // Initialize the shell, returning 1 for OK and 0 for error
 int shell_init( void )
 {
+#ifdef BUILD_SHELL
   shell_prog = NULL;
   return 1;
+#else
+  return 0;
+#endif
 }
 
 #else // #ifdef BUILD_SHELL

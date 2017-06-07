@@ -268,6 +268,7 @@ if comp.romfs == 'compile' then
     os.exit( -1 )
   end
   local cmdpath = { lfs.currentdir(), sf( 'luac.cross%s -ccn %s -cce %s -o %%s -s %%s', suffix, toolset[ "cross_" .. comp.target:lower() ], toolset.cross_cpumode:lower() ) }
+  print("Cross Compile Command: "..cmdpath[2])
   fscompcmd = table.concat( cmdpath, utils.dir_sep )
 elseif comp.romfs == 'compress' then
   if comp.target == 'lualong' or comp.target == 'lualonglong' then fscompoptnums = '--noopt-numbers' else fscompoptnums = '--opt-numbers' end
