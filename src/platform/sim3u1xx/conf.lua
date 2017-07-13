@@ -49,6 +49,8 @@ addm{ "USE_CDC_CLASS" }
 
 -- Standard GCC flags
 addcf{ '-ffunction-sections', '-fdata-sections', '-fno-strict-aliasing', '-Wall' }
+-- Testing below for backtrace functionality
+-- addcf{ '-ffunction-sections', '-fdata-sections', '-fno-strict-aliasing', '-Wall' , '-mtpcs-frame', '-mtpcs-leaf-frame', '-fno-omit-frame-pointer' }
 addlf{ '-nostartfiles', '-nostdlib', '-T', ldscript, '-Wl,--gc-sections', '-Wl,--allow-multiple-definition' }
 addaf{ '-x', 'assembler-with-cpp', '-Wall' }
 addlib{ 'c','gcc','m' }
