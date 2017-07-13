@@ -1353,6 +1353,9 @@ void pios_init( void )
   SI32_PBCFG_A_disable_jtag(SI32_PBCFG_0);
   SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 1 << 3 );
   SI32_PBSTD_A_write_pins_high(SI32_PBSTD_1, 1 << 3 );
+
+  //Crank up power on bluetooth enable pin
+  SI32_PBSTD_A_set_pins_high_drive_strength( SI32_PBSTD_1, 1 << 7 );
 #endif
 
   // Analog Pins (1.14 & 1.15)
