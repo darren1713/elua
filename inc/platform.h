@@ -3,7 +3,11 @@
 #ifndef __PLATFORM_H__
 #define __PLATFORM_H__
 
+#ifdef LUA_CROSS_COMPILER //needed on Windows cross compiling
+#include "newlib/devman.h"
+#else
 #include "devman.h"
+#endif
 #include "elua_int.h"
 
 // Error / status codes
