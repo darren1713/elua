@@ -308,8 +308,6 @@ static int callback_get_flag( elua_int_resnum resnum, int clear )
 // ****************************************************************************
 // Initialize interrupt subsystem
 
-static SI32_PBSTD_A_Type* const port_std[] = { SI32_PBSTD_0, SI32_PBSTD_1, SI32_PBSTD_2, SI32_PBSTD_3 };
-
 //#define MATCH_PORTNUM1 3
 //#define MATCH_PINNUM1  6
 

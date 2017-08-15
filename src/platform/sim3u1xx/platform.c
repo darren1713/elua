@@ -113,9 +113,6 @@ static void adcs_init();
 static void gTIMER0_enter_auto_reload_config(void);
 static void gTIMER1_enter_auto_reload_config(void);
 
-static SI32_PBSTD_A_Type* const port_std[] = { SI32_PBSTD_0, SI32_PBSTD_1, SI32_PBSTD_2, SI32_PBSTD_3 };
-
-
 timer_data_type last_wdt_time, cur_wdt_time = 0;
 
 // Reference: http://stackoverflow.com/q/2422712/105950
@@ -641,6 +638,7 @@ int platform_init()
       case USB0_IRQn:
       case USART0_IRQn:
       case USART1_IRQn:
+      case EPCA0_IRQn:
         NVIC_SetPriority(i, NVIC_EncodePriority(priorityGroup, 2, 0));
 //        NVIC_SetPriority(i, (1 << __NVIC_PRIO_BITS) - 4);
         break;
@@ -742,7 +740,8 @@ void clk_init( void )
                                          SI32_CLKCTRL_A_APBCLKG0_LPTIMER0 |
                                          SI32_CLKCTRL_A_APBCLKG0_USB0 |
                                          SI32_CLKCTRL_A_APBCLKG0_FLASHCTRL0 |
-                                         SI32_CLKCTRL_A_APBCLKG0_CMP0
+                                         SI32_CLKCTRL_A_APBCLKG0_CMP0 |
+                                         SI32_CLKCTRL_A_APBCLKG0_EPCA0
                                          );
   SI32_CLKCTRL_A_enable_apb_to_modules_1(SI32_CLKCTRL_0,
                                          SI32_CLKCTRL_A_APBCLKG1_MISC1 |
@@ -954,6 +953,7 @@ void TIMER0H_IRQHandler(void)
   SI32_TIMER_A_clear_high_overflow_interrupt(SI32_TIMER_0);
 }
 
+#if 0 //!defined(PCB_V10)
 //NOTE! These must be sized by a factor of 2 to calculate properly
 //First byte is size of the array
 #define LED_COUNT 5
@@ -1171,10 +1171,10 @@ void led_set_mask( u8 mask )
   // Module Board LED numbers
   led_mask = 0;
   led_mask |= ( ( mask & 1 ) << 3 ); // GPS
-  led_mask |= ( ( mask & 1 << 1 ) << 3 ); // MSG
-  led_mask |= ( ( mask & 1 << 2 ) >> 1 ); // PWR
-  led_mask |= ( ( mask & 1 << 3 ) >> 3 ); // SAT
-  led_mask |= ( ( mask & 1 << 4 ) >> 2 ); // ALRM
+  led_mask |= ( ( mask & (1 << 1) ) << 3 ); // MSG
+  led_mask |= ( ( mask & (1 << 2) ) >> 1 ); // PWR
+  led_mask |= ( ( mask & (1 << 3) ) >> 3 ); // SAT
+  led_mask |= ( ( mask & (1 << 4) ) >> 2 ); // ALRM
 #endif
 }
 
@@ -1220,6 +1220,7 @@ int led_get_mode(int led)
   }
   return -1;
 }
+#endif
 
 // SysTick interrupt handler
 void SysTick_Handler()
@@ -1277,8 +1278,13 @@ static void gTIMER1_enter_auto_reload_config(void)
   SI32_TIMER_A_select_high_auto_reload_mode (SI32_TIMER_1);
 
   // Set overflow frequency to SYSTICKHZ
+#if defined(PCB_V10) //New versions use PWM and use this timer for processing uart data
+  SI32_TIMER_A_write_capture (SI32_TIMER_1, (unsigned) -(cmsis_get_cpu_frequency()/TIMER1_HZ));
+  SI32_TIMER_A_write_count (SI32_TIMER_1, (unsigned) -(cmsis_get_cpu_frequency()/TIMER1_HZ));
+#else //Older PCB's have to use a high resolution timer for LED driving
   SI32_TIMER_A_write_capture (SI32_TIMER_1, (unsigned) -(cmsis_get_cpu_frequency()/LEDTICKHZ));
   SI32_TIMER_A_write_count (SI32_TIMER_1, (unsigned) -(cmsis_get_cpu_frequency()/LEDTICKHZ));
+#endif
 
   // Run Timer
   SI32_TIMER_A_start_high_timer(SI32_TIMER_1);
@@ -1333,8 +1339,11 @@ void pios_init( void )
 #if defined( ELUA_BOARD_GSATMICRO_V10 )
   SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_0, 0x0003);
   SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_0, 0x3F54);
-  //SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_0, 0x0003);
-    SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_0, 0x3F03);
+
+  SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_0, 0x0003);
+  //JEFF TEST TO ENABLE PWM CHANNELS  SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_0, 0x3F03);
+  //Attach PWM pins to crossbar signal
+  SI32_PBCFG_A_enable_xbar0_signal(SI32_PBCFG_0, SI32_XBAR0_EPCA0_CEX0_5);
 #else
   // PB0 Setup
   SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_0, 0x0603);
@@ -1837,8 +1846,6 @@ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int st
       SI32_UART_A_enable_rx( uart[ id ] );
     }
   }
-  
-
 
   return baud; // FIXME: find a way to actually get baud
 }
@@ -3073,30 +3080,29 @@ u8 flash_erase( u32 address, u8 verify)
 {
     u32 wc;
     u32* verify_address;
+
     // Write the address of the Flash page to WRADDR
     SI32_FLASHCTRL_A_write_wraddr( SI32_FLASHCTRL_0, address );
     // Enter Flash Erase Mode
     SI32_FLASHCTRL_A_enter_flash_erase_mode( SI32_FLASHCTRL_0 );
-
+    
     // Disable interrupts
     //hw_intp_disable();
     __disable_irq();
 
     // Unlock the flash interface for a single access
-    armed_flash_key = flash_key_mask ^ 0xA4;
-    SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, armed_flash_key);
-    armed_flash_key = flash_key_mask ^ 0xF0;
-    SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, armed_flash_key);
-    armed_flash_key = 0;
+    SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, flash_key_mask ^ 0xA4);
+    SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, flash_key_mask ^ 0xF0);
 
     // Write any value to initiate a page erase.
-    SI32_FLASHCTRL_A_write_wrdata(SI32_FLASHCTRL_0, 0xA5);
+    SI32_FLASHCTRL_A_write_wrdata(SI32_FLASHCTRL_0, 0x0000);
 
     // Wait for flash operation to complete
-    while (SI32_FLASHCTRL_A_is_flash_busy(SI32_FLASHCTRL_0))
+    // JEFF: We are running from internal flash so the system blocks till we finish, IE: unnecessary to wait
+    /*while (SI32_FLASHCTRL_A_is_flash_busy(SI32_FLASHCTRL_0))
     {
       WDTIMER0_IRQHandler();
-    }
+    }*/
 
     if( verify )
     {
@@ -3107,8 +3113,11 @@ u8 flash_erase( u32 address, u8 verify)
         for( wc = INTERNAL_FLASH_SECTOR_SIZE/4; wc != 0; wc-- )
         {
             if ( *verify_address != 0xFFFFFFFF )
-                return 1;
-
+            {
+              __enable_irq();
+              printf("EFLASH FAIL\n");
+              return 1;
+            }
             verify_address++;
         }
     }
@@ -3119,46 +3128,47 @@ u8 flash_erase( u32 address, u8 verify)
     return 0;
 }
 
-
 u8 flash_write( u32 address, u32* data, u32 count, u8 verify )
 {
     u32* tmpdata = data;
     u32* verify_address;
     u32 wc;
 
-    // Write the address of the Flash page to WRADDR
-    SI32_FLASHCTRL_A_write_wraddr( SI32_FLASHCTRL_0, address );
-    // Enter flash erase mode
-    SI32_FLASHCTRL_A_exit_flash_erase_mode(SI32_FLASHCTRL_0);
-
     // disable interrupts
     //hw_intp_disable();
     __disable_irq();
 
-    // Unlock flash interface for multiple accesses
-    armed_flash_key = flash_key_mask ^ 0xA4;
-    SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, armed_flash_key);
-    armed_flash_key = flash_key_mask ^ 0xF3;
-    SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, armed_flash_key);
-    armed_flash_key = 0;
+    // Exit flash erase mode
+    SI32_FLASHCTRL_A_exit_flash_erase_mode(SI32_FLASHCTRL_0);
 
     // Write word-sized
-    for( wc = count; wc != 0; wc-- )
+    for( wc = 0; wc < count; wc++ )
     {
+        // Unlock flash interface for single write
+        SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, flash_key_mask ^ 0xA4); //OxA5
+        SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, flash_key_mask ^ 0xF0); //0xF1
+        // Write the address of the Flash page to WRADDR
+        SI32_FLASHCTRL_A_write_wraddr( SI32_FLASHCTRL_0, address + (wc * 4) );
         SI32_FLASHCTRL_A_write_wrdata( SI32_FLASHCTRL_0, *data );
+
+        // Unlock flash interface for single write
+        SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, flash_key_mask ^ 0xA4); //OxA5
+        SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, flash_key_mask ^ 0xF0); //0xF1
+        // Write the address of the Flash page to WRADDR
+        SI32_FLASHCTRL_A_write_wraddr( SI32_FLASHCTRL_0, address + (wc * 4) + 2 );
         SI32_FLASHCTRL_A_write_wrdata( SI32_FLASHCTRL_0, *data >> 16 );
+        
+        //printf("WFLASH %08X %08X\n", address + (wc * 2), *data);
         data++;
         WDTIMER0_IRQHandler();
     }
 
-    // Relock flash interface
-    SI32_FLASHCTRL_A_write_flash_key( SI32_FLASHCTRL_0, 0x5A );
-
     // Wait for flash operation to complete
-    while( SI32_FLASHCTRL_A_is_flash_busy(SI32_FLASHCTRL_0 ) )
+    // JEFF: We are running from internal flash so the system blocks till we finish, IE: unnecessary to wait
+    /*while( SI32_FLASHCTRL_A_is_flash_busy(SI32_FLASHCTRL_0 ) )
     {
       WDTIMER0_IRQHandler();
-    }
+    }*/
 
     if( verify )
     {
@@ -3168,9 +3178,10 @@ u8 flash_write( u32 address, u32* data, u32 count, u8 verify )
         {
             if (*verify_address != *tmpdata++)
             {
-                return 1;
+              __enable_irq();
+              printf("WFLASH FAIL %08X %08X\n", *verify_address, tmpdata[count-wc]);
+              return 1;
             }
-
             verify_address++;
         }
     }
@@ -3181,7 +3192,6 @@ u8 flash_write( u32 address, u32* data, u32 count, u8 verify )
 
     return 0;
 }
-
 
 u32 platform_s_flash_write( const void *from, u32 toaddr, u32 size )
 {

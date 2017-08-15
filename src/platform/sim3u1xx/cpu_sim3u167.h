@@ -6,8 +6,14 @@
 #include "type.h"
 #include "stacks.h"
 #include "platform_ints.h"
+#include "SI32_PBSTD_A_Type.h"
+#include "sim3u1xx.h"
 
 extern unsigned platform_get_console_uart( void );
+
+#define TIMER1_HZ 300 //High priority timer for uarts = 115200/8/300 = 48 bytes per tick so less than half of the 128 byte buffers
+
+SI32_PBSTD_A_Type* const port_std[] = { SI32_PBSTD_0, SI32_PBSTD_1, SI32_PBSTD_2, SI32_PBSTD_3 };
 
 #define CON_VIRTUAL_ID 255
 // #if defined( BUILD_USB_CDC )
@@ -263,7 +269,8 @@ enum {
   LED_COLOR_MSG = 1, // was pwr
   LED_COLOR_PWR = 2, // was alrm
   LED_COLOR_SAT = 3, // was gps
-  LED_COLOR_ALRM = 4 // was msg
+  LED_COLOR_ALRM = 4, // was msg
+  LED_COLOR_INTERNAL = 5
 };
 #else
 enum {

@@ -122,6 +122,10 @@ int main( void )
       break; // autoruns only the first found
     }
   }
+#ifdef EXTRA_STARTUP_HOOK
+  // Watchdog ticks only occur while in lua VM, pause watchdog if we are going to shell...
+  watchdog_pause();
+#endif
   printf("Lua no autorun or exited\n");
 
 #ifdef ELUA_BOOT_RPC

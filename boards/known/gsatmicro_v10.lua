@@ -11,6 +11,7 @@ return {
     wofs = true,
     cdc = { buf_size = 128 },
     advanced_shell = false,
+    shell_basic = false,
     shell = false,
     term = { lines = 25, cols = 80 },
     adc = { buf_size = 2 },
@@ -23,6 +24,6 @@ return {
     vtmr = { num = 4, freq = 10 },
   },
   modules = {
-    generic = { 'all', "-spi", "-pwm", "-can", "-net", "-lua_string", "-lua_math", "-rpc", "-lua_table" },
+    generic = { 'all', "-spi", "-pwm", "-can", "-net",  "-lua_math", "-rpc", "-lua_table" }, --"-lua_string",
   },
 }
