@@ -3081,14 +3081,14 @@ u8 flash_erase( u32 address, u8 verify)
     u32 wc;
     u32* verify_address;
 
+    // Disable interrupts
+    //hw_intp_disable();
+    __disable_irq();
+
     // Write the address of the Flash page to WRADDR
     SI32_FLASHCTRL_A_write_wraddr( SI32_FLASHCTRL_0, address );
     // Enter Flash Erase Mode
     SI32_FLASHCTRL_A_enter_flash_erase_mode( SI32_FLASHCTRL_0 );
-    
-    // Disable interrupts
-    //hw_intp_disable();
-    __disable_irq();
 
     // Unlock the flash interface for a single access
     SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, flash_key_mask ^ 0xA4);
@@ -3106,16 +3106,15 @@ u8 flash_erase( u32 address, u8 verify)
 
     if( verify )
     {
-
         address &= ~(INTERNAL_FLASH_SECTOR_SIZE - 1); // Round down to nearest even page address
         verify_address = (u32*)address;
 
-        for( wc = INTERNAL_FLASH_SECTOR_SIZE/4; wc != 0; wc-- )
+        for( wc = 0; wc < (INTERNAL_FLASH_SECTOR_SIZE/4); wc++ )
         {
             if ( *verify_address != 0xFFFFFFFF )
             {
               __enable_irq();
-              printf("EFLASH FAIL\n");
+              printf("EFLASH FAIL %08X\n", verify_address);
               return 1;
             }
             verify_address++;
@@ -3174,12 +3173,12 @@ u8 flash_write( u32 address, u32* data, u32 count, u8 verify )
     {
         verify_address = (u32*)address;
 
-        for( wc = count; wc != 0; wc-- )
+        for( wc = 0; wc < count; wc++ )
         {
-            if (*verify_address != *tmpdata++)
+            if (*verify_address != tmpdata[wc])
             {
               __enable_irq();
-              printf("WFLASH FAIL %08X %08X\n", *verify_address, tmpdata[count-wc]);
+              printf("WFLASH FAIL %08X %08X\n", *verify_address, tmpdata[wc]);
               return 1;
             }
             verify_address++;

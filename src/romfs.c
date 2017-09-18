@@ -670,6 +670,7 @@ int romfs_walk_fs( u32 *start, u32 *end, void *pdata  )
   if( romfsh_read8( off, pfsdata ) == WOFS_END_MARKER_CHAR )
     return -1;
 
+  //Skip over file name that ends with \0
   while( ( romfsh_read8( off ++, pfsdata ) ) != '\0' );
 
   // Move to next aligned position
@@ -894,6 +895,7 @@ int wofs_repack( u32 threshold )
   u32 write_ptr, tmp, last_sector, lowest_spare;
   u32 fs_read_ptr = 0;
   int ret;
+  int i;
 
   if( romfs_check_open_fds() )
   {
@@ -926,6 +928,8 @@ int wofs_repack( u32 threshold )
     ret = romfs_walk_fs( &startf, &endf, pdata );
 #if defined( WOFS_REPACK_DEBUG )
     printf("S: %lu E: %lu F: %d\n", startf, endf, ret);
+    for(i=startf; i<endf; i++)
+      printf("%02X", romfsh_read8( i, pdata ));
 #endif
   } while( ret == 0 ); // Exit when we find something other than a "regular" file
 
