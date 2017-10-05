@@ -3,6 +3,9 @@
 #include "platform_conf.h"
 #include <stdio.h>
 
+//#define BUILD_SERMUX
+//#define SERMUX_NUM_VUART 1
+
 #if defined( BUF_ENABLE_UART ) || defined( BUF_ENABLE_ADC )
 #define BUF_ENABLE
 #endif
@@ -20,6 +23,11 @@
 #endif
 
 #define NUM_TOTAL_UART  ( NUM_UART + NUM_VUART_BUFS + NUM_CDC_UART )
+
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+
+#pragma message "BUFFERS: " STR(NUM_TOTAL_UART)
 
 #ifdef BUF_ENABLE
 
@@ -44,7 +52,7 @@
 #endif
 
 static buf_desc buf_desc_rng [ 1 ];
-
+static buf_desc buf_desc_console [ 1 ];
 
 // NOTE: the order of descriptors here MUST match the order of the BUF_ID_xx
 // enum in inc/buf.h
@@ -52,7 +60,8 @@ static const buf_desc* buf_desc_array[ BUF_ID_TOTAL ] =
 {
   buf_desc_uart,
   buf_desc_adc,
-  buf_desc_rng
+  buf_desc_rng,
+  buf_desc_console
 };
 
 // Helper macros

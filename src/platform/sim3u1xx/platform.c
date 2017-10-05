@@ -818,12 +818,14 @@ void SecondsTick_Handler()
       //Our timer has expired and we are still powered, start TX script
       //Do a software reboot UNTIL we get the memory leaks sorted out...
       //sim3_pmu_reboot();
+#ifdef BUILD_WOFS
       printf("Free Sectors: %d\n", wofs_free_sectors() );
       if( wofs_free_sectors() <= 3 )
         sim3_pmu_reboot_nodfu();
 #ifdef REBOOT_AT_END_OF_SLEEP
       else
         sim3_pmu_reboot_nodfu();
+#endif
 #endif
       //Normally we would run the startup script, but fix memory leaks first...
       //printf("startup %i\n", load_lua_function("autorun"));

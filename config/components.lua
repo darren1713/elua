@@ -202,6 +202,8 @@ function init()
   components.romfs = { macro = 'BUILD_ROMFS' }
   -- WOFS
   components.wofs = { macro = "BUILD_WOFS" }
+  -- WOFS
+  components.niffs = { macro = "BUILD_NIFFS" }
   -- All done
   return components
 end

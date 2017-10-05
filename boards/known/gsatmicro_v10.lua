@@ -8,7 +8,8 @@ return {
   components = {
     sercon = { uart = 255, speed = 115200, buf_size = 128 },
     romfs = true,
-    wofs = true,
+    wofs = false,
+    niffs = true,
     cdc = { buf_size = 128 },
     advanced_shell = false,
     shell_basic = false,

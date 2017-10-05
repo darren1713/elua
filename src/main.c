@@ -34,6 +34,10 @@ const char *boot_order[] = {
   "/wo/autorun.lua",
   "/wo/autorun.lc",
 #endif
+#if defined(BUILD_NIFFS)
+  "/f/autorun.lua",
+  "/f/autorun.lc",
+#endif
 #if defined(BUILD_ROMFS)
   "/rom/autorun.lua",
   "/rom/autorun.lc",
@@ -101,6 +105,9 @@ int main( void )
 
   // Register the remote filesystem
   remotefs_init();
+
+  // Register NIFFS
+  nffs_init();
 
 #ifdef EXTRA_STARTUP_HOOK
   // Init Extras

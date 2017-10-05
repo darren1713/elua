@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#define SETTING_FORMAT "/wo/._%s%s"
+#define SETTING_FORMAT "/f/._%s%s"
 
 enum {
   PARAM_NIL=0,
