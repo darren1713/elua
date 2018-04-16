@@ -57,7 +57,7 @@
 
 // define for getting niffs debug output
 #ifndef NIFFS_DBG
-#define NIFFS_DBG(...)
+#define NIFFS_DBG(_f, ...)
 #endif
 
 // define NIFFS_DUMP to be able to visualize filesystem with NIFFS_dump
@@ -65,8 +65,18 @@
 #ifdef NIFFS_DUMP
 #ifndef NIFFS_DUMP_OUT
 // used to output in NIFFS_dump
-#define NIFFS_DUMP_OUT(...)
+#define NIFFS_DUMP_OUT(_f, ...)
 #endif
+#endif
+
+// max macro
+#ifndef NIFFS_MAX
+#define NIFFS_MAX(x, y) UMAX(x,y)
+#endif
+
+// min macro
+#ifndef NIFFS_MIN
+#define NIFFS_MIN(x, y) UMIN(x,y)
 #endif
 
 // define for assertions within niffs
@@ -77,6 +87,22 @@
 // define maximum name length
 #ifndef NIFFS_NAME_LEN
 #define NIFFS_NAME_LEN          (16)
+#endif
+
+// Enable or disable linear area features.
+// Files in the linear area are not divided by page headers but are linear on
+// medium. To create a linear file, pass NIFFS_O_CREAT and NIFFS_O_CREAT_LINEAR
+// when creating the file with open.
+// To have more control over the linear file, NIFFS_mknod_linear can also be
+// called, see corresponding function for more info.
+// The linear area is not wear leveled. Once a linear file is deleted,
+// corresponding sectors are immediately erased.
+// This implies that each linear file will at least occupy one sector, even if
+// the size is 0.
+// Linear files can only be appended, never modified. Defragmentation of the
+// linear area is up to the user.
+#ifndef NIFFS_LINEAR_AREA
+#define NIFFS_LINEAR_AREA       (1)
 #endif
 
 // define number of bits used for object ids, used for uniquely identify a file
@@ -90,8 +116,9 @@
 #endif
 
 // word align for target flash, e.g. stm32f1 can only write 16-bit words at a time
+// from SiM33U1xx-SiM3C1xx-RM.pdf p.380 para.21.4.2 "Writes to WRDATA must be half-word aligned"
 #ifndef NIFFS_WORD_ALIGN
-#define NIFFS_WORD_ALIGN        (4)
+#define NIFFS_WORD_ALIGN        (2)
 #endif
 
 // garbage collection uses a score system to select sector to erase:
@@ -125,10 +152,6 @@
   ((busy) * NIFFS_GC_SCORE_BUSY)
 #endif
 
-// enable this define to have the spare free pages worth a sector distributed,
-// disable to keep the spare free pages within same sector
-//#define NIFFS_EXPERIMENTAL_GC_DISTRIBUTED_SPARE_SECTOR
-
 // type sizes, depend of the size of the filesystem and the size of the pages
 
 // must comprise NIFFS_OBJ_ID_BITS
@@ -153,7 +176,7 @@
 
 // magic bits, must be sized on alignment, NIFFS_WORD_ALIGN
 #ifndef NIFFS_TYPE_MAGIC_SIZE
-#define NIFFS_TYPE_MAGIC_SIZE u32_t
+#define NIFFS_TYPE_MAGIC_SIZE u16_t
 #endif
 
 // sector erase counter, must be sized on alignment, NIFFS_WORD_ALIGN
@@ -163,7 +186,7 @@
 
 // page flag, 3 values, must be sized on alignment, NIFFS_WORD_ALIGN
 #ifndef NIFFS_TYPE_PAGE_FLAG_SIZE
-#define NIFFS_TYPE_PAGE_FLAG_SIZE u32_t
+#define NIFFS_TYPE_PAGE_FLAG_SIZE u16_t
 #endif
 
 typedef NIFFS_TYPE_OBJ_ID_SIZE niffs_obj_id;

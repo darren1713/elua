@@ -30,43 +30,57 @@ static u8_t buf[NIFFS_BUF_SIZE];
 static niffs_file_desc descs[NIFFS_FILE_DESCS];
 static u8_t * niffs_pbase;
 static u32_t niffs_max_size;
-static u32_t niffs_sectors;
+static u32_t niffs_total_sectors;
+static u32_t niffs_paged_sectors;
+static u32_t niffs_lin_sectors;
 
 static int nffs_open_r( struct _reent *r, const char *path, int flags, int mode, void *pdata )
 {
   u8 lflags = 0;
   int ret;
   
-  if(flags == 0) {
-    lflags = NIFFS_O_RDONLY;
-    NFFS_DBG("-R");
+  lflags = NIFFS_O_RDONLY;
+
+  //check for read/write flags and overwrite read only if so
+  if(flags & O_RDWR) {
+    lflags = NIFFS_O_RDWR;
+    //printf("-S");
   }
+  if(flags & O_WRONLY) {
+    lflags = NIFFS_O_WRONLY;
+    //printf("-W");
+  }
+
+  //add other flags
   if(flags & O_CREAT) {
     lflags |= NIFFS_O_CREAT;
-    NFFS_DBG("-C");
+    //printf("-C");
   }
   if(flags & O_TRUNC) {
     lflags |= NIFFS_O_TRUNC;
-    NFFS_DBG("-T");
-  }
-  if(flags & O_RDWR) {
-    lflags |= NIFFS_O_RDWR;
-    NFFS_DBG("-S");
-  }
-  if(flags & O_WRONLY) {
-    lflags |= NIFFS_O_WRONLY;
-    NFFS_DBG("-W");
+    //printf("-T");
   }
   if(flags & O_APPEND) {
     lflags |= NIFFS_O_APPEND;
-    NFFS_DBG("-A");
+    //printf("-A");
   }
   if(flags & O_EXCL) {
     lflags |= NIFFS_O_EXCL;
-    NFFS_DBG("-E");
+    //printf("-E");
+  }
+
+  // TODO peter just for testing, perhaps you satellite blokes want it differently
+  if ((strncmp("/l", path, 2) == 0) || (strncmp("autorun", path, 7) == 0)) {
+    lflags |= NIFFS_O_LINEAR;
+    //printf("-L\n");
   }
   ret = NIFFS_open(&fs, (char *)path, lflags, mode);
   NFFS_DBG("\nN_O:%s,%i,%i,%i,%i\n", path, ret, flags, lflags, mode);
+  if(ret < 0)
+  {
+    r->_errno = ENOENT; //File does not exist
+    return -1;
+  }
   return ret;
 }
 
@@ -88,18 +102,66 @@ static _ssize_t nffs_read_r( struct _reent *r, int fd, void* ptr, size_t len, vo
 // lseek
 static off_t nffs_lseek_r( struct _reent *r, int fd, off_t off, int whence, void *pdata )
 {
-  return NIFFS_lseek(&fs, fd, off, whence);
+  // TODO peter are we sure the whence arg here matches NIFFS_SEEK_SET, NIFFS_SEEK_CUR, NIFFS_SEEK_END?
+  //      niffs adapts to the posix values so should work
+  //return NIFFS_lseek(&fs, fd, off, whence);
+  int res = NIFFS_OK;
+  niffs_file_desc *myfd;
+
+  if(NIFFS_lseek(&fs, fd, off, whence) == NIFFS_OK)
+  {
+    res = niffs_get_filedesc(&fs, fd, &myfd);
+    if (res != NIFFS_OK) return res;
+    //printf("Nl o:%li w:%i p:%li\n", off, whence, myfd->offs);
+    return myfd->offs;
+  } else {
+    //printf("Nl FAIL");
+    return -1;
+  }
+}
+
+// getaddr
+static const char* nffs_getaddr_r( struct _reent *r, int fd, void *pdata )
+{
+  return NULL;
+  u8_t * ptrptr;
+  u32_t len;
+  NIFFS_read_ptr(&fs, fd, &ptrptr, &len);
+  //printf("getaddr %li\n", (u32_t)ptrptr);
+  return (char*)ptrptr;
 }
 
 // Directory operations
 //static u32 romfs_dir_data = 0;
 
-
-niffs_DIR d;
+static niffs_DIR niffs_d;
 // opendir
 static void* nffs_opendir_r( struct _reent *r, const char* dname, void *pdata )
 {
-  return NIFFS_opendir(&fs, (char *)dname, &d);
+  return NIFFS_opendir(&fs, (char *)dname, &niffs_d);
+}
+// TODO peter no clue what I am doing here, but could perhaps work
+extern struct dm_dirent dm_shared_dirent;
+extern char dm_shared_fname[ DM_MAX_FNAME_LENGTH + 1 ];
+static struct dm_dirent *nffs_readdir_r( struct _reent *r, void *d, void *pdata )
+{
+  struct dm_dirent *pent = &dm_shared_dirent;
+  struct niffs_dirent niffs_ent;
+  struct niffs_dirent *p_niffs_ent = &niffs_ent;
+  p_niffs_ent = NIFFS_readdir(&niffs_d, p_niffs_ent);
+  if (p_niffs_ent) {
+    pent->fname = dm_shared_fname;
+    strncpy(pent->fname, p_niffs_ent->name, UMIN(NIFFS_NAME_LEN, DM_MAX_FNAME_LENGTH));
+    pent->fsize = p_niffs_ent->size;
+    pent->flags = 0; // TODO peter don't know what elua uses this for
+    pent->ftime = 0;
+    if (p_niffs_ent->type) {
+      // TODO peter placeholder
+      // 0x00 = paged file
+      // 0x01 = linear file
+    }
+  }
+  return p_niffs_ent == NULL ? NULL : pent;
 }
 /*
 NIFFS_readdir
@@ -201,17 +263,23 @@ static const DM_DEVICE niffs_device =
   nffs_read_r,         // read
   nffs_lseek_r,        // lseek
   nffs_opendir_r,      // opendir
-  NULL,      // readdir //TODO: COMPLICATED TRANSFORM FROM romfs_readdir_r
+  nffs_readdir_r,      // readdir TODO peter, made an attempt at this
   nffs_closedir_r,     // closedir
-  NULL,                 // getaddr
-  NULL,                 // mkdir
+  nffs_getaddr_r,      // getaddr
+  NULL,                // mkdir
   nffs_unlink_r,       // unlink
-  NULL,                 // rmdir
-  NULL                  // rename
+  NULL,                // rmdir
+  NULL                 // rename // TODO peter, this exists in niffs also if you want it
 };
 
 
 static int platform_hal_erase_f(u8_t *addr, u32_t len) {
+  // flash boundary checks
+  if ((intptr_t)addr < (intptr_t)niffs_pbase ||
+      (intptr_t)addr + len > (intptr_t)niffs_pbase + niffs_max_size) {
+    NFFS_DBG("N_E: OOB %li,%li\n", (u32_t)addr, len);
+    return -1; // TODO peter better err code?
+  }
 /*  if (addr < &_flash[0]) return ERR_NIFFS_TEST_BAD_ADDR;
   if (addr+len > &_flash[0] + EMUL_SECTORS * EMUL_SECTOR_SIZE) return ERR_NIFFS_TEST_BAD_ADDR;
   if ((addr - &_flash[0]) % EMUL_SECTOR_SIZE) return ERR_NIFFS_TEST_BAD_ADDR;
@@ -221,7 +289,12 @@ static int platform_hal_erase_f(u8_t *addr, u32_t len) {
   return NIFFS_OK;
 }
 
-static int platform_hal_write_f(u8_t *addr, u8_t *src, u32_t len) {
+static int platform_hal_write_f(u8_t *addr, const u8_t *src, u32_t len) {
+  if ((intptr_t)addr < (intptr_t)niffs_pbase ||
+      (intptr_t)addr + len > (intptr_t)niffs_pbase + niffs_max_size) {
+    NFFS_DBG("N_W: OOB %li,%li\n", (u32_t)addr, len);
+    return -1; // TODO peter better err code?
+  }
   //TODO: Write actual data to addresses here
   //  toaddr += ( u32 )pfsdata->pbase;
   //platform_flash_write( const void *from, u32 toaddr, u32 size )
@@ -234,12 +307,21 @@ int nffs_init( void )
 {
   niffs_pbase = ( u8* )platform_flash_get_first_free_block_address( NULL );
   niffs_max_size = INTERNAL_FLASH_SIZE - ( ( u32 )niffs_pbase - INTERNAL_FLASH_START_ADDRESS ) - (INTERNAL_FLASH_SECTOR_SIZE);
-  niffs_sectors = niffs_max_size / INTERNAL_FLASH_SECTOR_SIZE;
+  niffs_total_sectors = niffs_max_size / INTERNAL_FLASH_SECTOR_SIZE;
 
-  NIFFS_init(&fs, niffs_pbase, niffs_sectors, INTERNAL_FLASH_SECTOR_SIZE, 128,
+  // divide the fs up into 50% paged and 50% linear // TODO peter just for reference
+  //niffs_paged_sectors = niffs_total_sectors / 2;
+  //niffs_lin_sectors = niffs_total_sectors - niffs_paged_sectors;
+
+  niffs_lin_sectors = niffs_total_sectors - 5;
+  niffs_paged_sectors = niffs_total_sectors - niffs_lin_sectors;
+  printf("NIFFS: LIN %i PAGE %i\n", niffs_lin_sectors, niffs_paged_sectors);
+
+
+  NIFFS_init(&fs, niffs_pbase, niffs_paged_sectors, INTERNAL_FLASH_SECTOR_SIZE, 128,
       buf, sizeof(buf),
       descs, NIFFS_FILE_DESCS,
-      platform_hal_erase_f, platform_hal_write_f);
+      platform_hal_erase_f, platform_hal_write_f, niffs_lin_sectors);
 
   //Check filesystem, and format if it has not been formatted or corrupted...
   if(NIFFS_chk(&fs) == ERR_NIFFS_NOT_A_FILESYSTEM)
@@ -255,7 +337,8 @@ int nffs_init( void )
 
 int nffs_format()
 {
-  NFFS_DBG("N_I:%li,%li,%li\n", (u32_t)niffs_pbase, niffs_max_size, niffs_sectors); //N_I:36000,39936,39N_E:20007C84,1024N_W:20007C84,20007C80,8
+// TODO peter changed this to below  NFFS_DBG("N_I:%li,%li,%li\n", (u32_t)niffs_pbase, niffs_max_size, niffs_total_sectors); //N_I:36000,39936,39N_E:20007C84,1024N_W:20007C84,20007C80,8
+  NFFS_DBG("N_I:%li,%li,%li,%li\n", (u32_t)niffs_pbase, niffs_max_size, niffs_paged_sectors, niffs_lin_sectors);
   return NIFFS_format(&fs);
 }
 
@@ -276,6 +359,7 @@ int nffs_check()
 
 int nffs_info(s32_t *total, s32_t *used, u8_t *overflow)
 {
+  niffs_info info;
   //Check filesystem, and format if it has not been formatted or corrupted...
   NIFFS_unmount(&fs);
   if(NIFFS_chk(&fs) == ERR_NIFFS_NOT_A_FILESYSTEM)
@@ -290,7 +374,17 @@ int nffs_info(s32_t *total, s32_t *used, u8_t *overflow)
   else
     NFFS_DBG("MNT OK\n");
 
-  return NIFFS_info(&fs, total, used, overflow);
+  int res = NIFFS_info(&fs, &info);
+  if (res == NIFFS_OK) {
+    *total = info.total_bytes;
+    *used = info.used_bytes;
+    *overflow = info.overflow;
+    // TODO peter need this? info.lin_total_sectors;
+    // TODO peter need this? info.lin_used_sectors;
+    // TODO peter need this? info.lin_max_conseq_free;
+  }
+
+  return res;
 }
 
 #else // #if defined( BUILD_ROMFS ) || defined( BUILD_WOFS )

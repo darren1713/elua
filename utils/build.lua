@@ -1,5 +1,4 @@
 -- eLua build system
-
 module( ..., package.seeall )
 
 local lfs = require "lfs"

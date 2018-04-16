@@ -111,12 +111,18 @@
 #define _NIFFS_FLAG_MOVING      ((niffs_flag)0)
 #define NIFFS_FLAG_MOVE_KEEP    ((niffs_flag)0xaa)
 
-#define _NIFFS_SECT_MAGIC(_fs)  (niffs_magic)(0xfee1c01d ^ (_fs)->page_size)
+#define _NIFFS_FTYPE_FILE       (0)
+#define _NIFFS_FTYPE_LINFILE    (1)
 
+// change of magic since file type introduction
+#define _NIFFS_SECT_MAGIC(_fs)  (niffs_magic)(0xfee1c001 ^ (_fs)->page_size)
+
+#ifndef _NIFFS_ALIGN
 #define _NIFFS_ALIGN __attribute__ (( aligned(NIFFS_WORD_ALIGN) ))
+#endif
+#ifndef _NIFFS_PACKED
 #define _NIFFS_PACKED __attribute__ (( packed ))
-
-#define _NIFFS_NXT_CYCLE(_c) ((_c) >= 3 ? 0 : (_c)+1)
+#endif
 
 // checks if page is free, i.e. not used at all
 #define _NIFFS_IS_FREE(_pg_hdr) (((_pg_hdr)->id.raw) == _NIFFS_PAGE_FREE_ID)
@@ -146,13 +152,6 @@
   _NIFFS_PIX_IN_SECTOR(_fs, _pix) * (_fs)->page_size \
   )
 
-#if 0
-#define _NIFFS_ADDR_2_PIX(_fs, _addr) (\
-  (((u8_t *)(_addr) - _NIFFS_ADDR_2_SECTOR(_fs, _addr) * ((_fs)->sector_size) + sizeof(niffs_sector_hdr)) / (_fs)->page_size) + \
-  _NIFFS_ADDR_2_SECTOR(_fs, _addr) * (_fs)->pages_per_sector \
-  )
-#endif
-
 #define _NIFFS_SPIX_2_PDATA_LEN(_fs, _spix) \
   ((_fs)->page_size - sizeof(niffs_page_hdr) - ((_spix) == 0 ? sizeof(niffs_object_hdr) : 0))
 
@@ -166,23 +165,7 @@
       (((_offs) - _NIFFS_SPIX_2_PDATA_LEN(_fs, 0)) % _NIFFS_SPIX_2_PDATA_LEN(_fs, 1)) \
 )
 
-#define _NIFFS_RD(_fs, _dst, _src, _len) do {memcpy((_dst), (_src), (_len));}while(0)
-#ifndef NIFFS_RD_ALLO_TEST
-#define _NIFFS_ALLO_PIX(_fs, _pix, _len) _NIFFS_PIX_2_ADDR(_fs, _pix)
-#define _NIFFS_ALLO_SECT(_fs, _s, _len) _NIFFS_SECTOR_2_ADDR(_fs, _s)
-#define _NIFFS_FREE(_fs, _addr)
-#else
-#define _NIFFS_ALLO_PIX(_fs, _pix, _len) niffs_alloc_read(_NIFFS_PIX_2_ADDR(_fs, _pix), _len)
-#define _NIFFS_ALLO_SECT(_fs, _s, _len) niffs_alloc_read(_NIFFS_SECTOR_2_ADDR(_fs, _s), _len)
-#define _NIFFS_FREE(_fs, _addr) niffs_alloc_free(_addr)
-#endif
-#define _NIFFS_FREE_RETURN(_fs, _addr, _res) do { \
-  _NIFFS_FREE(_fs, _addr); \
-  return (_res); \
-} while (0)
-#define _NIFFS_ERR_FREE_RETURN(_fs, _addr, _res) do { \
-  if ((_res) < NIFFS_OK) { _NIFFS_FREE_RETURN(_fs, _addr, _res); } \
-} while (0)
+#define _NIFFS_RD(_fs, _dst, _src, _len) do {niffs_memcpy((_dst), (_src), (_len));}while(0)
 
 #define _NIFFS_IS_ID_VALID(phdr) ((phdr)->id.obj_id != (niffs_obj_id)-1 && (phdr)-> id.obj_id != 0)
 #define _NIFFS_IS_FLAG_VALID(phdr) \
@@ -191,6 +174,16 @@
 
 #define NIFFS_EXCL_SECT_NONE  (u32_t)-1
 #define NIFFS_UNDEF_LEN       (u32_t)-1
+
+#ifndef niffs_memcpy
+#define niffs_memcpy(_d, _s, _l) memcpy((_d), (_s), (_l))
+#endif
+#ifndef niffs_memset
+#define niffs_memset(_d, _v, _l) memset((_d), (_v), (_l))
+#endif
+#ifndef niffs_strncpy
+#define niffs_strncpy(_d, _s, _l) strncpy((_d), (_s), (_l))
+#endif
 
 typedef struct {
   _NIFFS_ALIGN niffs_erase_cnt era_cnt;
@@ -207,16 +200,33 @@ typedef struct {
   };
 } _NIFFS_PACKED niffs_page_hdr_id;
 
+// keep member order, used in offsetof in internals
 typedef struct {
   _NIFFS_ALIGN niffs_page_hdr_id id;
   _NIFFS_ALIGN niffs_flag flag;
 } _NIFFS_PACKED niffs_page_hdr;
 
+// keep member order, used in offsetof in internals
 typedef struct {
   niffs_page_hdr phdr;
   _NIFFS_ALIGN u32_t len;
   _NIFFS_ALIGN u8_t name[NIFFS_NAME_LEN];
+  _NIFFS_ALIGN niffs_file_type type;
 }  _NIFFS_PACKED niffs_object_hdr;
+
+typedef struct {
+  niffs_object_hdr ohdr;
+  _NIFFS_ALIGN u32_t start_sector; // absolute index from fs start
+  _NIFFS_ALIGN u32_t resv_sectors;
+} _NIFFS_PACKED niffs_linear_file_hdr;
+
+// super header containing all header types
+typedef union {
+  niffs_page_hdr_id phdr;
+  niffs_object_hdr ohdr;
+  niffs_linear_file_hdr lfhdr;
+  // .. add more if needed
+} niffs_super_hdr;
 
 #define NIFFS_VIS_CONT        1
 #define NIFFS_VIS_END         2
@@ -224,29 +234,34 @@ typedef struct {
 typedef int (* niffs_visitor_f)(niffs *fs, niffs_page_ix pix, niffs_page_hdr *phdr, void *v_arg);
 
 #ifdef NIFFS_TEST
-TESTATIC int niffs_find_free_id(niffs *fs, niffs_obj_id *id, char *conflict_name);
+TESTATIC int niffs_find_free_id(niffs *fs, niffs_obj_id *id, const char *conflict_name);
 TESTATIC int niffs_find_free_page(niffs *fs, niffs_page_ix *pix, u32_t excl_sector);
 TESTATIC int niffs_find_page(niffs *fs, niffs_page_ix *pix, niffs_obj_id oid, niffs_span_ix spix, niffs_page_ix start_pix);
 TESTATIC int niffs_erase_sector(niffs *fs, u32_t sector_ix);
-TESTATIC int niffs_move_page(niffs *fs, niffs_page_ix src_pix, niffs_page_ix dst_pix, u8_t *data, u32_t len, niffs_flag force_flag);
-TESTATIC int niffs_write_page(niffs *fs, niffs_page_ix pix, niffs_page_hdr *phdr, u8_t *data, u32_t len);
+TESTATIC int niffs_move_page(niffs *fs, niffs_page_ix src_pix, niffs_page_ix dst_pix, const u8_t *data, u32_t len, niffs_flag force_flag);
+TESTATIC int niffs_write_page(niffs *fs, niffs_page_ix pix, niffs_page_hdr *phdr, const u8_t *data, u32_t len);
 TESTATIC int niffs_write_phdr(niffs *fs, niffs_page_ix pix, niffs_page_hdr *phdr);
+TESTATIC int niffs_delete_page(niffs *fs, niffs_page_ix pix);
 #endif
 
 int niffs_traverse(niffs *fs, niffs_page_ix pix_start, niffs_page_ix pix_end, niffs_visitor_f v, void *v_arg);
 int niffs_get_filedesc(niffs *fs, int fd_ix, niffs_file_desc **fd);
-int niffs_create(niffs *fs, char *name);
-int niffs_open(niffs *fs, char *name, niffs_fd_flags flags);
+int niffs_create(niffs *fs, const char *name, niffs_file_type type, void *meta);
+int niffs_open(niffs *fs, const char *name, niffs_fd_flags flags);
 int niffs_close(niffs *fs, int fd_ix);
 int niffs_read_ptr(niffs *fs, int fd_ix, u8_t **data, u32_t *avail);
 int niffs_seek(niffs *fs, int fd_ix, s32_t offset, u8_t whence);
-int niffs_append(niffs *fs, int fd_ix, u8_t *src, u32_t len);
-int niffs_modify(niffs *fs, int fd_ix, u32_t offs, u8_t *src, u32_t len);
+int niffs_append(niffs *fs, int fd_ix, const u8_t *src, u32_t len);
+int niffs_modify(niffs *fs, int fd_ix, u32_t offs, const u8_t *src, u32_t len);
 int niffs_truncate(niffs *fs, int fd_ix, u32_t new_len);
-int niffs_rename(niffs *fs, char *old_name, char *new_name);
+int niffs_rename(niffs *fs, const char *old_name, const char *new_name);
 
 int niffs_gc(niffs *fs, u32_t *freed_pages, u8_t allow_full_pages);
 
 int niffs_chk(niffs *fs);
+
+int niffs_linear_map(niffs *fs);
+int niffs_linear_find_space(niffs *fs, u32_t sectors, u32_t *start_sector);
+int niffs_linear_avail_size(niffs *fs, int fd_ix, u32_t *available_sectors);
 
 #endif /* NIFFS_INTERNAL_H_ */

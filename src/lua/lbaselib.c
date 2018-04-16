@@ -43,11 +43,11 @@ static int luaB_print (lua_State *L) {
     if (s == NULL)
       return luaL_error(L, LUA_QL("tostring") " must return a string to "
                            LUA_QL("print"));
-    if (i>1) fputs("\t", stdout);
-    fputs(s, stdout);
+    if (i>1) printf("/t"); //fputs("\t", stdout);
+    printf("%s", s); //fputs(s, stdout);
     lua_pop(L, 1);  /* pop result */
   }
-  fputs("\n", stdout);
+  printf("\n"); //fputs("\n", stdout);
   return 0;
 }
 

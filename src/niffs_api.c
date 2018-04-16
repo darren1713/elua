@@ -8,34 +8,65 @@
 #include "niffs.h"
 #include "niffs_internal.h"
 
-int NIFFS_info(niffs *fs, s32_t *total, s32_t *used, u8_t *overflow) {
+int NIFFS_info(niffs *fs, niffs_info *i) {
   if (!fs->mounted) return ERR_NIFFS_NOT_MOUNTED;
-  if (total == 0 || used == 0 || overflow == 0) return ERR_NIFFS_NULL_PTR;
+  if (i == 0) return ERR_NIFFS_NULL_PTR;
 
-  *total = (fs->sectors-1) * fs->pages_per_sector * _NIFFS_SPIX_2_PDATA_LEN(fs, 1);
-  *used = ((fs->sectors) * fs->pages_per_sector - (fs->free_pages + fs->dele_pages)) * _NIFFS_SPIX_2_PDATA_LEN(fs, 1);
-  *overflow = fs->free_pages < fs->pages_per_sector;
+  i->total_bytes = (fs->sectors-1) * fs->pages_per_sector * _NIFFS_SPIX_2_PDATA_LEN(fs, 1);
+  i->used_bytes = ((fs->sectors) * fs->pages_per_sector - (fs->free_pages + fs->dele_pages)) * _NIFFS_SPIX_2_PDATA_LEN(fs, 1);
+  i->overflow = fs->free_pages < fs->pages_per_sector;
+
+#if NIFFS_LINEAR_AREA
+  i->lin_total_sectors = fs->lin_sectors;
+  i->lin_used_sectors = 0;
+  int res = niffs_linear_map(fs);
+  if (res) return res;
+  u32_t lsix;
+  u32_t max_conseq_free = 0;
+  u32_t cur_conseq_free = 0;
+  u8_t taken = 1;
+  for (lsix = 0; lsix < fs->lin_sectors; lsix++) {
+    if ((fs->buf[lsix/8] & (1<<(lsix&7)))) {
+      i->lin_used_sectors++;
+      cur_conseq_free = 0;
+      taken = 1;
+    } else {
+      cur_conseq_free++;
+      if (taken) taken = 0;
+      max_conseq_free = NIFFS_MAX(cur_conseq_free, max_conseq_free);
+    }
+  }
+  i->lin_max_conseq_free = max_conseq_free;
+#endif
   return NIFFS_OK;
 }
 
 
-int NIFFS_creat(niffs *fs, char *name, niffs_mode mode) {
+int NIFFS_creat(niffs *fs, const char *name, niffs_mode mode) {
   (void)mode;
   if (!fs->mounted) return ERR_NIFFS_NOT_MOUNTED;
   int res;
-  res = niffs_create(fs, name);
+  res = niffs_create(fs, name, _NIFFS_FTYPE_FILE, 0);
   return res;
 }
 
-int NIFFS_open(niffs *fs, char *name, u8_t flags, niffs_mode mode) {
+int NIFFS_open(niffs *fs, const char *name, u8_t flags, niffs_mode mode) {
   (void)mode;
   if (!fs->mounted) return ERR_NIFFS_NOT_MOUNTED;
   int res = NIFFS_OK;
+  niffs_file_type type =
+      flags & NIFFS_O_LINEAR ? _NIFFS_FTYPE_LINFILE : _NIFFS_FTYPE_FILE;
+#if !NIFFS_LINEAR_AREA
+  if (type == _NIFFS_FTYPE_LINFILE) return ERR_NIFFS_BAD_CONF;
+#endif
+  if (type) {
+    flags |= NIFFS_O_APPEND; // force append for linear files
+  }
   int fd_ix = niffs_open(fs, name, flags);
   if (fd_ix < 0) {
     // file not found
     if (fd_ix == ERR_NIFFS_FILE_NOT_FOUND && (flags & NIFFS_O_CREAT)) {
-      res = niffs_create(fs, name);
+      res = niffs_create(fs, name, type, 0);
       if (res == NIFFS_OK) {
         fd_ix = niffs_open(fs, name, flags);
       } else {
@@ -65,7 +96,7 @@ int NIFFS_open(niffs *fs, char *name, u8_t flags, niffs_mode mode) {
         (void)niffs_close(fs, fd_ix);
         return res;
       }
-      res = niffs_create(fs, name);
+      res = niffs_create(fs, name, type, 0);
       if (res != NIFFS_OK) return res;
       fd_ix = niffs_open(fs, name, flags);
     }
@@ -73,6 +104,40 @@ int NIFFS_open(niffs *fs, char *name, u8_t flags, niffs_mode mode) {
 
   return res < 0 ? res : fd_ix;
 }
+
+#if NIFFS_LINEAR_AREA
+
+int NIFFS_mknod_linear(niffs *fs, const char *name, u32_t resv_size) {
+  if (!fs->mounted) return ERR_NIFFS_NOT_MOUNTED;
+  u8_t flags = NIFFS_O_LINEAR | NIFFS_O_RDWR | NIFFS_O_APPEND;
+  int res = NIFFS_OK;
+
+  // check free linear space, fetch starting sector
+  u32_t lsix_start;
+  u32_t resv_sects = (resv_size + fs->sector_size - 1) / fs->sector_size;
+  res = niffs_linear_find_space(fs, resv_sects, &lsix_start);
+  if (res < 0) return res;
+
+  int fd_ix = niffs_open(fs, name, flags);
+  if (fd_ix >= 0) {
+    // file exists
+    (void)niffs_close(fs, fd_ix);
+    return ERR_NIFFS_FILE_EXISTS;
+  }
+  if (fd_ix != ERR_NIFFS_FILE_NOT_FOUND) {
+    // some other error
+    return fd_ix;
+  }
+  // create linear file meta header
+  niffs_linear_file_hdr lfhdr = {.start_sector = lsix_start, .resv_sectors = resv_sects};
+  res = niffs_create(fs, name, _NIFFS_FTYPE_LINFILE, &lfhdr);
+  if (res != NIFFS_OK) return res;
+  fd_ix = niffs_open(fs, name, flags);
+  if (fd_ix < 0) return fd_ix;
+  return fd_ix;
+}
+
+#endif // NIFFS_LINEAR_AREA
 
 int NIFFS_read_ptr(niffs *fs, int fd, u8_t **ptr, u32_t *len) {
   if (!fs->mounted) return ERR_NIFFS_NOT_MOUNTED;
@@ -90,8 +155,8 @@ int NIFFS_read(niffs *fs, int fd_ix, u8_t *dst, u32_t len) {
     res = niffs_read_ptr(fs, fd_ix, &rptr, &rlen);
     if (res >= 0 && rlen == 0) res = ERR_NIFFS_END_OF_FILE;
     if (res >= 0) {
-      u32_t clen = UMIN(len, rlen);
-      memcpy(dst, rptr, clen);
+      u32_t clen = NIFFS_MIN(len, rlen);
+      niffs_memcpy(dst, rptr, clen);
       dst += clen;
       len -= clen;
       read_len += clen;
@@ -106,12 +171,19 @@ int NIFFS_read(niffs *fs, int fd_ix, u8_t *dst, u32_t len) {
   return res == NIFFS_OK ? read_len : res;
 }
 
-int NIFFS_lseek(niffs *fs, int fd, s32_t offs, int whence) {
+int NIFFS_lseek(niffs *fs, int fd_ix, s32_t offs, int whence) {
   if (!fs->mounted) return ERR_NIFFS_NOT_MOUNTED;
-  return niffs_seek(fs, fd, offs, whence);
+  int res = niffs_seek(fs, fd_ix, offs, whence);
+  if (res == NIFFS_OK) {
+    niffs_file_desc *fd;
+    res = niffs_get_filedesc(fs, fd_ix, &fd);
+    if (res != NIFFS_OK) return res;
+    return (int)fd->offs;
+  }
+  return res;
 }
 
-int NIFFS_remove(niffs *fs, char *name) {
+int NIFFS_remove(niffs *fs, const char *name) {
   if (!fs->mounted) return ERR_NIFFS_NOT_MOUNTED;
   int res;
 
@@ -128,7 +200,7 @@ int NIFFS_fremove(niffs *fs, int fd) {
   return niffs_truncate(fs, fd, 0);
 }
 
-int NIFFS_write(niffs *fs, int fd_ix, u8_t *data, u32_t len) {
+int NIFFS_write(niffs *fs, int fd_ix, const u8_t *data, u32_t len) {
   if (!fs->mounted) return ERR_NIFFS_NOT_MOUNTED;
   int res;
   niffs_file_desc *fd;
@@ -144,7 +216,7 @@ int NIFFS_write(niffs *fs, int fd_ix, u8_t *data, u32_t len) {
   } else {
     // check if modify and/or append
     u32_t mod_len = (ohdr->len == NIFFS_UNDEF_LEN ? 0 : ohdr->len) - fd->offs;
-    mod_len = UMIN(mod_len, len);
+    mod_len = NIFFS_MIN(mod_len, len);
     if (mod_len > 0) {
       res = niffs_modify(fs, fd_ix, fd->offs, data, mod_len);
       if (res != NIFFS_OK) return res;
@@ -171,7 +243,7 @@ int NIFFS_fflush(niffs *fs, int fd) {
   return NIFFS_OK;
 }
 
-int NIFFS_stat(niffs *fs, char *name, niffs_stat *s) {
+int NIFFS_stat(niffs *fs, const char *name, niffs_stat *s) {
   if (!fs->mounted) return ERR_NIFFS_NOT_MOUNTED;
   int res;
 
@@ -195,7 +267,8 @@ int NIFFS_fstat(niffs *fs, int fd_ix, niffs_stat *s) {
 
   s->obj_id = ohdr->phdr.id.obj_id;
   s->size = ohdr->len == NIFFS_UNDEF_LEN ? 0 : ohdr->len;
-  strncpy((char *)s->name, (char *)ohdr->name, NIFFS_NAME_LEN);
+  s->type = ohdr->type;
+  niffs_strncpy((char *)s->name, (char *)ohdr->name, NIFFS_NAME_LEN);
 
   return NIFFS_OK;
 }
@@ -216,12 +289,12 @@ int NIFFS_close(niffs *fs, int fd) {
   return niffs_close(fs, fd);
 }
 
-int NIFFS_rename(niffs *fs, char *old, char *new) {
+int NIFFS_rename(niffs *fs, const char *old_name, const char *new_name) {
   if (!fs->mounted) return ERR_NIFFS_NOT_MOUNTED;
-  return niffs_rename(fs, old, new);
+  return niffs_rename(fs, old_name, new_name);
 }
 
-niffs_DIR *NIFFS_opendir(niffs *fs, char *name, niffs_DIR *d) {
+niffs_DIR *NIFFS_opendir(niffs *fs, const char *name, niffs_DIR *d) {
   (void)name;
   if (!fs->mounted) return 0;
   d->fs = fs;
@@ -244,7 +317,8 @@ static int niffs_readdir_v(niffs *fs, niffs_page_ix pix, niffs_page_hdr *phdr, v
       e->obj_id = ohdr->phdr.id.obj_id;
       e->pix = pix;
       e->size = ohdr->len == NIFFS_UNDEF_LEN ? 0 : ohdr->len;
-      strncpy((char *)e->name, (char *)ohdr->name, NIFFS_NAME_LEN);
+      e->type = ohdr->type;
+      niffs_strncpy((char *)e->name, (char *)ohdr->name, NIFFS_NAME_LEN);
       return NIFFS_OK;
     }
   }

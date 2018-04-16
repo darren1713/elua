@@ -150,7 +150,8 @@ int buf_write( unsigned resid, unsigned resnum, t_buf_data *data )
 
   if( pbuf->count >= BUF_REALSIZE( pbuf ) )
   {
-    fprintf( stderr, "[ERROR] Buffer overflow on resid=%d, resnum=%d, count=%d, realsize=%d!\n", resid, resnum, pbuf->count, BUF_REALSIZE( pbuf ) );
+    //This printf causes a crash if we override console output with a buf_write function and then overflow the console output buffer
+    //fprintf( stderr, "[ERROR] Buffer overflow on resid=%d, resnum=%d, count=%d, realsize=%d!\n", resid, resnum, pbuf->count, BUF_REALSIZE( pbuf ) );
     return PLATFORM_ERR; 
   }
   DUFF_DEVICE_8( BUF_REALDSIZE( pbuf ),  *d++ = *s++ );

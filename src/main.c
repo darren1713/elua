@@ -73,6 +73,7 @@ void boot_rpc( void )
 
 #ifdef EXTRA_STARTUP_HOOK
 extern void extras_init();
+extern void extras_init_early();
 #endif
 
 #ifdef EXTRA_AUTORUN_EXIT_HOOK
@@ -90,6 +91,11 @@ int main( void )
     // This should never happen
     while( 1 );
   }
+
+#ifdef EXTRA_STARTUP_HOOK
+  // Early Init Extras
+  extras_init_early();
+#endif
 
   // Initialize device manager
   dm_init();

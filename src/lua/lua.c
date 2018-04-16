@@ -447,8 +447,9 @@ static int pushline (lua_State *L, int firstline) {
   char *b = buffer;
   size_t l;
   const char *prmt = get_prompt(L, firstline);
-  fputs(prmt, stdout);
-  fflush(stdout);
+  printf("%s", prmt);
+  //fputs(prmt, stdout);
+  //fflush(stdout);
   if (slip_readline(L, b, prmt) == 0)
     return 0;  /* no input */
   l = strlen(b);
@@ -500,8 +501,9 @@ static void dotty (lua_State *L) {
     }
   }
   lua_settop(L, 0);  /* clear stack */
-  fputs("\n", stdout);
-  fflush(stdout);
+  printf("\n");
+  //fputs("\n", stdout);
+  //fflush(stdout);
   progname = oldprogname;
 }
 
