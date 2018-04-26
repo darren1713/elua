@@ -16,6 +16,7 @@ extern unsigned platform_get_console_uart( void );
 SI32_PBSTD_A_Type* const port_std[] = { SI32_PBSTD_0, SI32_PBSTD_1, SI32_PBSTD_2, SI32_PBSTD_3 };
 
 #define CON_VIRTUAL_ID 255
+
 // #if defined( BUILD_USB_CDC )
 //   #if defined( EXTERNAL_CONSOLE )
 //     #define CON_VIRTUAL_ID 255
@@ -184,6 +185,7 @@ typedef enum {
   WAITTOSLEEP = 1
 } ok_to_sleep_enum;
 extern int ok_to_sleep();
+extern void sim3_hard_fault_cleanup();
 void reset_seconds_awake( void );
 u8 extras_op_pending( void );
 

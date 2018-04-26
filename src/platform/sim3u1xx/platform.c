@@ -179,7 +179,11 @@ void hard_fault_handler_c(unsigned int * hardfault_args)
   printf ("\n");
 
   // Write out hard fault data to file
+  #if defined( BUILD_NIFFS )
+  fp = fopen("/f/._hardfault", "w");
+  #else
   fp = fopen("/wo/._hardfault", "w");
+  #endif
   if( fp != NULL )
   {
     fprintf (fp, "[Last hard fault]\n");
@@ -199,6 +203,8 @@ void hard_fault_handler_c(unsigned int * hardfault_args)
     printf ("\n");
     fclose( fp );
   }
+
+  sim3_hard_fault_cleanup();
 
   sim3_pmu_reboot();
 }

@@ -110,12 +110,14 @@ local platform_list =
   lpc288x = { cpus = { 'LPC2888' }, arch = 'arm' },
   str7 = { cpus = { 'STR711FR2' }, arch = 'arm' },
   stm32f2 = { cpus = { 'STM32F205RF' }, arch = 'cortexm' },
-  stm32 = { cpus = { 'STM32F103ZE', 'STM32F103RE' }, arch = 'cortexm' },
-  stm32f4 = { cpus =  { 'STM32F411RE', 'STM32F401RE', 'STM32F407VG', 'STM32F407ZG' }, arch = 'cortexm' },
+  stm32 = { cpus = { 'STM32F103ZE', 'STM32F103RE', 'STM32F103VCT6' }, arch = 'cortexm' },
+  stm32f4 = { cpus =  { 'STM32F401RE', 'STM32F407VG', 'STM32F407ZG' }, arch = 'cortexm' },
   avr32 = { cpus = { 'AT32UC3A0128', 'AT32UC3A0256', 'AT32UC3A0512', 'AT32UC3B0256' }, arch = 'avr32' },
+  lpc23xx = { cpus = { 'LPC2368' }, arch = 'arm' },
   lpc24xx = { cpus = { 'LPC2468' }, arch = 'arm' },
   lpc17xx = { cpus = { 'LPC1768', 'LPC1769' }, arch = 'cortexm' },
-  sim3u1xx = { cpus = { 'SIM3U167' }, arch = 'cortexm' }
+  sim3u1xx = { cpus = { 'SIM3U167' }, arch = 'cortexm' },
+  xmc4000 = { cpus = { 'XMC4400F100X512', 'XMC4500F144K1024', 'XMC4500E144K1024', 'XMC4700F144K2048' }, arch = 'cortexm' },
 }
 
 -- Returns the platform of a given CPU

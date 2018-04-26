@@ -143,7 +143,6 @@ int buf_write( unsigned resid, unsigned resnum, t_buf_data *data )
   BUF_CHECK_RESNUM( resid, resnum );
   BUF_GETPTR( resid, resnum );
   const char* s = ( const char* )data;
-  char* d = ( char* )( pbuf->buf + pbuf->wptr );
   
   if( pbuf->logsize == BUF_SIZE_NONE )
     return PLATFORM_ERR;
@@ -154,19 +153,28 @@ int buf_write( unsigned resid, unsigned resnum, t_buf_data *data )
     //fprintf( stderr, "[ERROR] Buffer overflow on resid=%d, resnum=%d, count=%d, realsize=%d!\n", resid, resnum, pbuf->count, BUF_REALSIZE( pbuf ) );
     return PLATFORM_ERR; 
   }
+
+  int old_status = platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
+
+  char* d = ( char* )( pbuf->buf + pbuf->wptr );
+
   DUFF_DEVICE_8( BUF_REALDSIZE( pbuf ),  *d++ = *s++ );
   
   BUF_MOD_INCR( pbuf, wptr );
     pbuf->count ++;
 
+  int bufsize = BUF_REALSIZE( pbuf );
+
+  platform_cpu_set_global_interrupts( old_status );
+
 #if defined( INT_UART_BUF_FULL )
-  if( ( pbuf->count == BUF_REALSIZE( pbuf ) ) && 
+  if( ( pbuf->count == bufsize ) && 
       ( resid == BUF_ID_UART ) )
     cmn_int_handler( INT_UART_BUF_FULL, resnum );
 #endif
 
 #if defined( INT_UART_BUF_HALF_FULL )
-  if( ( pbuf->count == BUF_REALSIZE( pbuf ) / 2 ) && 
+  if( ( pbuf->count == bufsize / 2 ) && 
       ( resid == BUF_ID_UART ) )
     cmn_int_handler( INT_UART_BUF_HALF_FULL, resnum );
 #endif
@@ -221,19 +229,21 @@ int buf_read( unsigned resid, unsigned resnum, t_buf_data *data )
   BUF_CHECK_RESNUM( resid, resnum );
   BUF_GETPTR( resid, resnum );
 
-  int old_status;
   const char* s = ( const char* )( pbuf->buf + pbuf->rptr );
   char* d = ( char* )data;
   
   if( pbuf->logsize == BUF_SIZE_NONE || READ16( pbuf->count ) == 0 )
     return PLATFORM_UNDERFLOW;
  
+  int old_status = platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
+
   DUFF_DEVICE_8( BUF_REALDSIZE( pbuf ),  *d++ = *s++ );
 
-  old_status = platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
   pbuf->count --;
-  platform_cpu_set_global_interrupts( old_status );
+
   BUF_MOD_INCR( pbuf, rptr );
+
+  platform_cpu_set_global_interrupts( old_status );
   
   return PLATFORM_OK;
 }
