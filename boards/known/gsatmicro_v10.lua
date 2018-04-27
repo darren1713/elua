@@ -21,7 +21,7 @@ return {
     luaints = true
   },
   config = {
-    egc = { mode = "alloc" },
+    egc = { mode = "always" },
     vtmr = { num = 4, freq = 10 },
   },
   modules = {
