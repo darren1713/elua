@@ -115,7 +115,16 @@
 #define _NIFFS_FTYPE_LINFILE    (1)
 
 // change of magic since file type introduction
-#define _NIFFS_SECT_MAGIC(_fs)  (niffs_magic)(0xfee1c001 ^ (_fs)->page_size)
+#if NIFFS_LINEAR_AREA
+  //If we are using a partially linear file system, we need to store the linear vs regular page allocations
+  //somewhere so lets store it in the first 4 bytes of the sector magic!
+  //LINEAR MAGIC SECTOR DEFINITION
+  //BYTES 7-4 (0xfee1) ^ fs->page_size
+  //BYTES 3-0 fs->linear sectors 
+  #define _NIFFS_SECT_MAGIC(_fs)  (niffs_magic)(((0x0000fee1 ^ ((_fs)->page_size & 0x0000FFFF)) << 16) | ((_fs)->lin_sectors)) 
+#else
+  #define _NIFFS_SECT_MAGIC(_fs)  (niffs_magic)(0xfee1c001 ^ (_fs)->page_size)
+#endif 
 
 #ifndef _NIFFS_ALIGN
 #define _NIFFS_ALIGN __attribute__ (( aligned(NIFFS_WORD_ALIGN) ))

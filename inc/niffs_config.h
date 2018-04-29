@@ -118,7 +118,7 @@
 // word align for target flash, e.g. stm32f1 can only write 16-bit words at a time
 // from SiM33U1xx-SiM3C1xx-RM.pdf p.380 para.21.4.2 "Writes to WRDATA must be half-word aligned"
 #ifndef NIFFS_WORD_ALIGN
-#define NIFFS_WORD_ALIGN        (2)
+#define NIFFS_WORD_ALIGN        (4)
 #endif
 
 // garbage collection uses a score system to select sector to erase:
@@ -176,7 +176,7 @@
 
 // magic bits, must be sized on alignment, NIFFS_WORD_ALIGN
 #ifndef NIFFS_TYPE_MAGIC_SIZE
-#define NIFFS_TYPE_MAGIC_SIZE u16_t
+#define NIFFS_TYPE_MAGIC_SIZE u32_t
 #endif
 
 // sector erase counter, must be sized on alignment, NIFFS_WORD_ALIGN
@@ -186,7 +186,7 @@
 
 // page flag, 3 values, must be sized on alignment, NIFFS_WORD_ALIGN
 #ifndef NIFFS_TYPE_PAGE_FLAG_SIZE
-#define NIFFS_TYPE_PAGE_FLAG_SIZE u16_t
+#define NIFFS_TYPE_PAGE_FLAG_SIZE u32_t
 #endif
 
 typedef NIFFS_TYPE_OBJ_ID_SIZE niffs_obj_id;
