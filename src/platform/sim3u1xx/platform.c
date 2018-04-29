@@ -270,7 +270,7 @@ void mySystemInit(void)
 
 }
 
-#if defined( ELUA_BOARD_GSATMICRO_V10 ) || defined( ELUA_BOARD_GSATMICRO_V8 ) || defined( ELUA_BOARD_GSATMICRO_V7 )
+#if defined( ELUA_BOARD_GSATMICRO_V10 )
 
 int usb_power()
 {
@@ -387,7 +387,7 @@ void reset_parameters()
 
 void wake_init( void )
 {
-#if defined( ELUA_BOARD_GSATMICRO_V10 ) || defined( ELUA_BOARD_GSATMICRO_V8 ) || defined( ELUA_BOARD_GSATMICRO_V7 )
+#if defined( ELUA_BOARD_GSATMICRO_V10 )
 
   //Determine if we had a power failure, voltage dropout, or reset button pressed
   //The pre-generated code for SI32_RSTSRC_A_get_last_reset_source is incorrect and does
@@ -700,7 +700,7 @@ void clk_init( void )
   // Set system clock to AHB divider frequency
   SystemCoreClock = 5000000;
 #endif
-#if defined( ELUA_BOARD_GSATMICRO_V10 ) || defined( ELUA_BOARD_GSATMICRO_V8 ) || defined( ELUA_BOARD_GSATMICRO_V7 )
+#if defined( ELUA_BOARD_GSATMICRO_V10 )
   SI32_CLKCTRL_A_enable_apb_to_modules_0(SI32_CLKCTRL_0,
                                          SI32_CLKCTRL_A_APBCLKG0_PB0 |
                                          SI32_CLKCTRL_A_APBCLKG0_USART0 |
@@ -2674,6 +2674,7 @@ u8 flash_erase( u32 address, u8 verify)
 {
     u32 wc;
     u32* verify_address;
+    printf("EFLASH %08lX\n", address);
 
     // Disable interrupts
     //hw_intp_disable();
@@ -2692,11 +2693,11 @@ u8 flash_erase( u32 address, u8 verify)
     SI32_FLASHCTRL_A_write_wrdata(SI32_FLASHCTRL_0, 0x0000);
 
     // Wait for flash operation to complete
-    // JEFF: We are running from internal flash so the system blocks till we finish, IE: unnecessary to wait
-    /*while (SI32_FLASHCTRL_A_is_flash_busy(SI32_FLASHCTRL_0))
+    // THIS IS ABSOLUTELY REQUIRED
+    while (SI32_FLASHCTRL_A_is_flash_busy(SI32_FLASHCTRL_0))
     {
       WDTIMER0_IRQHandler();
-    }*/
+    }
 
     if( verify )
     {
@@ -2708,7 +2709,7 @@ u8 flash_erase( u32 address, u8 verify)
             if ( *verify_address != 0xFFFFFFFF )
             {
               __enable_irq();
-              printf("EFLASH FAIL %08lX\n", *verify_address);
+              printf("EFLASH FAIL %p %08lX\n", verify_address, *verify_address);
               return 1;
             }
             verify_address++;
@@ -2756,12 +2757,13 @@ u8 flash_write( u32 address, u32* data, u32 count, u8 verify )
         WDTIMER0_IRQHandler();
     }
 
+    // This causes errors....not needed for flash writes, only erase?
     // Wait for flash operation to complete
-    // JEFF: We are running from internal flash so the system blocks till we finish, IE: unnecessary to wait
-    /*while( SI32_FLASHCTRL_A_is_flash_busy(SI32_FLASHCTRL_0 ) )
-    {
-      WDTIMER0_IRQHandler();
-    }*/
+    // 
+    //while( SI32_FLASHCTRL_A_is_flash_busy(SI32_FLASHCTRL_0 ) )
+    //{
+    //  WDTIMER0_IRQHandler();
+    //}
 
     if( verify )
     {
