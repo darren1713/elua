@@ -11,7 +11,7 @@
 
 extern unsigned platform_get_console_uart( void );
 
-#define TIMER1_HZ 300 //High priority timer for uarts = 115200/8/300 = 48 bytes per tick so less than half of the 128 byte buffers
+#define TIMER1_HZ 1800 //High priority timer for uarts = 115200/8/1800 = 4 bytes per tick for ~57600 bps (BLE speed)
 
 SI32_PBSTD_A_Type* const port_std[] = { SI32_PBSTD_0, SI32_PBSTD_1, SI32_PBSTD_2, SI32_PBSTD_3 };
 
@@ -90,7 +90,6 @@ u32 cmsis_get_cpu_frequency();
     _C( INT_GPS_TIMEOUT ), \
     _C( INT_BOOT ), \
     _C( INT_CONTENTION ), \
-    _C( INT_SYSINIT ), \
     _C( INT_TICKSECOND ), \
     _C( INT_GSM_SIGNAL ), \
     _C( INT_GSM_TX_OK ), \

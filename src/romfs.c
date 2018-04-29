@@ -374,7 +374,7 @@ static _ssize_t romfs_read_r( struct _reent *r, int fd, void* ptr, size_t len, v
   }
   if( pfsdata->flags & ROMFS_FS_FLAG_DIRECT )
   {
-    printf("Rrmc#p:%li,l:%li,a:%li,o:%li\n", (u32)ptr, len, actlen, pfd->offset);
+    printf("Rrmc#p:%li,l:%i,a:%li,o:%li\n", (u32)ptr, len, actlen, pfd->offset);
     memcpy( ptr, pfsdata->pbase + pfd->offset + pfd->baseaddr, actlen );
     int i;
     for(i=0;i<actlen;i++)
@@ -382,7 +382,7 @@ static _ssize_t romfs_read_r( struct _reent *r, int fd, void* ptr, size_t len, v
     printf("\n");
   } else {
     actlen = pfsdata->readf( ptr, pfd->offset + pfd->baseaddr, actlen, pfsdata );
-    printf("Rrrf#p:%li,l:%li,a:%li,o:%li\n", (u32)ptr, len, actlen, pfd->offset);
+    printf("Rrrf#p:%li,l:%i,a:%li,o:%li\n", (u32)ptr, len, actlen, pfd->offset);
   }
   pfd->offset += actlen;
   return actlen;

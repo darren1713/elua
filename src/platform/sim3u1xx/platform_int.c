@@ -457,7 +457,6 @@ const elua_int_descriptor elua_int_table[ INT_ELUA_LAST ] =
   { callback_set_status, callback_get_status, callback_get_flag }, // INT_GPS_TIMEOUT
   { callback_set_status, callback_get_status, callback_get_flag }, // INT_BOOT
   { callback_set_status, callback_get_status, callback_get_flag }, // INT_CONTENTION
-  { callback_set_status, callback_get_status, callback_get_flag }, // INT_SYSINIT
   { callback_set_status, callback_get_status, callback_get_flag }, // INT_UART_BUF_HALF_FULL
   { callback_set_status, callback_get_status, callback_get_flag }, // INT_TICKSECOND
   { callback_set_status, callback_get_status, callback_get_flag }, // INT_GSM_SIGNAL

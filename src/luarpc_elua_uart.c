@@ -1,11 +1,11 @@
+#if defined( BUILD_RPC )
+
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
 #include "platform.h"
 #include "platform_conf.h"
 #include "luarpc_rpc.h"
-
-#if defined( BUILD_RPC )
 
 // Buffer for async dispatch
 int adispatch_buff = -1;

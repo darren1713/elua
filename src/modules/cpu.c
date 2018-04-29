@@ -38,7 +38,7 @@
 #define TO_32BIT(L, n)                    \
   ( ( (s64)luaL_checknumber((L), (n))) & 0x0ffffffff  )
 
-
+#ifndef ELUA_CONF_LOCKDOWN
 
 // Lua: w32( address, data )
 static int cpu_w32( lua_State *L )
@@ -109,6 +109,8 @@ static int cpu_r8( lua_State *L )
   lua_pushnumber( L, ( lua_Number )( *( u8* )addr ) );
   return 1;
 }
+
+#endif
 
 // Lua: setparam( "param", value )
 static int cpu_set_param( lua_State *L )

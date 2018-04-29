@@ -68,30 +68,18 @@ extern void extras_sleep_hook( int seconds );
 #define I2C_TIMEOUT_SYSTICKS 3
 static volatile int i2c_timeout_timer = I2C_TIMEOUT_SYSTICKS;
 
-#if defined( PCB_V7 ) || defined( PCB_V8 ) || defined( PCB_V10 )
+#if defined( PCB_V10 )
 #define PIN_HV_BANK SI32_PBSTD_3
 #define PIN_HV_PIN ( 1 << 8 )
-#else
-#define PIN_HV_BANK SI32_PBSTD_3
-#define PIN_HV_PIN ( 1 << 7 )
 #endif
 
-#if defined( PCB_V7 ) || ( PCB_V8 ) || defined( PCB_V10 )
+#if defined( PCB_V10 )
   #define PIN_VCC_BANK 4
   #define PIN_VCC_PIN ( ( u32 ) 1 << 5 )
   #define PIN_NRST_BANK 3
   #define PIN_NRST_PIN ( ( u32 ) 1 << 10 )
   #define PIN_ONOFF_BANK 0
   #define PIN_ONOFF_PIN ( ( u32 ) 1 << 1 )
-#else
-  #define PIN_VCC_BANK 4
-  #define PIN_VCC_PIN ( ( u32 ) 1 << 5 )
-  #define PIN_VANT_BANK 4
-  #define PIN_VANT_PIN ( ( u32 ) 1 << 4 )
-  #define PIN_NRST_BANK 3
-  #define PIN_NRST_PIN ( ( u32 ) 1 << 10 )
-  #define PIN_ONOFF_BANK 3
-  #define PIN_ONOFF_PIN ( ( u32 ) 1 << 9 )
 #endif
 
 int rram_reg[RRAM_SIZE] __attribute__((section(".sret")));
@@ -301,7 +289,6 @@ int external_power()
 
 int external_buttons()
 {
-#if defined( PCB_V7 ) || defined( PCB_V8 ) || defined( PCB_V10 )
   //check inputs 1 and 2
   if( ( SI32_PBSTD_A_read_pins( SI32_PBSTD_2 ) & ( 1 << 2 ) ) ||
       ( SI32_PBSTD_A_read_pins( SI32_PBSTD_2 ) & ( 1 << 3 ) ) ||
@@ -309,19 +296,10 @@ int external_buttons()
     return 1;
   else
     return 0;
-#else
-  //check inputs 1 and 2
-  if( /*( SI32_PBSTD_A_read_pins( SI32_PBSTD_3 ) & ( 1 << 6 ) ) ||*/
-      ( SI32_PBSTD_A_read_pins( SI32_PBSTD_0 ) & ( 1 << 1 ) ) )
-    return 1;
-  else
-    return 0;
-#endif
 }
 int external_io_check()
 {
   int ret = 0;
-#if defined( PCB_V7 ) || defined( PCB_V8 ) || defined( PCB_V10 )
   if(rram_read_bit(RRAM_BIT_WAKE_ON_INPUT1) == WAKE_ON_INPUT1_ACTIVE)
   {
     int val = adc_get_single_sample( 0 );
@@ -375,7 +353,6 @@ int external_io_check()
         rram_write_bit(RRAM_BIT_INPUT2_LAST_STATE, INPUT2_LAST_STATE_LOW);
     }
   }
-#endif
   return ret;
 }
 
@@ -384,7 +361,6 @@ int external_io()
   return ( rram_read_bit(RRAM_BIT_INPUT2_TRIGGERED) == INPUT2_TRIGGERED ) || 
          ( rram_read_bit(RRAM_BIT_INPUT1_TRIGGERED) == INPUT1_TRIGGERED );
 }
-
 
 int bluetooth_connected()
 {
@@ -395,7 +371,6 @@ int bluetooth_connected()
 #endif
   return 0;
 }
-
 
 #endif
 static int pmu_wake_status = -1;
@@ -697,8 +672,6 @@ int platform_init()
   adcs_init();
 #endif
 
-
-
 #if defined( BUILD_USB_CDC )
   usb_init();
   hw_init();
@@ -714,10 +687,6 @@ int platform_init()
   cmn_platform_init();
 
   wake_init();
-
-#if defined( INT_SYSINIT )
-    cmn_int_handler( INT_SYSINIT, 0 );
-#endif
 
   return PLATFORM_OK;
 }
@@ -825,6 +794,8 @@ void SecondsTick_Handler()
       //Do a software reboot UNTIL we get the memory leaks sorted out...
       //sim3_pmu_reboot();
 #ifdef BUILD_WOFS
+      //Test if WOFS file system is low on free sectors, then reboot to trigger WOFS repack
+      //UNLIKELY as moving forward we are using NIFFS file system
       printf("Free Sectors: %d\n", wofs_free_sectors() );
       if( wofs_free_sectors() <= 3 )
         sim3_pmu_reboot_nodfu();
@@ -961,275 +932,6 @@ void TIMER0H_IRQHandler(void)
   SI32_TIMER_A_clear_high_overflow_interrupt(SI32_TIMER_0);
 }
 
-#if 0 //!defined(PCB_V10)
-//NOTE! These must be sized by a factor of 2 to calculate properly
-//First byte is size of the array
-#define LED_COUNT 5
-#define LED_MAX_ARRAY 32
-
-static u8 const CLED_FADEUP[] = { LED_MAX_ARRAY/2, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
-static u8 const CLED_FADEDOWN[] = { LED_MAX_ARRAY/2, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
-static u8 const CLED_OFF[] = { 1, 15 };
-static u8 const CLED_ON[] = { 1, 0 };
-static u8 const CLED_FASTFLASH[] = { LED_MAX_ARRAY/4, 0, 15, 15, 15, 15, 15, 15, 15 };
-static u8 const CLED_MEDIUMFLASH[] = { LED_MAX_ARRAY/2, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15 };
-static u8 const CLED_SLOWFLASH[] = { LED_MAX_ARRAY, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
-static u8 const CLED_FLASH1[] = { LED_MAX_ARRAY, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
-static u8 const CLED_FLASH2[] = { LED_MAX_ARRAY, 0, 15, 15, 15,  0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
-static u8 const CLED_FLASH3[] = { LED_MAX_ARRAY, 0, 15, 15, 15,  0, 15, 15, 15,  0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
-static u8 const CLED_FLASH4[] = { LED_MAX_ARRAY, 0, 15, 15, 15,  0, 15, 15, 15,  0, 15, 15, 15,  0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
-static u8 const CLED_FLASH5[] = { LED_MAX_ARRAY, 0, 15, 15, 15,  0, 15, 15, 15,  0, 15, 15, 15,  0, 15, 15, 15,  0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
-
-static u8 const * led_cled_ptr[] = {
-  CLED_FADEUP,
-  CLED_FADEDOWN,
-  CLED_OFF,
-  CLED_ON,
-  CLED_FASTFLASH,
-  CLED_MEDIUMFLASH,
-  CLED_SLOWFLASH,
-  CLED_FLASH1,
-  CLED_FLASH2,
-  CLED_FLASH3,
-  CLED_FLASH4,
-  CLED_FLASH5
-};
-
-#define LEDTICKHZ 1000
-#define LEDTICK_DIVIDER 2
-u8 led_pointer_tick = 0;
-u8 led_tick = 0;
-u8 led_repeat_tick = 0;
-u8 led_divider_tick = 0;
-
-u8 led_ticks = 0;
-
-u8 led_ticks_ptr[LED_COUNT] = { 0, 0, 0, 0, 0 };
-u8 led_background[LED_COUNT] = { 0, 0, 0, 0, 0 };
-
-#define LED_REPEATS_FOREVER 255
-
-//u8 * led_mode_ptr[] = { CLED_FADEDOWN, CLED_FADEUP, CLED_FASTFLASH, CLED_SLOWFLASH, CLED_MEDIUMFLASH };
-//u8 led_repeats_ptr[LED_COUNT] = { 10, 10, 10, 10, 10 };
-
-u8 * led_mode_ptr[] = { (u8 *)CLED_OFF, (u8 *)CLED_OFF, (u8 *)CLED_OFF, (u8 *)CLED_OFF, (u8 *)CLED_OFF };
-u8 led_repeats_ptr[LED_COUNT] = { 10, 10, 10, 10, 10 };
-
-//Pending variables here...wait for new "frame"
-u8 * led_pending_mode_ptr[LED_COUNT] = { NULL, NULL, NULL, NULL, NULL };
-u8 led_pending_repeats_ptr[LED_COUNT] = { 0, 0, 0, 0, 0 };
-
-u8 led_mask = 0x00;
-
-#if defined( PCB_V8 ) || defined( PCB_V10 )
-#define LED_PORT 0
-#else
-#define LED_PORT 2
-#endif
-
-#if defined( PCB_V7 ) || defined( PCB_V8 )
-#define MLED_PIN_0 4
-#define MLED_PIN_1 5
-#define MLED_PIN_2 6
-#define MLED_PIN_3 7
-#define MLED_PIN_4 8
-#define MLED_PIN_5 9
-#elif defined( PCB_V10 )
-#define MLED_PIN_0 8
-#define MLED_PIN_1 9
-#define MLED_PIN_2 10
-#define MLED_PIN_3 11
-#define MLED_PIN_4 12
-#define MLED_PIN_5 13
-#endif
-
-void TIMER1H_IRQHandler(void)
-{
-  led_ticks=((led_ticks+1) & 0x0F);
-  if(!led_ticks)
-  {
-    if(led_pointer_tick == 3)
-    {
-      led_pointer_tick = 0;
-
-      //load next values here
-      if(led_repeat_tick == 0)
-      {
-        led_repeat_tick = 0;
-
-        int lednum;
-        for(lednum=0;lednum<LED_COUNT;lednum++)
-        {
-          if(led_pending_mode_ptr[lednum] != NULL)
-          {
-            led_mode_ptr[lednum] = led_pending_mode_ptr[lednum];
-            led_repeats_ptr[lednum] = led_pending_repeats_ptr[lednum];
-            led_pending_mode_ptr[lednum] = NULL;
-            led_pending_repeats_ptr[lednum] = 0;
-          }
-        }
-      }
-
-      int lednum;
-      if( led_divider_tick == 0 )
-      {
-        for(lednum=0;lednum<LED_COUNT;lednum++)
-        {
-          if(led_repeats_ptr[lednum] > 0)
-          {
-            if((led_repeats_ptr[lednum] != LED_REPEATS_FOREVER) && ((led_tick % led_mode_ptr[lednum][0]) == 0))
-              led_repeats_ptr[lednum]--;
-            if(led_repeats_ptr[lednum] > 0)
-              led_ticks_ptr[lednum] = led_mode_ptr[lednum][(led_tick % led_mode_ptr[lednum][0])+1];
-          }
-        }
-        led_tick++;
-        led_repeat_tick = (led_repeat_tick+1) % LED_MAX_ARRAY;
-      }
-      led_divider_tick++;
-      led_divider_tick %= LEDTICK_DIVIDER;
-    }
-    led_pointer_tick++;
-  }
-  else
-  {
-    if(led_ticks + led_background[0] > led_ticks_ptr[0] && (led_mask & 1 ) )
-      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << MLED_PIN_1 ) );
-    else
-      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << MLED_PIN_1 ) );
-    if(led_ticks + led_background[1] > led_ticks_ptr[1] && (led_mask & 1<<1 ) )
-    {
-      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << MLED_PIN_2 ) );
-    #if !defined( MEMBRANE_V1)
-    #if defined( PCB_V8 ) || defined( PCB_V10 )
-      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << MLED_PIN_0 ) );
-    #else
-      SI32_PBHD_A_write_pins_high( SI32_PBHD_4, ( ( u32 ) 1 << 3 ) );
-    #endif
-    #endif
-    }
-    else
-    {
-      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << MLED_PIN_2 ) );
-    #if !defined( MEMBRANE_V1)
-    #if defined( PCB_V8 ) || defined( PCB_V10 )
-      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << MLED_PIN_0 ) );
-    #else
-      SI32_PBHD_A_write_pins_low( SI32_PBHD_4, ( ( u32 ) 1 << 3 ) );
-    #endif
-    #endif
-    }
-    if(led_ticks + led_background[2] > led_ticks_ptr[2] && (led_mask & 1<<2 ) )
-    {
-    #if defined( MEMBRANE_V1)
-    #if defined( PCB_V8 ) || defined( PCB_V10 )
-      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << MLED_PIN_0 ) );
-    #else
-      SI32_PBHD_A_write_pins_high( SI32_PBHD_4, ( ( u32 ) 1 << 3 ) );
-    #endif
-    #endif
-      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << MLED_PIN_3 ) );
-    }
-    else
-    {
-    #if defined( MEMBRANE_V1)
-    #if defined( PCB_V8 ) || defined( PCB_V10 )
-      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << MLED_PIN_0 ) );
-    #else
-      SI32_PBHD_A_write_pins_low( SI32_PBHD_4, ( ( u32 ) 1 << 3 ) );
-    #endif
-    #endif
-      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << MLED_PIN_3 ) );
-    }
-    if(led_ticks + led_background[3] > led_ticks_ptr[3] && (led_mask & 1<<3 ) )
-      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << MLED_PIN_4 ) );
-    else
-      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << MLED_PIN_4 ) );
-    if(led_ticks + led_background[4] > led_ticks_ptr[4] && (led_mask & 1<<4 ) )
-      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( u32 ) 1 << MLED_PIN_5 ) );
-    else
-      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( u32 ) 1 << MLED_PIN_5 ) );
-  }
-  // Clear the interrupt flag
-  SI32_TIMER_A_clear_high_overflow_interrupt(SI32_TIMER_1);
-}
-
-void led_cache_mode(int led, int mode )
-{
-  u8 rram_led_byte = rram_read_byte(4);
-  if( led == LED_COLOR_GPS )
-  {
-    rram_led_byte &= ~0xF;
-    rram_led_byte |= (mode & 0xF);
-  }
-  if( led == LED_COLOR_SAT )
-  {
-    rram_led_byte &= ~0xF0;
-    rram_led_byte |= ( ( mode << 4 ) & 0xF0);
-  }
-  rram_write_byte(4, rram_led_byte);
-  //printf("CACHING_LED: 0x%x, %d, %d\n", rram_led_byte, led, mode);
-}
-
-void led_set_mask( u8 mask )
-{
-#if defined ( MEMBRANE_V1 )
-  led_mask = mask;
-#else
-  // Module Board LED numbers
-  led_mask = 0;
-  led_mask |= ( ( mask & 1 ) << 3 ); // GPS
-  led_mask |= ( ( mask & (1 << 1) ) << 3 ); // MSG
-  led_mask |= ( ( mask & (1 << 2) ) >> 1 ); // PWR
-  led_mask |= ( ( mask & (1 << 3) ) >> 3 ); // SAT
-  led_mask |= ( ( mask & (1 << 4) ) >> 2 ); // ALRM
-#endif
-}
-
-void led_set_background(int led, u8 bkgnd)
-{
-  if(led > LED_COUNT)
-    return;
-  if(bkgnd > 15)
-    bkgnd = 15;
-
-  led_background[led]  = bkgnd;
-}
-
-void led_set_mode(int led, int mode, int cycles)
-{
-  if(led > LED_COUNT)
-    return;
-  if(cycles > 255)
-    cycles = 255;
-  led_pending_mode_ptr[led] = (u8 *)led_cled_ptr[mode];
-  led_pending_repeats_ptr[led] = cycles;
-}
-
-int led_get_mode(int led)
-{
-  if(led > LED_COUNT)
-    return -1;
-
-  int i;
-  if(led_pending_mode_ptr[led] != NULL)
-  {
-    for(i=0;i<( sizeof( led_cled_ptr ) / sizeof( led_cled_ptr[0] ) );i++)
-    {
-      if(led_pending_mode_ptr[led] == led_cled_ptr[i])
-        return i;
-    }
-  } else {
-    for(i=0;i<( sizeof( led_cled_ptr ) / sizeof( led_cled_ptr[0] ) );i++)
-    {
-      if(led_mode_ptr[led] == led_cled_ptr[i])
-        return i;
-    }
-  }
-  return -1;
-}
-#endif
-
 // SysTick interrupt handler
 void SysTick_Handler()
 {
@@ -1286,13 +988,8 @@ static void gTIMER1_enter_auto_reload_config(void)
   SI32_TIMER_A_select_high_auto_reload_mode (SI32_TIMER_1);
 
   // Set overflow frequency to SYSTICKHZ
-#if defined(PCB_V10) //New versions use PWM and use this timer for processing uart data
   SI32_TIMER_A_write_capture (SI32_TIMER_1, (unsigned) -(cmsis_get_cpu_frequency()/TIMER1_HZ));
   SI32_TIMER_A_write_count (SI32_TIMER_1, (unsigned) -(cmsis_get_cpu_frequency()/TIMER1_HZ));
-#else //Older PCB's have to use a high resolution timer for LED driving
-  SI32_TIMER_A_write_capture (SI32_TIMER_1, (unsigned) -(cmsis_get_cpu_frequency()/LEDTICKHZ));
-  SI32_TIMER_A_write_count (SI32_TIMER_1, (unsigned) -(cmsis_get_cpu_frequency()/LEDTICKHZ));
-#endif
 
   // Run Timer
   SI32_TIMER_A_start_high_timer(SI32_TIMER_1);
@@ -1309,55 +1006,17 @@ static void gTIMER1_enter_auto_reload_config(void)
 
 void pios_init( void )
 {
-#if defined( ELUA_BOARD_GSATMICRO_V10 ) || defined( ELUA_BOARD_GSATMICRO_V8 ) || defined( ELUA_BOARD_GSATMICRO_V7 )
-  // SI32_PBCFG_A_unlock_ports(SI32_PBCFG_0);
-
-  // // PB0 Setup
-  // SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_0, 0x0603);
-  // SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_0, 0x1114);
-  // SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_0, 0x37FB);
-
-  // // PB1 Setup
-  // SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_1, 0x00A1);
-  // SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_1, 0xFC1C);
-
-  // // Enable Crossbar0 signals & set properties
-  // SI32_PBCFG_A_enable_xbar0h_peripherals(SI32_PBCFG_0,
-  //                                        SI32_PBCFG_A_XBAR0H_UART0EN |
-  //                                        SI32_PBCFG_A_XBAR0H_UART1EN);
-  // SI32_PBCFG_A_enable_xbar0l_peripherals(SI32_PBCFG_0,
-  //                                        SI32_PBCFG_A_XBAR0L_USART0EN |
-  //                                        SI32_PBCFG_A_XBAR0L_I2C0EN);
-  // SI32_PBCFG_A_enable_crossbar_0(SI32_PBCFG_0);
-
-  // // PB2 Setup
-  // SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_2, 0x7FFF);
-
-  // // PB3 Setup
-  // SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_3, 0x00FF);
-
-  // // Enable Crossbar1 signals & set properties
-  // SI32_PBCFG_A_enable_crossbar_1(SI32_PBCFG_0);
-
-
-
-
+#if defined( ELUA_BOARD_GSATMICRO_V10 )
   SI32_PBCFG_A_unlock_ports(SI32_PBCFG_0);
 
-#if defined( ELUA_BOARD_GSATMICRO_V10 )
   SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_0, 0x0003);
   SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_0, 0x3F54);
 
   SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_0, 0x0003);
-  //JEFF TEST TO ENABLE PWM CHANNELS  SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_0, 0x3F03);
+  //ENABLE PWM CHANNELS  SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_0, 0x3F03);
   //Attach PWM pins to crossbar signal
   SI32_PBCFG_A_enable_xbar0_signal(SI32_PBCFG_0, SI32_XBAR0_EPCA0_CEX0_5);
-#else
-  // PB0 Setup
-  SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_0, 0x0603);
-  SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_0, 0x1514);
-  SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_0, 0x03F3);
-#endif
+
   // PB1 Setup
   SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_1, 0x07A1);
   SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_1, 0xFC1C);
@@ -1379,26 +1038,11 @@ void pios_init( void )
   SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_1, 0xC000);
   SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_1, 0xC000);
 
-#if !defined( PCB_V7 ) && !defined( PCB_V8 ) && !defined( PCB_V10 )
-  SI32_PBSTD_A_write_pins_low(SI32_PBSTD_1, 0x0200 ); //Set 5V regulator off
-#endif
   SI32_PBSTD_A_write_pins_high(SI32_PBSTD_1, 0x0100 ); //Set USB high power mode
 
-#if defined( PCB_V7 )
-  SI32_PBSTD_A_write_pins_low(SI32_PBSTD_2, 0x03E0 ); //Set external LEDS 0-4 off
-  SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_2, 0x03E0); //Set external LEDS 0-4 as outputs
-#endif
-
-#if defined( PCB_V8 ) 
-  SI32_PBSTD_A_write_pins_low(SI32_PBSTD_0, 0x3F0 ); //Set external LEDS 0-4 off
-  SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_0, 0x3F0); //Set external LEDS 0-4 as outputs
-#endif
-
-#if defined( PCB_V10 )
   SI32_PBSTD_A_write_pins_low(SI32_PBSTD_0, 0x3FF0);
   SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 1 << 10);
   SI32_PBSTD_A_write_pins_low( SI32_PBSTD_1, 1 << 10 );
-#endif
 
   // Enable Crossbar0 signals & set properties
   SI32_PBCFG_A_enable_xbar0l_peripherals(SI32_PBCFG_0,
@@ -1428,32 +1072,15 @@ void pios_init( void )
 
   SI32_PBSTD_A_disable_pullup_resistors( SI32_PBSTD_1 );
 
-#if defined( PCB_V7 ) || defined( PCB_V8 ) || defined( PCB_V10 )
   //PB3.8 is high voltage dc detection
   //PB3.9 is usb voltage detection
   SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_3, 0x00000300);
   //PB3.11 5V on/off
 
   SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_3, ( u32 ) 1 << 11);
-#if defined( PCB_V8 ) || defined( PCB_V10 )
   SI32_PBSTD_A_write_pins_low(SI32_PBSTD_3, ( u32 ) 1 << 11 ); //Set 5V regulator off
-#else
-  SI32_PBSTD_A_write_pins_high(SI32_PBSTD_3, ( u32 ) 1 << 11 ); //Set 5V regulator off
-#endif
   // PB2.1 is wakeup
   SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_2, 0x00000002);
-#else
-  //PB3.6 is external input 1
-  //PB3.7 is high voltage dc detection
-  //PB3.8 is usb voltage detection
-  SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_3, 0x000001C0);
-  //PB3.11 is RS232 Force Off
-  SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_3, ( u32 ) 1 << 11);
-  SI32_PBSTD_A_write_pins_high(SI32_PBSTD_3, ( u32 ) 1 << 11 );
-  //PB0.10 is RS232 VCC
-  SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_0, ( u32 ) 1 << 10);
-  SI32_PBSTD_A_write_pins_high(SI32_PBSTD_0, ( u32 ) 1 << 10 );
-#endif
 
   //PB0.1 is external input 2
   //PB0.0 is accel INT1
@@ -1501,22 +1128,9 @@ void pios_init( void )
 
   SI32_PBHD_A_select_slew_rate(SI32_PBHD_4, SI32_PBHD_A_SLEW_FASTEST);
 
-#if defined( PCB_V7 ) || defined( PCB_V8 ) || defined( PCB_V10 )
-#if defined( PCB_V7_CHARGER_NPN ) || defined( PCB_V8 ) || defined( PCB_V10 )
   //PB4.2 charger disconnect needs to be set high to enable NPN
   SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x04 );
-#else
-  //PB4.2 charger disconnect needs to be set low to enable MOSFET
-  SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x04 );
-#endif
-#endif
 
-// #if defined( PCB_V7 ) || defined( PCB_V8 )
-//   // PB4.4 high to power RS232 and I2C
-//   SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x10 );
-//   // PB4.4 high to power RS232 and I2C
-//   SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x10 );
-// #endif
 
   // SI32_PBHD_A_select_pchannel_current_limit(SI32_PBHD_4, 0);
   // SI32_PBHD_A_enable_pin_current_limit( SI32_PBHD_4, 0x3F );
@@ -1533,40 +1147,14 @@ void pios_init( void )
   //Enable blue LED's if we are on or just in a PM9 temporary sleep...
   if(rram_read_bit(RRAM_BIT_POWEROFF) == POWEROFF_MODE_ACTIVE)
   {
-#if defined(  PCB_V7 ) || defined( PCB_V8 ) || defined( PCB_V10 )
-  #if defined( PCB_V10)
     SI32_PBSTD_A_write_pins_low( SI32_PBSTD_0, 0x100 );
-  #elif defined( PCB_V8 ) 
-    SI32_PBSTD_A_write_pins_low( SI32_PBSTD_0, 0x10 );
-  #else
-    SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x08 );
-  #endif
-#else
-  #ifndef USE_EXTERNAL_MOSFETS
-      SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x02 );
-  #endif
-      SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x08 );
-#endif
   }
   else
   {
-#if defined( PCB_V7 ) || defined( PCB_V8 ) || defined( PCB_V10 )
-  #if defined( PCB_V10 )
     SI32_PBSTD_A_write_pins_high( SI32_PBSTD_0, 0x100 );
-  #elif defined( PCB_V8 )
-    SI32_PBSTD_A_write_pins_high( SI32_PBSTD_0, 0x10 );
-  #else
-    SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x08 );
-  #endif
-#else
-  #ifndef USE_EXTERNAL_MOSFETS
-      SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x02 );
-  #endif
-      SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x08 );
-#endif
   }
 
-#else //#if defined( ELUA_BOARD_GSATMICRO_V8 ) || defined( ELUA_BOARD_GSATMICRO_V7 )
+#else //#if defined( ELUA_BOARD_GSATMICRO_V10 )
   // Set up prinf pin
   //SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_1, 0x00000008);
 
@@ -1578,6 +1166,11 @@ void pios_init( void )
 
   // Enable switch sensing (P2.10, P2.11)
   //SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_2, 0x00000300);
+
+  // PB0 Setup
+  SI32_PBSTD_A_set_pins_analog(SI32_PBSTD_0, 0x0603);
+  SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_0, 0x1514);
+  SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_0, 0x03F3);
 
   // UART PINS TO PROPER CONFIG (TX = PB1.12, RX = PB1.13)
   SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_1, 0x0001000);
@@ -1856,6 +1449,20 @@ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int st
   }
 
   return baud; // FIXME: find a way to actually get baud
+}
+
+//Check if we can send before we try to do a blocking send with platform_s_uart_send...
+int platform_s_uart_send_ready( unsigned id )
+{
+  if( id < 2 )
+  {
+    // Return no if the output buffer is full
+    if (SI32_USART_A_read_tx_fifo_count(usart[ id ]) >= 4)
+    {
+      return 0;
+    }
+  }
+  return 1;
 }
 
 void platform_s_uart_send( unsigned id, u8 data )
@@ -2331,8 +1938,8 @@ u32 platform_i2c_setup( unsigned id, u32 speed )
   SI32_I2C_A_set_timer1_reload( i2cs[ id ], 256 - i2c_clock_per_cycle );
 
   // // configure bus free timeouts
-  // SI32_I2C_A_set_timer0_u8 ( i2cs[ id ] , 0x00);
-  // SI32_I2C_A_set_timer0_reload ( i2cs[ id ] , 0x01);
+  SI32_I2C_A_set_timer0_u8 ( i2cs[ id ] , 0x00);
+  SI32_I2C_A_set_timer0_reload ( i2cs[ id ] , 0x01);
 
   // set SETUP time to non-zero value for repeated starts to function correctly
   SI32_I2C_A_set_extended_data_setup_time( i2cs[ id ] , 0x01 );
@@ -2745,20 +2352,16 @@ void myPMU_enter_sleep(void)
   __set_FAULTMASK(1);
   __WFI();
 }
+
 void VREG0_vbus_invalid_handler(void)
 {
 }
-#if defined(PCB_V10)
+
 #define BT_TX_PIN 4
 #define BT_RX_PIN 5
 #define BT_RTS_PIN 6
 #define BT_CTS_PIN 7
-#else
-#define BT_TX_PIN 10
-#define BT_RX_PIN 11
-#define BT_RTS_PIN 12
-#define BT_CTS_PIN 13
-#endif
+
 void myPB_enter_off_config()
 {
    // all ports hi-z (analog)
@@ -2806,10 +2409,9 @@ void myPB_enter_off_config()
   //Set I2C pins to analog float...
   SI32_PBSTD_A_set_pins_analog( SI32_PBSTD_0, 0x0000C000);
   SI32_PBSTD_A_write_pins_low( SI32_PBSTD_0, 0xC000 );
-#if defined( PCB_V10 )
-    SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 1 << 10);
-    SI32_PBSTD_A_write_pins_low( SI32_PBSTD_1, 1 << 10 );
-#endif
+
+  SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 1 << 10);
+  SI32_PBSTD_A_write_pins_low( SI32_PBSTD_1, 1 << 10 );
 
 #ifdef BLUETOOTH_POWEREDWHILESLEEPING
   //Set bluetooth pins to analog high...
@@ -2842,10 +2444,8 @@ void myPB_enter_off_config()
   SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 0x00000200);
   SI32_PBSTD_A_write_pins_low( SI32_PBSTD_1, 0x0200 );
 
-#if defined( PCB_V7 ) || defined( PCB_V8 ) || defined( PCB_V10 )
   SI32_PBSTD_A_set_pins_digital_input( SI32_PBSTD_2, 0x0002 );
   SI32_PBSTD_A_set_pins_digital_input( SI32_PBSTD_3, 1 << 9 );
-#endif
 
   SI32_PBHD_A_set_pins_push_pull_output( SI32_PBHD_4, 0x00 );
   SI32_PBHD_A_set_pins_low_drive_strength(SI32_PBHD_4, 0x3F);
@@ -2870,22 +2470,12 @@ void myPB_enter_off_config()
   }
 
 
-#if defined( PCB_V7 ) || defined( PCB_V8 ) || defined( PCB_V10 )
-#if defined( PCB_V7_CHARGER_NPN ) || defined( PCB_V8 ) || defined( PCB_V10 )
-  //PB4.2 is set low above which disables the NPN so do nothing
-#else
-  //PB4.2 Set the disconnect mosfets to high!
-  SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x04 );
-  SI32_PBHD_A_set_pins_analog( SI32_PBHD_4, 0x04 );
-#endif
-
+#if defined( PCB_V10 )
   //JEFF TESTING with R21 shorted and 150uA to VCC
   SI32_PBSTD_A_write_pins_high( SI32_PBSTD_3, 0x0800 );
   SI32_PBSTD_A_set_pins_digital_input( SI32_PBSTD_3, 0x00000800);
 #endif
 }
-
-
 
 void sim3_pmu_pm9( int seconds )
 {
@@ -3026,13 +2616,9 @@ void sim3_pmu_pm9( int seconds )
   //SI32_PMU_A_enable_comparator0_wake_event( SI32_PMU_0 ); //JEFF TESTING WAKE ON EXTERNAL POWER: doesn't work, not adding it. Might need to configure CMP0
 
   //Enable WAKE setup
-#if defined( PCB_V7 ) || defined( PCB_V8 ) || defined( PCB_V10 )
   //PB2.1
   SI32_PMU_A_set_pin_wake_events( SI32_PMU_0, (1 << 4), (1 << 4) );
-#else
-  //PB3.6
-  SI32_PMU_A_set_pin_wake_events( SI32_PMU_0, (1 << 10), (1 << 10) );
-#endif
+
   SI32_RSTSRC_0->RESETEN_SET = SI32_RSTSRC_A_RESETEN_WAKEREN_MASK | 0x0000003; //replace incorrect SI32_PMU_A_enable_pin_wake_reset
   SI32_PMU_A_enable_pin_wake_event( SI32_PMU_0 );
   SI32_PMU_A_enable_pin_wake( SI32_PMU_0 );
@@ -3122,7 +2708,7 @@ u8 flash_erase( u32 address, u8 verify)
             if ( *verify_address != 0xFFFFFFFF )
             {
               __enable_irq();
-              printf("EFLASH FAIL %08X\n", verify_address);
+              printf("EFLASH FAIL %08lX\n", *verify_address);
               return 1;
             }
             verify_address++;
@@ -3186,7 +2772,7 @@ u8 flash_write( u32 address, u32* data, u32 count, u8 verify )
             if (*verify_address != tmpdata[wc])
             {
               __enable_irq();
-              printf("WFLASH FAIL %08X %08X\n", *verify_address, tmpdata[wc]);
+              printf("WFLASH FAIL %08lX %08lX\n", *verify_address, tmpdata[wc]);
               return 1;
             }
             verify_address++;

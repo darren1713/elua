@@ -10,6 +10,7 @@
 #include "platform.h"
 #include "platform_conf.h"
 #include "niffs.h"
+#include "niffs_internal.h"
 
 #if defined( BUILD_NIFFS ) 
 
@@ -151,7 +152,7 @@ static struct dm_dirent *nffs_readdir_r( struct _reent *r, void *d, void *pdata 
   p_niffs_ent = NIFFS_readdir(&niffs_d, p_niffs_ent);
   if (p_niffs_ent) {
     pent->fname = dm_shared_fname;
-    strncpy(pent->fname, p_niffs_ent->name, UMIN(NIFFS_NAME_LEN, DM_MAX_FNAME_LENGTH));
+    strncpy((char *)pent->fname, (char *)p_niffs_ent->name, UMIN(NIFFS_NAME_LEN, DM_MAX_FNAME_LENGTH));
     pent->fsize = p_niffs_ent->size;
     pent->flags = 0; // TODO peter don't know what elua uses this for
     pent->ftime = 0;
@@ -315,7 +316,7 @@ int nffs_init( void )
 
   niffs_lin_sectors = niffs_total_sectors - 5;
   niffs_paged_sectors = niffs_total_sectors - niffs_lin_sectors;
-  printf("NIFFS: LIN %i PAGE %i\n", niffs_lin_sectors, niffs_paged_sectors);
+  printf("NIFFS: LIN %li PAGE %li\n", niffs_lin_sectors, niffs_paged_sectors);
 
 
   NIFFS_init(&fs, niffs_pbase, niffs_paged_sectors, INTERNAL_FLASH_SECTOR_SIZE, 128,
