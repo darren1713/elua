@@ -119,9 +119,15 @@
   //If we are using a partially linear file system, we need to store the linear vs regular page allocations
   //somewhere so lets store it in the first 4 bytes of the sector magic!
   //LINEAR MAGIC SECTOR DEFINITION
-  //BYTES 7-4 (0xfee1) ^ fs->page_size
-  //BYTES 3-0 fs->linear sectors 
-  #define _NIFFS_SECT_MAGIC(_fs)  (niffs_magic)(((0x0000fee1 ^ ((_fs)->page_size & 0x0000FFFF)) << 16) | ((_fs)->lin_sectors)) 
+  //BYTES 7-6 (0xe1)
+  //BYTES 5-3 fs->page_size
+  //BYTES 2-0 fs->linear sectors 
+  #define _NIFFS_SECT_MAGIC_BYTES 0xe1
+  #define _NIFFS_SECT_MAGIC(_fs)  (niffs_magic)((_NIFFS_SECT_MAGIC_BYTES << 24) | (((_fs)->page_size & 0xFFF) << 12) | ((_fs)->lin_sectors & 0xFFF)) 
+  //Bytes 5-3 of magic number holds the page size
+  #define _NIFFS_SECT_PAGE_SIZE(data)  (u32_t)((data >> 12) & 0xFFF) 
+  //Lower 3 bytes of magic number holds the linear size
+  #define _NIFFS_SECT_LINEAR_SIZE(data)  (u32_t)(data & 0xFFF) 
 #else
   #define _NIFFS_SECT_MAGIC(_fs)  (niffs_magic)(0xfee1c001 ^ (_fs)->page_size)
 #endif 

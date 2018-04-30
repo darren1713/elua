@@ -2674,7 +2674,7 @@ u8 flash_erase( u32 address, u8 verify)
 {
     u32 wc;
     u32* verify_address;
-    printf("EFLASH %08lX\n", address);
+    //printf("EFLASH %08lX\n", address);
 
     // Disable interrupts
     //hw_intp_disable();

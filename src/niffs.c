@@ -70,8 +70,8 @@ static int nffs_open_r( struct _reent *r, const char *path, int flags, int mode,
     //printf("-E");
   }
 
-  // TODO peter just for testing, perhaps you satellite blokes want it differently
-  if ((strncmp("/l", path, 2) == 0) || (strncmp("autorun", path, 7) == 0)) {
+  // If file name starts with autorun or lin_, then put it on the linear filesystem
+  if ((strncmp("lin_", path, 7) == 0) || (strncmp("autorun", path, 7) == 0)) {
     lflags |= NIFFS_O_LINEAR;
     //printf("-L\n");
   }
@@ -100,23 +100,28 @@ static _ssize_t nffs_read_r( struct _reent *r, int fd, void* ptr, size_t len, vo
   return NIFFS_read(&fs, fd, ptr, len);
 }
 
-// lseek
 static off_t nffs_lseek_r( struct _reent *r, int fd, off_t off, int whence, void *pdata )
 {
-  // TODO peter are we sure the whence arg here matches NIFFS_SEEK_SET, NIFFS_SEEK_CUR, NIFFS_SEEK_END?
-  //      niffs adapts to the posix values so should work
-  //return NIFFS_lseek(&fs, fd, off, whence);
-  int res = NIFFS_OK;
-  niffs_file_desc *myfd;
+  //      Ensure the whence arg here matches NIFFS_SEEK_SET, NIFFS_SEEK_CUR, NIFFS_SEEK_END?
+  //      niffs adapts to the posix values so should work (Yes)
+  //#define SEEK_SET        0       /* set file offset to offset */
+  //#define SEEK_CUR        1       /* set file offset to current plus offset */
+  //#define SEEK_END        2       /* set file offset to EOF plus offset */
+  //#define NIFFS_SEEK_SET          (0)
+  //#define NIFFS_SEEK_CUR          (1)
+  //#define NIFFS_SEEK_END          (2)
 
-  if(NIFFS_lseek(&fs, fd, off, whence) == NIFFS_OK)
+  int res;
+
+  //Return value will be greater than 0 if file seek occurs, or 0 IE NIFFS_OK if successful but didn't move, and
+  //less than zero if an error occured.
+  res = NIFFS_lseek(&fs, fd, off, whence);
+  if(res >= NIFFS_OK)
   {
-    res = niffs_get_filedesc(&fs, fd, &myfd);
-    if (res != NIFFS_OK) return res;
-    //printf("Nl o:%li w:%i p:%li\n", off, whence, myfd->offs);
-    return myfd->offs;
+    //printf("Nl r:%i fd:%i o:%li w:%i\n", res, fd, off, whence);
+    return res;
   } else {
-    //printf("Nl FAIL");
+    //printf("Nl FAIL r:%i fd:%i o:%li w:%i\n", res, fd, off, whence);
     return -1;
   }
 }
@@ -124,11 +129,10 @@ static off_t nffs_lseek_r( struct _reent *r, int fd, off_t off, int whence, void
 // getaddr
 static const char* nffs_getaddr_r( struct _reent *r, int fd, void *pdata )
 {
-  return NULL;
   u8_t * ptrptr;
   u32_t len;
   NIFFS_read_ptr(&fs, fd, &ptrptr, &len);
-  //printf("getaddr %li\n", (u32_t)ptrptr);
+  //printf("getaddr %p\n", (u32_t *)ptrptr);
   return (char*)ptrptr;
 }
 
@@ -254,8 +258,6 @@ static int nffs_unlink_r( struct _reent *r, const char *path, void *pdata )
   return NIFFS_remove(&fs, (char *)path);
 }
 
-
-
 static const DM_DEVICE niffs_device = 
 {
   nffs_open_r,         // open
@@ -272,7 +274,6 @@ static const DM_DEVICE niffs_device =
   NULL,                // rmdir
   NULL                 // rename // TODO peter, this exists in niffs also if you want it
 };
-
 
 static int platform_hal_erase_f(u8_t *addr, u32_t len) {
   // flash boundary checks
@@ -304,43 +305,89 @@ static int platform_hal_write_f(u8_t *addr, const u8_t *src, u32_t len) {
   return NIFFS_OK;
 }
 
-int nffs_init( void )
+int nffs_check_and_mount()
+{
+  //Check filesystem, and format if it has not been formatted or corrupted...
+  NIFFS_unmount(&fs);
+  if(NIFFS_chk(&fs) == ERR_NIFFS_NOT_A_FILESYSTEM)
+  {
+    NFFS_DBG("chk NOT FS\n");
+    NIFFS_format(&fs);
+  } else
+    NFFS_DBG("chk OK\n");
+
+  if(NIFFS_mount(&fs))
+  {
+    printf("FILE SYSTEM MOUNT FAIL\n");
+    return 0;
+  }
+  else
+  {
+    NFFS_DBG("MNT OK\n");
+    return 1;
+  }
+}
+
+int nffs_create( s32_t linear_bytes )
 {
   niffs_pbase = ( u8* )platform_flash_get_first_free_block_address( NULL );
   niffs_max_size = INTERNAL_FLASH_SIZE - ( ( u32 )niffs_pbase - INTERNAL_FLASH_START_ADDRESS ) - (INTERNAL_FLASH_SECTOR_SIZE);
   niffs_total_sectors = niffs_max_size / INTERNAL_FLASH_SECTOR_SIZE;
 
-  // divide the fs up into 50% paged and 50% linear // TODO peter just for reference
-  //niffs_paged_sectors = niffs_total_sectors / 2;
-  //niffs_lin_sectors = niffs_total_sectors - niffs_paged_sectors;
+  if(linear_bytes == -1)
+  {
+    //Look to see if we have a valid magic byte and if so, get the linear page size
+    //It is stored in the lower 2 bytes of the magic number (abra)
+    niffs_sector_hdr *shdr = (niffs_sector_hdr *)niffs_pbase;
+    NFFS_DBG("%08lX %08lX\n", 
+      shdr->abra,
+      _NIFFS_SECT_LINEAR_SIZE(shdr->abra));
 
-  niffs_lin_sectors = niffs_total_sectors - 5;
+    niffs_lin_sectors = 1;
+    //Get linear sectors stored on flash...if it's set...if not, assume zero linear sectors
+    //If not, format the file system with no linear page area. User will format it if needed
+    if ((shdr->abra >> 24) == (_NIFFS_SECT_MAGIC_BYTES))
+      niffs_lin_sectors = _NIFFS_SECT_LINEAR_SIZE(shdr->abra);
+  } else {
+    //We were told to create a linear space, calculate it here
+    //Division drops the decimal, so we need to divide and add 1 sector
+    niffs_lin_sectors = (linear_bytes / INTERNAL_FLASH_SECTOR_SIZE) + 1;
+    //Make sure we leave at least 1 sector for paged sectors
+    if(niffs_lin_sectors > (niffs_total_sectors - 1))
+      niffs_lin_sectors = niffs_total_sectors - 1;
+  }
+
   niffs_paged_sectors = niffs_total_sectors - niffs_lin_sectors;
   printf("NIFFS: LIN %li PAGE %li\n", niffs_lin_sectors, niffs_paged_sectors);
 
-
-  NIFFS_init(&fs, niffs_pbase, niffs_paged_sectors, INTERNAL_FLASH_SECTOR_SIZE, 128,
+  NIFFS_init(&fs, niffs_pbase, niffs_paged_sectors, INTERNAL_FLASH_SECTOR_SIZE, NIFFS_BUF_SIZE,
       buf, sizeof(buf),
       descs, NIFFS_FILE_DESCS,
       platform_hal_erase_f, platform_hal_write_f, niffs_lin_sectors);
 
-  //Check filesystem, and format if it has not been formatted or corrupted...
-  if(NIFFS_chk(&fs) == ERR_NIFFS_NOT_A_FILESYSTEM)
+  //If given a specific linear byte size, format flash
+  if(linear_bytes != -1)
     NIFFS_format(&fs);
 
-  NIFFS_mount(&fs);
+  //Check filesystem, and format if it has not been formatted or corrupted...
+  return nffs_check_and_mount();
+}
+
+int nffs_init( void )
+{
+  nffs_create(-1);
 
   dm_register( "/f", &fs, &niffs_device );
-  //romfs_fs_set_flag( &fs, ROMFS_FS_FLAG_READY_WRITE | ROMFS_FS_FLAG_READY_READ );
 
   return dm_register( NULL, NULL, NULL );
 }
 
-int nffs_format()
+int nffs_format(s32_t linear_bytes)
 {
-// TODO peter changed this to below  NFFS_DBG("N_I:%li,%li,%li\n", (u32_t)niffs_pbase, niffs_max_size, niffs_total_sectors); //N_I:36000,39936,39N_E:20007C84,1024N_W:20007C84,20007C80,8
+  NIFFS_unmount(&fs);
+  nffs_create(linear_bytes);  
   NFFS_DBG("N_I:%li,%li,%li,%li\n", (u32_t)niffs_pbase, niffs_max_size, niffs_paged_sectors, niffs_lin_sectors);
-  return NIFFS_format(&fs);
+  return 1;
 }
 
 int nffs_mount()
@@ -353,36 +400,25 @@ int nffs_unmount()
   return NIFFS_unmount(&fs);
 }
 
-int nffs_check()
+int nffs_info(s32_t *total, s32_t *used, u8_t *overflow, s32_t *lin_total, s32_t *lin_used, s32_t *lin_free)
 {
-  return NIFFS_chk(&fs);
-}
+  niffs_sector_hdr *shdr = (niffs_sector_hdr *)_NIFFS_SECTOR_2_ADDR(&fs, 0);
+  printf("%08lX %08lX %08lX\n", 
+    shdr->abra, 
+    _NIFFS_SECT_MAGIC(&fs),
+    _NIFFS_SECT_LINEAR_SIZE(shdr->abra));
 
-int nffs_info(s32_t *total, s32_t *used, u8_t *overflow)
-{
+  nffs_check_and_mount();
+
   niffs_info info;
-  //Check filesystem, and format if it has not been formatted or corrupted...
-  NIFFS_unmount(&fs);
-  if(NIFFS_chk(&fs) == ERR_NIFFS_NOT_A_FILESYSTEM)
-  {
-    NFFS_DBG("chk NOT FS\n");
-    NIFFS_format(&fs);
-  } else
-    NFFS_DBG("chk OK\n");
-
-  if(NIFFS_mount(&fs))
-    NFFS_DBG("MNT FAIL\n");
-  else
-    NFFS_DBG("MNT OK\n");
-
   int res = NIFFS_info(&fs, &info);
   if (res == NIFFS_OK) {
     *total = info.total_bytes;
     *used = info.used_bytes;
     *overflow = info.overflow;
-    // TODO peter need this? info.lin_total_sectors;
-    // TODO peter need this? info.lin_used_sectors;
-    // TODO peter need this? info.lin_max_conseq_free;
+    *lin_total = info.lin_total_sectors * INTERNAL_FLASH_SECTOR_SIZE;
+    *lin_used = info.lin_used_sectors * INTERNAL_FLASH_SECTOR_SIZE;
+    *lin_free = info.lin_max_conseq_free * INTERNAL_FLASH_SECTOR_SIZE;
   }
 
   return res;
