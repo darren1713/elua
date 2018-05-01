@@ -9,7 +9,7 @@ return {
     sercon = { uart = 255, speed = 115200, buf_size = 128 },
     romfs = true,
     wofs = false,
-    niffs = true,
+    niffs = { linear_area = true },
     cdc = { buf_size = 128 },
     advanced_shell = false,
     shell_basic = false,
