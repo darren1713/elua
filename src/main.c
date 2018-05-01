@@ -22,6 +22,7 @@
 #include "mmcfs.h"
 #include "romfs.h"
 #include "semifs.h"
+#include "nffs.h"
 
 // Define here your autorun/boot files, 
 // in the order you want eLua to search for them
