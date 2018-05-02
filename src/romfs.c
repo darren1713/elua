@@ -180,7 +180,6 @@ static u8 romfs_open_file( const char* fname, FD* pfd, FSDATA *pfs, u32 *plast, 
 
 static int romfs_open_r( struct _reent *r, const char *path, int flags, int mode, void *pdata )
 {
-  printf("Ro %s\n", path);
   FD tempfs;
   int i;
   FSDATA *pfsdata = ( FSDATA* )pdata;
@@ -310,7 +309,6 @@ static int romfs_open_r( struct _reent *r, const char *path, int flags, int mode
 
 static int romfs_close_r( struct _reent *r, int fd, void *pdata )
 {
-  printf("Rc%i\n",fd);
   FD* pfd = fd_table + fd;
   FSDATA *pfsdata = ( FSDATA* )pdata;
   u8 temp[ ROMFS_SIZE_LEN ];
@@ -334,7 +332,6 @@ static int romfs_close_r( struct _reent *r, int fd, void *pdata )
 
 static _ssize_t romfs_write_r( struct _reent *r, int fd, const void* ptr, size_t len, void *pdata )
 {
-  printf("Rw\n");
   FD* pfd = fd_table + fd;
   FSDATA *pfsdata = ( FSDATA* )pdata;
 
@@ -362,7 +359,6 @@ static _ssize_t romfs_write_r( struct _reent *r, int fd, const void* ptr, size_t
 
 static _ssize_t romfs_read_r( struct _reent *r, int fd, void* ptr, size_t len, void *pdata )
 {
-  printf("Rr\n");
   FD* pfd = fd_table + fd;
   long actlen = fsmin( len, pfd->size - pfd->offset );
   FSDATA *pfsdata = ( FSDATA* )pdata;
@@ -374,15 +370,9 @@ static _ssize_t romfs_read_r( struct _reent *r, int fd, void* ptr, size_t len, v
   }
   if( pfsdata->flags & ROMFS_FS_FLAG_DIRECT )
   {
-    printf("Rrmc#p:%li,l:%i,a:%li,o:%li\n", (u32)ptr, len, actlen, pfd->offset);
     memcpy( ptr, pfsdata->pbase + pfd->offset + pfd->baseaddr, actlen );
-    int i;
-    for(i=0;i<actlen;i++)
-      printf("%02X",((char *)ptr)[i]);
-    printf("\n");
   } else {
     actlen = pfsdata->readf( ptr, pfd->offset + pfd->baseaddr, actlen, pfsdata );
-    printf("Rrrf#p:%li,l:%i,a:%li,o:%li\n", (u32)ptr, len, actlen, pfd->offset);
   }
   pfd->offset += actlen;
   return actlen;
@@ -391,7 +381,6 @@ static _ssize_t romfs_read_r( struct _reent *r, int fd, void* ptr, size_t len, v
 // lseek
 static off_t romfs_lseek_r( struct _reent *r, int fd, off_t off, int whence, void *pdata )
 {
-  printf("Rl o:%li w:%i\n", off, whence);
   FD* pfd = fd_table + fd;
   u32 newpos = 0;
   
@@ -415,7 +404,6 @@ static off_t romfs_lseek_r( struct _reent *r, int fd, off_t off, int whence, voi
   if( newpos > pfd->size )
     return -1;
   pfd->offset = newpos;
-  printf("Rl o:%li w:%i p:%li\n", off, whence, newpos);
   return newpos;
 }
 
@@ -425,7 +413,6 @@ static u32 romfs_dir_data = 0;
 // opendir
 static void* romfs_opendir_r( struct _reent *r, const char* dname, void *pdata )
 {
-  printf("Rod\n");
   if( !dname || strlen( dname ) == 0 || ( strlen( dname ) == 1 && !strcmp( dname, "/" ) ) )
   {
     romfs_dir_data = 0;
@@ -439,7 +426,6 @@ extern struct dm_dirent dm_shared_dirent;
 extern char dm_shared_fname[ DM_MAX_FNAME_LENGTH + 1 ];
 static struct dm_dirent* romfs_readdir_r( struct _reent *r, void *d, void *pdata )
 {
-  printf("Rrd\n");
   u32 off = *( u32* )d;
   struct dm_dirent *pent = &dm_shared_dirent;
   unsigned j;
@@ -525,10 +511,8 @@ static const char* romfs_getaddr_r( struct _reent *r, int fd, void *pdata )
 
   if( pfsdata->flags & ROMFS_FS_FLAG_DIRECT )
   {
-    printf("Rgetaddr %li\n", (u32)((char* )pfsdata->pbase + pfd->baseaddr));
     return ( const char* )pfsdata->pbase + pfd->baseaddr;
   } else {
-    printf("Rgetaddr NULL\n");
     return NULL;
   }
 }
@@ -536,7 +520,6 @@ static const char* romfs_getaddr_r( struct _reent *r, int fd, void *pdata )
 // unlink
 static int romfs_unlink_r( struct _reent *r, const char *path, void *pdata )
 {
-  printf("Ru\n");
   FSDATA *pfsdata = ( FSDATA* )pdata;
   FD tempfs;
   int exists;
