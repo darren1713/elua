@@ -5,7 +5,6 @@
 */
 
 #include <string.h>
-#include <stdio.h>
 
 #define lgc_c
 #define LUA_CORE
@@ -314,7 +313,7 @@ static l_mem propagatemark (global_State *g) {
       g->gray = p->gclist;
       traverseproto(g, p);
       return sizeof(Proto) + sizeof(Proto *) * p->sizep +
-                             sizeof(TValue) * p->sizek +
+                             sizeof(TValue) * p->sizek + 
                              sizeof(LocVar) * p->sizelocvars +
                              sizeof(TString *) * p->sizeupvalues +
                              (proto_is_readonly(p) ? 0 : sizeof(Instruction) * p->sizecode +
@@ -730,7 +729,7 @@ void luaC_linkupval (lua_State *L, UpVal *uv) {
   GCObject *o = obj2gco(uv);
   o->gch.next = g->rootgc;  /* link upvalue into `rootgc' list */
   g->rootgc = o;
-  if (isgray(o)) {
+  if (isgray(o)) { 
     if (g->gcstate == GCSpropagate) {
       gray2black(o);  /* closed upvalues need barrier */
       luaC_barrier(L, uv, uv->v);
