@@ -12,12 +12,16 @@ If you've just downloaded *eLua* and are looking to get started check
 out link:http://www.eluaproject.net/en_using.html[using eLua].
 
 Windows Cross Compiling Update
-----------------
+------------------------------
 
-To cross compile scripts on Windows (cross-lua), install msys2 32 bit link:http://repo.msys2.org/distrib/i686/msys2-i686-20161025.exe[msys2-i686-20161025.exe] and Python (ActivePython) 2.7.13, and Lua For Windows link:https://github.com/rjpcomputing/luaforwindows/releases/download/v5.1.5-51/LuaForWindows_v5.1.5-51.exe[LuaForWindows_v5.1.5-51.exe].
+To cross compile scripts on Windows (cross-lua), you'll need to install a few packages:
+
+* A GCC compiler. link:http://tdm-gcc.tdragon.net/index.php[TDM-GCC] was tested,
+  but other GCC for Windows distributions should work.
+* Python 2.7 (from link:http://www.python.org[python.org] or other distributions).
+* link:https://github.com/rjpcomputing/luaforwindows/releases/[Lua for Windows].
 
 Run lua cross-lua.lua and then you're ready to cross compile Lua scripts!
-
 
 General Features
 ----------------
