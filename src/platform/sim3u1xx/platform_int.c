@@ -80,25 +80,35 @@ static u8 I2C_slave_selected = 0; //most I2C functions are ran by waiting for a 
 
 void I2C0_IRQHandler(void)
 {
-  //printf("!%08X%08X!", SI32_I2C_0->CONFIG.U32, SI32_I2C_0->CONTROL.U32);
+#if defined( DEBUG_I2C )
+  printf("!%08lX%08lX!", SI32_I2C_0->CONFIG.U32, SI32_I2C_0->CONTROL.U32);
+#endif
   if ( SI32_I2C_A_is_timer3_interrupt_pending( SI32_I2C_0 ) &&
        SI32_I2C_A_is_timer3_interrupt_enabled( SI32_I2C_0 ) )
   {
-    //printf("SCLOW");
+#if defined( DEBUG_I2C )
+    printf("SCLOW");
+#endif
 #if defined(BUILD_I2C_SLAVE)
     I2C_slave_selected = 0;
 #endif
+    SI32_I2C_A_clear_timer3_interrupt( SI32_I2C_0 ); //TESTING
     SI32_I2C_A_reset_module( SI32_I2C_0 );
+    platform_i2c_hardware_failure();
   }
   if ( SI32_I2C_A_is_arblost_interrupt_pending( SI32_I2C_0 ) &&
        SI32_I2C_A_is_arblost_interrupt_enabled( SI32_I2C_0 ) )
   {
     // Just clear arb lost interrupt
-    //printf("ALOST");
+#if defined( DEBUG_I2C )
+    printf("ALOST");
+#endif
 #if defined(BUILD_I2C_SLAVE)
     I2C_slave_selected = 0;
 #endif
     SI32_I2C_A_clear_arblost_interrupt( SI32_I2C_0 );
+    SI32_I2C_A_reset_module( SI32_I2C_0 ); //TESTING
+    platform_i2c_hardware_failure();
   }
 
 #if defined(BUILD_I2C_SLAVE)

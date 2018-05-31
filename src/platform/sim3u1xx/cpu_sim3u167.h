@@ -236,7 +236,7 @@ extern unsigned console_cdc_active;
 #define BLUETOOTH_ENABLE_TDO_DSR
 #define BLUETOOTH_POWEREDWHILESLEEPING
 //#define REBOOT_AT_END_OF_SLEEP
-//define DEBUG_I2C
+//#define DEBUG_I2C
 //define USE_EXTERNAL_MOSFETS
 
 //#define LOW_SYSTEM_CLOCK
@@ -261,7 +261,8 @@ enum {
   LED_FLASH2,
   LED_FLASH3,
   LED_FLASH4,
-  LED_FLASH5
+  LED_FLASH5,
+  LED_BREATH_LOW
 } enum_led_state;
 
 #if defined ( MEMBRANE_V1 )
