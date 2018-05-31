@@ -214,7 +214,6 @@ static const SHELL_COMMAND shell_commands[] =
 #ifndef BUILD_SHELL_BASIC
   { "cp", shell_cp },
   { "wofmt", shell_wofmt },
-  { "worepack", shell_worepack },
 #endif
   { "mkdir", shell_mkdir },
 #ifndef BUILD_SHELL_BASIC

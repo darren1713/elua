@@ -12,7 +12,6 @@
 //    - methods to allow remote assignment, getting remote values
 //    - accessing and calling types nested multiple levels deep on tables now works
 //  - port from Lua 4.x to 5.x
-#if defined( BUILD_RPC )
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -44,6 +43,7 @@ void *alloca(size_t);
 #include "luarpc_rpc.h"
 
 
+#if defined( BUILD_RPC )
 
 // Support for Compiling with & without rotables
 #ifdef LUA_OPTIMIZE_MEMORY

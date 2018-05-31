@@ -6,13 +6,14 @@ local sf = string.format
 builder:init( args )
 builder:set_build_mode( builder.BUILD_DIR_LINEARIZED )
 
-local output = 'luac.cross'
+local suffix = utils.is_windows() and '.exe' or ''
+local output = 'luac.cross' .. suffix
 local cdefs = '-DLUA_CROSS_COMPILER'
 
 -- Lua source files and include path
 local lua_files = [[lapi.c lcode.c ldebug.c ldo.c ldump.c lfunc.c lgc.c llex.c lmem.c lobject.c lopcodes.c
    lparser.c lstate.c lstring.c ltable.c ltm.c lundump.c lvm.c lzio.c lauxlib.c lbaselib.c
-   ldblib.c liolib.c lmathlib.c loslib.c ltablib.c loadlib.c linit.c luac.c print.c lrotable.c]]
+   ldblib.c liolib.c lmathlib.c loslib.c ltablib.c lstrlib.c loadlib.c linit.c luac.c print.c lrotable.c]]
 lua_files = lua_files:gsub( "\n" , "" )
 local lua_full_files = utils.prepend_path( lua_files, "src/lua" )
 local local_include = "-Isrc/lua -Iinc/desktop -Iinc"

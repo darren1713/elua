@@ -18,7 +18,6 @@
 #include "lauxlib.h"
 #include "lualib.h"
 #include "lrotable.h"
-#include "common.h"
 
 
 #define IO_INPUT	1
