@@ -781,14 +781,14 @@ void SecondsTick_Handler()
   //Check if we are supposed to be sleeping
   if(rram_read_int(RRAM_INT_SLEEPTIME) > 0)
   {
-    //Don't count down timer if buttons are depressed
     if(rram_read_int(RRAM_INT_SLEEPTIME) != SLEEP_FOREVER)
     {
+      //Don't count down timer if buttons are depressed or a module is delaying sleep
       if(rram_read_int(RRAM_INT_SLEEPTIME) != 1 || ( !external_buttons() && ok_to_sleep() == OKTOSLEEP ) )
         rram_write_int(RRAM_INT_SLEEPTIME, rram_read_int(RRAM_INT_SLEEPTIME)-1);
     }
 
-    if(rram_read_int(RRAM_INT_SLEEPTIME) == 0)
+    if((rram_read_int(RRAM_INT_SLEEPTIME) == 0) && ( !external_buttons() && ok_to_sleep() == OKTOSLEEP ) )
     {
       //Our timer has expired and we are still powered, start TX script
       //Do a software reboot UNTIL we get the memory leaks sorted out...
@@ -815,7 +815,9 @@ void SecondsTick_Handler()
 
     if( ( !external_power() || ( ( rram_read_bit(RRAM_BIT_SLEEP_WHEN_POWERED) == SLEEP_WHEN_POWERED_ACTIVE ) && !usb_power() ) ) && 
         ( rram_read_bit( RRAM_BIT_SLEEP_WITH_BATTERY ) == SLEEP_WITH_BATTERY_ACTIVE ) &&
-        !external_buttons() && !external_io() && !bluetooth_connected() && ( ( pending_op_timeout == 0 ) || ( !lua_command_pending() && !c_command_pending() && !extras_op_pending() ) ) )
+        ( !external_buttons() && ok_to_sleep() == OKTOSLEEP ) && 
+        !external_io() && !bluetooth_connected() && 
+        ( ( pending_op_timeout == 0 ) || ( !lua_command_pending() && !c_command_pending() && !extras_op_pending() ) ) )
     {
       printf("no power %i\n", rram_read_int(RRAM_INT_SLEEPTIME));
       if(sleep_delay > 0)
@@ -1922,7 +1924,9 @@ static SI32_I2C_A_Type* const i2cs[] = { SI32_I2C_0, SI32_I2C_1 };
 u32 platform_i2c_setup( unsigned id, u32 speed )
 {
   u32 i2c_clock = cmsis_get_cpu_frequency();
-  u32 scl_timer_bytes = ( ( 1 << 20 ) - ( ( 25 * i2c_clock ) / 1000 ) ) / 16;
+#define I2C_LOW_TIMEOUT_MILLISECONDS 25 //DEFAULT 
+//#define I2C_LOW_TIMEOUT_MILLISECONDS 1
+  u32 scl_timer_bytes = ( ( 1 << 20 ) - ( ( I2C_LOW_TIMEOUT_MILLISECONDS * i2c_clock ) / 1000 ) ) / 16;
   u32 i2c_clock_per_cycle = ( ( ( i2c_clock / 2 + ( speed - 1 ) ) / speed ) );
 
   if( i2c_reset_pending )
@@ -1959,6 +1963,12 @@ u32 platform_i2c_setup( unsigned id, u32 speed )
 
   // Return actual speed
   return i2c_clock / ( ( i2c_clock_per_cycle ) * 2 );
+}
+
+//Interrupts that indicate i2c failure will trigger the wait loops below to return immediately
+void platform_i2c_hardware_failure( )
+{
+  i2c_timeout_timer = 0;
 }
 
 void platform_i2c_send_start( unsigned id )
@@ -1998,7 +2008,7 @@ void platform_i2c_send_stop( unsigned id )
   if ( SI32_I2C_A_is_busy( i2cs[ id ] ) )
   {
 #if defined( DEBUG_I2C )
-    printf("END CONTROL = %lx\n",  i2cs[ id ]->CONTROL.U32 );
+    printf("EC%lx\n",  i2cs[ id ]->CONTROL.U32 );
 #endif
 
     if( SI32_I2C_A_is_tx_interrupt_pending( i2cs[ id ] ) )
@@ -2009,7 +2019,7 @@ void platform_i2c_send_stop( unsigned id )
 
     SI32_I2C_A_set_stop( i2cs[ id ] );
 #if defined( DEBUG_I2C )
-    printf("END CONTROL = %lx\n",  i2cs[ id ]->CONTROL.U32 );
+    printf("EC%lx\n",  i2cs[ id ]->CONTROL.U32 );
 #endif
 
     i2c_timeout_timer = I2C_TIMEOUT_SYSTICKS;
@@ -2024,7 +2034,7 @@ void platform_i2c_send_stop( unsigned id )
     SI32_I2C_A_send_nack ( i2cs[ id ] );
     SI32_I2C_A_clear_stop_interrupt( i2cs[ id ] );
 #if defined( DEBUG_I2C )
-    printf("END CONTROL = %lx\n",  i2cs[ id ]->CONTROL.U32 );
+//    printf("END CONTROL = %lx\n",  i2cs[ id ]->CONTROL.U32 );
 #endif
   }
   else
@@ -2060,15 +2070,17 @@ int platform_i2c_send_address( unsigned id, u16 address, int direction )
   if( !SI32_I2C_A_is_start_interrupt_pending( i2cs[ id ] ) )
   {
 #if defined( DEBUG_I2C )
-    printf("BEG TIMEOUT\n");
+    printf("BEG TO!!\n");
 #endif
 #if defined(BUILD_I2C_SLAVE) //Disable start interrupt as we need to detect in inline below...
     SI32_I2C_A_enable_start_interrupt( i2cs[ id ] );
 #endif
+    SI32_I2C_A_clear_start( i2cs[ id ] );
+    SI32_I2C_A_reset_module( i2cs[ id ] );
     return 0;
   }
 #if defined( DEBUG_I2C )
-  printf("BEG CONTROL = %lx\n",  i2cs[ id ]->CONTROL.U32 );
+  printf("BC%lx\n",  i2cs[ id ]->CONTROL.U32 );
 #endif
 
 
@@ -2080,7 +2092,7 @@ int platform_i2c_send_address( unsigned id, u16 address, int direction )
   if ( SI32_I2C_A_is_busy( i2cs[ id ] ) )
   {
 #if defined( DEBUG_I2C )
-    printf("A CONTROL = %lx\n",  i2cs[ id ]->CONTROL.U32 );
+    printf("AC%lx\n",  i2cs[ id ]->CONTROL.U32 );
 #endif
 
     i2c_timeout_timer = I2C_TIMEOUT_SYSTICKS;
@@ -2096,6 +2108,7 @@ int platform_i2c_send_address( unsigned id, u16 address, int direction )
 #if defined(BUILD_I2C_SLAVE) //Disable start interrupt as we need to detect in inline below...
       SI32_I2C_A_enable_start_interrupt( i2cs[ id ] );
 #endif
+      SI32_I2C_A_clear_start( i2cs[ id ] );
       return 0;
     }
 
@@ -2127,7 +2140,7 @@ int platform_i2c_send_address( unsigned id, u16 address, int direction )
     SI32_I2C_A_clear_tx_interrupt( i2cs[ id ] );
     
 #if defined( DEBUG_I2C )
-    printf("A CONTROL = %lx %d\n",  i2cs[ id ]->CONTROL.U32, acktmp );
+    printf("AC%lx %d\n",  i2cs[ id ]->CONTROL.U32, acktmp );
 #endif
   }
   else
@@ -2149,7 +2162,7 @@ int platform_i2c_send_byte( unsigned id, u8 data )
   if ( SI32_I2C_A_is_busy( i2cs[ id ] ) )
   {
 #if defined( DEBUG_I2C )
-    printf("B CONTROL = %lx\n",  i2cs[ id ]->CONTROL.U32 );
+    printf("BC%lx\n",  i2cs[ id ]->CONTROL.U32 );
 #endif
     u32 tmpdata = ( u32 )data;
     SI32_I2C_A_set_byte_count( i2cs[ id ] , 1 );
@@ -2168,7 +2181,7 @@ int platform_i2c_send_byte( unsigned id, u8 data )
     SI32_I2C_A_clear_ack_interrupt( i2cs[ id ] );
 
 #if defined( DEBUG_I2C )
-    printf("B CONTROL = %lx\n",  i2cs[ id ]->CONTROL.U32 );
+    printf("BC%lx\n",  i2cs[ id ]->CONTROL.U32 );
 #endif
     if( SI32_I2C_A_is_ack_received(SI32_I2C_0) )
       return 1;
@@ -2191,7 +2204,7 @@ int platform_i2c_recv_byte( unsigned id, int ack )
   if ( SI32_I2C_A_is_busy( i2cs[ id ] ) )
   {
 #if defined( DEBUG_I2C )
-    printf("R CONTROL = %lx\n",  i2cs[ id ]->CONTROL.U32 );
+    printf("RC%lx\n",  i2cs[ id ]->CONTROL.U32 );
 #endif
     SI32_I2C_A_set_byte_count( i2cs[ id ] , 1);
     SI32_I2C_A_arm_rx( i2cs[ id ] );
@@ -2230,7 +2243,7 @@ int platform_i2c_recv_byte( unsigned id, int ack )
     if( 0xFFFFFF00 & tmpdata )
       printf("GOT MORE THAN ONE BYTE!\n");
 
-    printf("R CONTROL = %lx\n",  i2cs[ id ]->CONTROL.U32 );
+    printf("RC%lx\n",  i2cs[ id ]->CONTROL.U32 );
 #endif
 
     return ( u8 )tmpdata;
