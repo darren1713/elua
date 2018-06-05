@@ -11,8 +11,6 @@ return {
     wofs = false,
     niffs = { linear_area = true },
     cdc = { buf_size = 128 },
-    advanced_shell = false,
-    shell_basic = false,
     shell = false,
     term = { lines = 25, cols = 80 },
     adc = { buf_size = 2 },
