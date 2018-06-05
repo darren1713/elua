@@ -1,3 +1,4 @@
+#ifdef USE_MULTIPLE_ALLOCATOR
 
 /*
   ========================================================================
@@ -4862,3 +4863,5 @@ History:
          structure of old version,  but most details differ.)
 
 */
+
+#endif // #ifdef USE_MULTIPLE_ALLOCATOR
