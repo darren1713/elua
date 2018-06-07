@@ -268,7 +268,7 @@ if comp.romfs == 'compile' then
     os.exit( -1 )
   end
   local cmdpath = { lfs.currentdir(), sf( 'luac.cross%s -ccn %s -cce %s -o %%s -s %%s', suffix, toolset[ "cross_" .. comp.target:lower() ], toolset.cross_cpumode:lower() ) }
-  print("Cross Compile Command: "..cmdpath[2])
+  dprint( "Cross compile command: " .. cmdpath[ 2 ] )
   fscompcmd = table.concat( cmdpath, utils.dir_sep )
 elseif comp.romfs == 'compress' then
   if comp.target == 'lualong' or comp.target == 'lualonglong' then fscompoptnums = '--noopt-numbers' else fscompoptnums = '--opt-numbers' end
@@ -306,27 +306,27 @@ output = outd .. utils.dir_sep .. 'elua_' .. comp.target .. '_' .. comp.board:lo
 builder:set_build_dir( builder:get_build_dir() .. utils.dir_sep .. comp.board:lower() )
 
 -- User report
-print ""
-print "*********************************"
-print "Compiling eLua ..."
-print( "CPU:            ", comp.cpu )
-print( "Board:          ", comp.board )
-print( "Platform:       ", platform )
-print( "Allocator:      ", comp.allocator )
-print( "Boot Mode:      ", comp.boot )
-print( "Target:         ", comp.target  )
-print( "Toolchain:      ", comp.toolchain )
-print( "ROMFS mode:     ", comp.romfs )
-print( "Debug:          ", comp.debug )
+dprint ""
+dprint "*********************************"
+dprint "Compiling eLua ..."
+dprint( "CPU:            ", comp.cpu )
+dprint( "Board:          ", comp.board )
+dprint( "Platform:       ", platform )
+dprint( "Allocator:      ", comp.allocator )
+dprint( "Boot Mode:      ", comp.boot )
+dprint( "Target:         ", comp.target  )
+dprint( "Toolchain:      ", comp.toolchain )
+dprint( "ROMFS mode:     ", comp.romfs )
+dprint( "Debug:          ", comp.debug )
 if comp.extras ~= '' then
-  print( "Extras:         ", comp.extras )
+  dprint( "Extras:         ", comp.extras )
 end
 if comp.extrasconf ~= '' then
-  print( "Extras Conf:         ", comp.extrasconf )
+  dprint( "Extras conf:         ", comp.extrasconf )
 end
-print( "Version:        ", elua_vers )
-print "*********************************"
-print ""
+dprint( "Version:        ", elua_vers )
+dprint "*********************************"
+dprint ""
 
 -- Build list of source files, include directories, macro definitions
 addm( "ELUA_CPU=" .. comp.cpu:upper() )
@@ -371,7 +371,7 @@ addm( "LUA_OPTIMIZE_MEMORY=" .. ( comp.optram and "2" or "0" ) )
 addcf( { '-Os','-fomit-frame-pointer'} )
 
 if comp.debug == true then
-   addcf( { '-g'} )
+   addcf( { '-g' } )
 end
 
 -- Toolset data (filled by each platform in part)
@@ -382,6 +382,8 @@ extras_files = ''
 -- We get platform-specific data by executing the platform script
 dofile( sf( "src/platform/%s/conf.lua", platform ) )
 
+-- Read the extra configuration if needed. This can set
+-- the extra files to compile in the 'extras_files' variable.
 if comp.extras ~= '' then
   if comp.extrasconf ~= '' then
     dofile( sf( "%s/%s", comp.extras, comp.extrasconf ) )

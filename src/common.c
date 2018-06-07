@@ -458,7 +458,7 @@ void cmn_int_handler( elua_int_id id, elua_int_resnum resnum )
 #endif // #ifdef BUILD_INT_HANDLERS
 
 // ****************************************************************************
-// Internal flash support functions (currently used only by WOFS)
+// Internal flash support functions (currently used only by WOFS and NIFFS)
 
 #if (defined( BUILD_WOFS ) || defined( BUILD_NIFFS )) && !defined( ELUA_CPU_LINUX )
 

@@ -4,6 +4,7 @@
 #define __SHELL_H__
 
 #include "type.h"
+#include "platform_conf.h"
 
 #if !defined(SHELL_WELCOMEMSG)
 #define SHELL_WELCOMEMSG                "\neLua %s  Copyright (C) 2007-2013 www.eluaproject.net\n"

@@ -11,7 +11,7 @@ return {
     romfs = true,
     wofs = true,
     cdc = { buf_size = 128 },
-    advanced_shell = false,
+    shell = { advanced = false },
     term = { lines = 25, cols = 80 },
     rpc = { uart = 0, speed = 115200 },
     adc = { buf_size = 2 },

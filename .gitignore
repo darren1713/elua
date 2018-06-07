@@ -26,10 +26,6 @@ sdcard.img
 core
 luarpc*
 *.map
-doc/
-
-elua_lualong_gsatmicro_v10.functionsizes
-
-elua_lualong_gsatmicro_v10.objdump
-
-elua_lualong_sim3u167.objdump
+*.functionsizes
+*.objdump
+wofs.img

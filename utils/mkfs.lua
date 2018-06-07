@@ -96,7 +96,7 @@ function mkfs( dirname, outname, flist, mode, compcmd )
             else
               print( sf( "Cross compiling %s to %s ...", realname, newname ) )
             end
-            print("Cross compile command:"..sf( compcmd, newname, realname ))
+            print( "Cross compile command:" .. sf( compcmd, newname, realname ) )
             if os.execute( sf( compcmd, newname, realname ) ) ~= 0 then
               print "Cross-compilation error, aborting"
               outfile:close()

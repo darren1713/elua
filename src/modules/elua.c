@@ -13,7 +13,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#ifdef USE_MULTIPLE_ALLOCATOR
+#if defined( USE_MULTIPLE_ALLOCATOR )
 #include "dlmalloc.h"
 #else
 #include <malloc.h>
@@ -37,17 +37,10 @@ static int elua_egc_setup( lua_State *L )
   return 0;
 }
 
-// Lua: elua.version()
-//static int elua_heapsize( lua_State *L )
-//{
-//  lua_pushinteger( L, malloc_max_footprint() );
-//  lua_pushinteger( L, malloc_footprint() );
-//  return 2;
-//}
-
 // Lua: heap, inuse = elua.heapstats()
 static int elua_heapstats( lua_State *L )
 {
+#ifndef USE_SIMPLE_ALLOCATOR // the simple allocator doesn't offer memory usage data
 #ifdef USE_MULTIPLE_ALLOCATOR
   struct mallinfo m = dlmallinfo();
 #else
@@ -56,6 +49,10 @@ static int elua_heapstats( lua_State *L )
   lua_pushinteger( L, m.arena ); // total space acquired through sbrk
   lua_pushinteger( L, m.uordblks ); // in-use allocations
   return 2;
+#else // #ifndef USE_SIMPLE_ALLOCATOR
+  #warning Heap statistics not available when using the simple allocator
+  return 0;
+#endif // #ifndef USE_SIMPLE_ALLOCATOR
 }
 
 // Lua: elua.version()
