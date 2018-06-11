@@ -21,6 +21,7 @@ return {
   config = {
     egc = { mode = "always" },
     vtmr = { num = 4, freq = 10 },
+    ram = { memory_error_callback = "memory_error" }
   },
   modules = {
     generic = { 'all', "-spi", "-pwm", "-can", "-net",  "-lua_math", "-rpc", "-lua_table" }, --"-lua_string",
