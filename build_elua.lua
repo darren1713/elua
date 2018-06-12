@@ -368,7 +368,7 @@ local uip_files = " " .. utils.prepend_path( "uip_arp.c uip.c uiplib.c dhcpc.c p
 
 addi{ { 'inc', 'inc/newlib',  'inc/remotefs', 'src/platform', 'src/lua' }, { 'src/modules', 'src/platform/' .. platform, 'src/platform/' .. platform .. '/cpus' }, "src/uip", "src/fatfs", "inc/niffs" }
 addm( "LUA_OPTIMIZE_MEMORY=" .. ( comp.optram and "2" or "0" ) )
-addcf( { '-Os','-fomit-frame-pointer'} )
+addcf( { '-Os','-fomit-frame-pointer', '-std=gnu99' } )
 
 if comp.debug == true then
    addcf( { '-g' } )

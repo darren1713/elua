@@ -1,6 +1,8 @@
 #ifndef __MALLOC_H__
 #define __MALLOC_H__
 
+#include "platform_conf.h"
+
 // BogdanM: dlmalloc() tuning for eLua
 
 #include <unistd.h>
@@ -18,9 +20,10 @@ extern void* elua_sbrk( ptrdiff_t incr );
 #define malloc_getpagesize        256
 #define REALLOC_ZERO_BYTES_FREES
 
-extern void memory_error( void );
-#define CORRUPTION_ERROR_ACTION(m) memory_error()
-#define USAGE_ERROR_ACTION(m,p) memory_error()
+#ifdef MEM_ERROR_CALLBACK
+#define CORRUPTION_ERROR_ACTION(m) MEM_ERROR_CALLBACK(0)
+#define USAGE_ERROR_ACTION(m,p) MEM_ERROR_CALLBACK(0)
+#endif
 
 /*
   This is a version (aka dlmalloc) of malloc/free/realloc written by
