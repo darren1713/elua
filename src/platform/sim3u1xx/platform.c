@@ -514,10 +514,29 @@ void wake_init( void )
         //Don't auto-sleep for some period of seconds
         sleep_delay = 5;
       }
-      else if( rram_read_int(RRAM_INT_SLEEPTIME) > 0 )  //Go back to sleep if we woke from a PMU wakeup
+      else if( rram_read_int(RRAM_INT_SLEEPTIME) > 0 )  //Go back to sleep if we woke from a PMU wakeup IE, checking pins
       {
-        sim3_pmu_pm9( rram_read_int(RRAM_INT_SLEEPTIME) );
+        //Output is not enabled on either the pins or the PWM channels without calling extras_early_init first
+        extras_init_early();
+
+        //Show the user that the GSatMicro is in "ACTIVE BUT SLEEPING" mode by flashing the PWR led for a moment
         wake_reason = WAKE_RTC;
+
+        if(rram_read_bit(RRAM_BIT_LED_PWR_WHILE_SLEEPING) == LED_PWR_WHILE_SLEEPING_FLASH)
+        {
+          //Initialize the LED PWM channels so we can run them manually below for a fraction of a second
+          led_init();
+
+          //Manually load the PWM channel with a value to output
+          for(int i=0;i<5;i++)
+          {
+            platform_timer_sys_delay( 10e3 );
+            SI32_EPCACH_A_write_ccapvupd( SI32_EPCA_0_CH3, 128 * 4); //Set PWR LED to half brightness
+          }
+        }
+
+        //Now go back to sleep
+        sim3_pmu_pm9( rram_read_int(RRAM_INT_SLEEPTIME) );
       }
     }
   }
@@ -683,10 +702,11 @@ int platform_init()
   cdc_reg_rx_handler(NULL);
 #endif //defined( BUILD_USB_CDC )
 
+  // Wake before platform startup to control wake/sleep setup
+  wake_init();
+
   // Common platform initialization code
   cmn_platform_init();
-
-  wake_init();
 
   return PLATFORM_OK;
 }
