@@ -2340,7 +2340,7 @@ void sim3_pmu_reboot_nodfu( void )
   sim3_pmu_pm9(TRICK_TO_REBOOT_WITHOUT_DFU_MODE);
 }
 
-void memory_error( void )
+void memory_error( size_t unused )
 {
   sim3_pmu_reboot();
 }
