@@ -109,8 +109,12 @@ int32_t param_get_string_len( const char * name, const char * prefix )
   if( fp == NULL )
     return -1;
 
-  while( fgetc( fp ) != EOF )
-    n++;
+  //Binary safe function to determine file size
+  fseek(fp, 0L, SEEK_END);
+  n = ftell(fp);
+
+  //while( fgetc( fp ) != EOF )
+  //  n++;
 
   fclose(fp);
   return n-1; // return position minus header length

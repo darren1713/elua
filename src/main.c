@@ -51,6 +51,10 @@ const char *boot_order[] = {
 
 extern char etext[];
 
+#ifdef EXTRA_STARTUP_HOOK
+extern void watchdog_pause( void );
+#endif
+
 #ifdef ELUA_BOOT_RPC
 void boot_rpc( void )
 {

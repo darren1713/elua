@@ -56,7 +56,7 @@ static buf_desc buf_desc_console [ 1 ];
 
 // NOTE: the order of descriptors here MUST match the order of the BUF_ID_xx
 // enum in inc/buf.h
-static const buf_desc* buf_desc_array[ BUF_ID_TOTAL ] = 
+static  buf_desc* buf_desc_array[ BUF_ID_TOTAL ] = 
 {
   buf_desc_uart,
   buf_desc_adc,
@@ -70,6 +70,7 @@ static const buf_desc* buf_desc_array[ BUF_ID_TOTAL ] =
 #define BUF_BYTESIZE( p ) ( ( u16 )1 << p->logsize )
 #define BUF_REALDSIZE( p ) ( ( u16 )1 << p->logdsize )
 #define BUF_GETPTR( resid, resnum ) buf_desc *pbuf = ( buf_desc* )buf_desc_array[ resid ] + resnum
+#define BUF_COUNT( p ) ( ( ( ( p->wptr - p->rptr ) + BUF_REALSIZE(p) ) % BUF_REALSIZE(p) ) / BUF_REALDSIZE(p) )
 
 // READ16 and WRITE16 macros are here to ensure _atomic_ reads and writes of 
 // 16-bits data. Might have to be changed for an 8-bit architecture.
@@ -138,6 +139,10 @@ void buf_flush( unsigned resid, unsigned resnum )
 // data - pointer for where data will come from
 // Returns PLATFORM_OK on success, PLATFORM_ERR on failure
 // [TODO] maybe add a buffer overflow flag
+// If we are working with a resid = BUF_ID_UART, handle soft interrupts that feed updates to the modules
+// If a buffer is full, notify the module, and then flush the module. If INT_UART_BUF_FULL is defined the 
+// assumption is losing old UART data is better than hanging the UART from receiving new data and generating
+// errors up to the platform code.
 int buf_write( unsigned resid, unsigned resnum, t_buf_data *data )
 {
   BUF_CHECK_RESNUM( resid, resnum );
@@ -147,7 +152,8 @@ int buf_write( unsigned resid, unsigned resnum, t_buf_data *data )
   if( pbuf->logsize == BUF_SIZE_NONE )
     return PLATFORM_ERR;
 
-  if( pbuf->count >= BUF_REALSIZE( pbuf ) )
+  //Check if new byte will overflow the buffer
+  if( ( BUF_COUNT( pbuf ) + 2 ) == BUF_REALSIZE( pbuf ))
   {
     //This printf causes a crash if we override console output with a buf_write function and then overflow the console output buffer
     //fprintf( stderr, "[ERROR] Buffer overflow on resid=%d, resnum=%d, count=%d, realsize=%d!\n", resid, resnum, pbuf->count, BUF_REALSIZE( pbuf ) );
@@ -161,29 +167,31 @@ int buf_write( unsigned resid, unsigned resnum, t_buf_data *data )
   DUFF_DEVICE_8( BUF_REALDSIZE( pbuf ),  *d++ = *s++ );
   
   BUF_MOD_INCR( pbuf, wptr );
-    pbuf->count ++;
+  //  pbuf->count ++;
 
   int bufsize = BUF_REALSIZE( pbuf );
 
   platform_cpu_set_global_interrupts( old_status );
 
+  //If this is a UART buffer
+  if( resid == BUF_ID_UART || resid == BUF_ID_CONSOLE)
+  {
 #if defined( INT_UART_BUF_FULL )
-  if( ( pbuf->count == bufsize ) && 
-      ( resid == BUF_ID_UART ) )
-    cmn_int_handler( INT_UART_BUF_FULL, resnum );
-#endif
-
-#if defined( INT_UART_BUF_HALF_FULL )
-  if( ( pbuf->count == bufsize / 2 ) && 
-      ( resid == BUF_ID_UART ) )
-    cmn_int_handler( INT_UART_BUF_HALF_FULL, resnum );
+    if( (BUF_COUNT(pbuf) + 2) == bufsize )
+    //if( pbuf->count == bufsize )
+    {
+      //Notify the interrupt handler this is buffer is going to be wiped
+      cmn_int_handler( INT_UART_BUF_FULL, resnum );
+      //Wipe the buffer to receive new data (This can be handled by return val of buf_write)
+      //buf_flush(resid, resnum);
+    }
 #endif
 
 #if defined( INT_UART_BUF_MATCH )
-  if( /*( ( *data == '\n' ) ) &&*/
-      ( resid == BUF_ID_UART ) )
+    //Notify the interrupt handler there is a new byte in the buffer
     cmn_int_handler( INT_UART_BUF_MATCH, resnum );
 #endif
+  }
 
   return PLATFORM_OK;
 }
@@ -213,8 +221,8 @@ unsigned buf_get_count( unsigned resid, unsigned resnum )
 {
   BUF_CHECK_RESNUM( resid, resnum );
   BUF_GETPTR( resid, resnum );
-  
-  return READ16( pbuf->count );  
+  return BUF_COUNT(pbuf);
+  //return READ16( pbuf->count );  
 }
 
 // Get data from buffer of size dsize
@@ -232,14 +240,16 @@ int buf_read( unsigned resid, unsigned resnum, t_buf_data *data )
   const char* s = ( const char* )( pbuf->buf + pbuf->rptr );
   char* d = ( char* )data;
   
-  if( pbuf->logsize == BUF_SIZE_NONE || READ16( pbuf->count ) == 0 )
+  
+  //if( pbuf->logsize == BUF_SIZE_NONE || READ16( pbuf->count ) == 0 )
+  if( pbuf->logsize == BUF_SIZE_NONE || BUF_COUNT( pbuf ) == 0 )
     return PLATFORM_UNDERFLOW;
  
   int old_status = platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
 
   DUFF_DEVICE_8( BUF_REALDSIZE( pbuf ),  *d++ = *s++ );
 
-  pbuf->count --;
+  //pbuf->count --;
 
   BUF_MOD_INCR( pbuf, rptr );
 

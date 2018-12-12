@@ -92,6 +92,8 @@ void sim3_pmu_reboot( void );
 void sim3_pmu_reboot_nodfu( void );
 
 extern int load_lua_function (char *func);
+extern void extras_init_early( void );
+extern void led_init( void );
 
 // forward dcls
 static void pios_init();
@@ -886,12 +888,16 @@ void SecondsTick_Handler()
   }
   if(firstSecond)
   {
-    printf("PWS 0x%x PS 0x%x RS 0x%x - %i rtc %i\n",
+    printf("PWS 0x%x PS 0x%x RS 0x%x - %i rtc %i VMON 0x%04lX %d %d\n",
          pmu_wake_status,
          pmu_status,
          reset_status,
          wake_reason,
-         rtc_remaining  );
+         rtc_remaining,
+         _SI32_VMON_A_read_control(SI32_VMON_0),
+         _SI32_VMON_A_is_vreg_low_interrupt_enabled(SI32_VMON_0),
+         _SI32_VMON_A_is_vdd_low_interrupt_enabled(SI32_VMON_0)
+      );
     firstSecond = 0;
   }
 
@@ -928,10 +934,7 @@ void TIMER0H_IRQHandler(void)
   usb_poll();
 #endif
 
-#if defined( INT_SYSTICK )
-  cmn_int_handler( INT_SYSTICK, 0 );
-#endif
-
+  common_timer_systick();
 
   if(seconds_tick_pending)
   {
@@ -2610,7 +2613,7 @@ void sim3_pmu_pm9( int seconds )
   // Enter Sleep Mode
   myPB_enter_off_config();
 
-  //VMON0_enter_power_9_mode_from_normal_power_mode();
+  VMON0_enter_power_9_mode_from_normal_power_mode();
   SI32_VMON_A_disable_vdd_supply_monitor(SI32_VMON_0);
 
   //LDO0_enter_power_9_mode_from_normal_power_mode();

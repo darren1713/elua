@@ -9,6 +9,7 @@
 #include "SI32_PBSTD_A_Type.h"
 #include "sim3u1xx.h"
 
+extern void common_timer_systick( void );
 extern unsigned platform_get_console_uart( void );
 
 #define TIMER1_HZ 1800 //High priority timer for uarts = 115200/8/1800 = 4 bytes per tick for ~57600 bps (BLE speed)
@@ -81,7 +82,6 @@ u32 cmsis_get_cpu_frequency();
     _C( INT_UART_RX ),        \
     _C( INT_UART_BUF_FULL ),  \
     _C( INT_UART_BUF_MATCH ), \
-    _C( INT_SYSTICK ), \
     _C( INT_IRIDIUM_SIGNAL ), \
     _C( INT_IRIDIUM_TX_OK ), \
     _C( INT_IRIDIUM_TX_FAIL ), \

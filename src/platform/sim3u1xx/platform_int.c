@@ -244,60 +244,6 @@ static int int_uart_rx_get_flag( elua_int_resnum resnum, int clear )
 }
 
 // ****************************************************************************
-// Interrupt: INT_UART_BUF_FULL
-
-static int int_uart_buf_full_set_status( elua_int_resnum resnum, int status )
-{
-  return 1;
-}
-
-static int int_uart_buf_full_get_status( elua_int_resnum resnum )
-{
-  return 1;
-}
-
-static int int_uart_buf_full_get_flag( elua_int_resnum resnum, int clear )
-{
-  return 1;
-}
-
-// ****************************************************************************
-// Interrupt: INT_UART_BUF_MATCH
-
-static int int_uart_buf_match_set_status( elua_int_resnum resnum, int status )
-{
-  return 1;
-}
-
-static int int_uart_buf_match_get_status( elua_int_resnum resnum )
-{
-  return 1;
-}
-
-static int int_uart_buf_match_get_flag( elua_int_resnum resnum, int clear )
-{
-  return 1;
-}
-
-// ****************************************************************************
-// Interrupt: INT_SYSTICK
-
-static int int_systick_set_status( elua_int_resnum resnum, int status )
-{
-  return 1;
-}
-
-static int int_systick_get_status( elua_int_resnum resnum )
-{
-  return 1;
-}
-
-static int int_systick_get_flag( elua_int_resnum resnum, int clear )
-{
-  return 1;
-}
-
-// ****************************************************************************
 // Interupt: For callbacks that aren't hardware interrupts
 
 static int callback_set_status( elua_int_resnum resnum, int status )
@@ -456,9 +402,8 @@ void platform_int_init()
 const elua_int_descriptor elua_int_table[ INT_ELUA_LAST ] =
 {
   { int_uart_rx_set_status, int_uart_rx_get_status, int_uart_rx_get_flag }, // INT_UART_RX
-  { int_uart_buf_full_set_status, int_uart_buf_full_get_status, int_uart_buf_full_get_flag }, // INT_UART_BUF_FULL
-  { int_uart_buf_match_set_status, int_uart_buf_match_get_status, int_uart_buf_match_get_flag }, // INT_UART_BUF_MATCH
-  { int_systick_set_status, int_systick_get_status, int_systick_get_flag }, // INT_SYSTICK
+  { callback_set_status, callback_get_status, callback_get_flag }, // INT_UART_BUF_FULL
+  { callback_set_status, callback_get_status, callback_get_flag }, // INT_UART_BUF_MATCH
   { callback_set_status, callback_get_status, callback_get_flag }, // INT_IRIDIUM_SIGNAL
   { callback_set_status, callback_get_status, callback_get_flag }, // INT_IRIDIUM_TX_OK
   { callback_set_status, callback_get_status, callback_get_flag }, // INT_IRIDIUM_TX_FAIL
@@ -467,7 +412,6 @@ const elua_int_descriptor elua_int_table[ INT_ELUA_LAST ] =
   { callback_set_status, callback_get_status, callback_get_flag }, // INT_GPS_TIMEOUT
   { callback_set_status, callback_get_status, callback_get_flag }, // INT_BOOT
   { callback_set_status, callback_get_status, callback_get_flag }, // INT_CONTENTION
-  { callback_set_status, callback_get_status, callback_get_flag }, // INT_UART_BUF_HALF_FULL
   { callback_set_status, callback_get_status, callback_get_flag }, // INT_TICKSECOND
   { callback_set_status, callback_get_status, callback_get_flag }, // INT_GSM_SIGNAL
   { callback_set_status, callback_get_status, callback_get_flag }, // INT_GSM_TX_OK

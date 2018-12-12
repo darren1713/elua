@@ -86,7 +86,7 @@
 
 // define maximum name length
 #ifndef NIFFS_NAME_LEN
-#define NIFFS_NAME_LEN          (16)
+#define NIFFS_NAME_LEN          (24)
 #endif
 
 // Enable or disable linear area features.
