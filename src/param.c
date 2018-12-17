@@ -13,6 +13,18 @@ FILE * open_param_file(const char * name, const char * prefix, const char * form
   return ret;
 }
 
+int32_t delete_param_file(const char * name, const char * prefix, const char * format)
+{
+  char fname[ DM_MAX_FNAME_LENGTH + 1 ];
+  snprintf( fname, DM_MAX_FNAME_LENGTH + 1, format, prefix, name );
+  return unlink(fname);
+}
+
+int32_t delete_param(const char * name, const char * prefix)
+{
+  return delete_param_file(name, prefix, SETTING_FORMAT);
+}
+
 int32_t param_set( const char * name, const char * prefix, uint8_t type, uint8_t * value, uint32_t length )
 {
   FILE *fp;
@@ -93,9 +105,9 @@ int32_t param_get_s32( const char * name, const char * prefix, int32_t *value )
 }
 
 // store string parameter
-int32_t param_set_string( const char * name, const char * prefix, uint8_t * value )
+int32_t param_set_string( const char * name, const char * prefix, const char * value, int32_t len )
 {
-  return param_set( name, prefix, PARAM_STRING, value, strlen( ( const char * )value ) );
+  return param_set( name, prefix, PARAM_STRING, (uint8_t *)value, len );
 }
 
 // return string parameter length
@@ -122,7 +134,7 @@ int32_t param_get_string_len( const char * name, const char * prefix )
 
 
 // get string parameter, return length
-int32_t param_get_string( const char * name, const char * prefix, uint8_t *value, uint32_t max_len  )
+int32_t param_get_string( const char * name, const char * prefix, char *value, uint32_t max_len  )
 {
   int32_t len;
 
@@ -133,7 +145,7 @@ int32_t param_get_string( const char * name, const char * prefix, uint8_t *value
     return len;
 
   if( len <= max_len )
-    len = param_get( name, prefix, PARAM_STRING, value, len);
+    len = param_get( name, prefix, PARAM_STRING, (uint8_t *)value, len);
   else
     return -3;
 

@@ -111,7 +111,7 @@ static int cpu_r8( lua_State *L )
 }
 
 #endif
-
+/*
 // Lua: setparam( "param", value )
 static int cpu_set_param( lua_State *L )
 {
@@ -175,7 +175,7 @@ static int cpu_get_param( lua_State *L )
 
   return 0;
 }
-
+*/
 
 // Either disables or enables the given interrupt(s)
 static int cpuh_int_helper( lua_State *L, int mode )
@@ -353,8 +353,8 @@ const LUA_REG_TYPE cpu_map[] =
   { LSTRKEY( "cli" ), LFUNCVAL( cpu_cli ) },
   { LSTRKEY( "sei" ), LFUNCVAL( cpu_sei ) },
   { LSTRKEY( "clock" ), LFUNCVAL( cpu_clock ) },
-  { LSTRKEY( "setparam" ), LFUNCVAL( cpu_set_param ) },
-  { LSTRKEY( "getparam" ), LFUNCVAL( cpu_get_param ) },
+//  { LSTRKEY( "setparam" ), LFUNCVAL( cpu_set_param ) },
+//  { LSTRKEY( "getparam" ), LFUNCVAL( cpu_get_param ) },
 #ifdef BUILD_LUA_INT_HANDLERS
   { LSTRKEY( "set_int_handler" ), LFUNCVAL( cpu_set_int_handler ) },
   { LSTRKEY( "get_int_handler" ), LFUNCVAL( cpu_get_int_handler ) },
