@@ -189,7 +189,7 @@ int buf_write( unsigned resid, unsigned resnum, t_buf_data *data )
 
 #if defined( INT_UART_BUF_MATCH )
     //Notify the interrupt handler there is a new byte in the buffer
-    cmn_int_handler( INT_UART_BUF_MATCH, resnum );
+    //cmn_int_handler( INT_UART_BUF_MATCH, resnum ); //No longer used in favor of buffer reads
 #endif
   }
 

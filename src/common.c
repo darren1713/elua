@@ -273,7 +273,11 @@ int platform_pio_get_num_pins( unsigned port )
 
 int platform_can_exists( unsigned id )
 {
+#if NUM_CAN > 0
   return id < NUM_CAN;
+#else
+  return 0;
+#endif
 }
 
 // ****************************************************************************
@@ -282,7 +286,11 @@ int platform_can_exists( unsigned id )
 
 int platform_spi_exists( unsigned id )
 {
+#if NUM_SPI > 0
   return id < NUM_SPI;
+#else
+  return 0;
+#endif
 }
 
 // ****************************************************************************
@@ -290,7 +298,11 @@ int platform_spi_exists( unsigned id )
 
 int platform_pwm_exists( unsigned id )
 {
+#if NUM_PWM > 0
   return id < NUM_PWM;
+#else
+  return 0;
+#endif
 }
 
 // ****************************************************************************

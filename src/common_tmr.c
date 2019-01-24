@@ -23,7 +23,7 @@
 
 #if VTMR_NUM_TIMERS > 0
 
-#define VTMR_MAX_PERIOD       ( ( 1LL << 32 ) - 1 )
+#define VTMR_MAX_PERIOD       ( ( 1LL << 30 ) - 1 )
 
 // ============================================================================
 // VTMR functions

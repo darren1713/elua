@@ -48,7 +48,15 @@ addm{ "__NEWLIB__" }
 addm{ "USE_CDC_CLASS" }
 
 -- Standard GCC flags
-addcf{ '-ffunction-sections', '-fdata-sections', '-fno-strict-aliasing', '-Wall' }
+addcf{ '-ffunction-sections', '-fdata-sections', '-fno-strict-aliasing', '-Wall', '-Wno-error=maybe-uninitialized', '-Wno-unused-function', '-Wno-unused-variable', '-Wno-unused-parameter', '-Wno-variadic-macros', '-W', '-Wextra', '-Wcast-align', '-Wcast-qual', '-Wstrict-aliasing=2', '-Wframe-larger-than=32768', '-Wno-strict-overflow'  }
+addcf{ '-Wsync-nand', '-Wtrampolines', '-Wsign-compare', '-Werror=float-equal', '-Werror=missing-braces', '-Werror=init-self', '-Werror=logical-op' }
+addcf{ '-Werror=write-strings', '-Werror=address', '-Werror=array-bounds', '-Werror=char-subscripts', '-Werror=enum-compare', '-Werror=implicit-int', '-Werror=empty-body' }
+
+addcf{ '-Werror=main', '-Werror=aggressive-loop-optimizations', '-Werror=nonnull', '-Werror=parentheses', '-Werror=pointer-sign', '-Werror=return-type' }
+addcf{ '-Werror=sequence-point', '-Werror=uninitialized', '-Werror=volatile-register-var', '-Werror=ignored-qualifiers', '-Werror=missing-parameter-type' }
+addcf{ '-Werror=old-style-declaration', '-Wodr', '-Wformat-signedness', '-Wsuggest-final-types', '-Wsuggest-final-methods', '-Wno-ignored-attributes' }
+addcf{ '-Wno-missing-field-initializers', '-Wshift-overflow=2', '-Wduplicated-cond', '-Wduplicated-branches', '-Werror=restrict', '-Wdouble-promotion', '-Wformat=2' }
+addcf{ '-Wno-sign-compare', '-Wno-cast-qual', '-Wno-cast-align', '-Wno-format-nonliteral'}
 -- Testing below for backtrace functionality
 -- addcf{ '-ffunction-sections', '-fdata-sections', '-fno-strict-aliasing', '-Wall' , '-mtpcs-frame', '-mtpcs-leaf-frame', '-fno-omit-frame-pointer' }
 addlf{ '-nostartfiles', '-nostdlib', '-T', ldscript, '-Wl,--gc-sections', '-Wl,--allow-multiple-definition' }

@@ -55,6 +55,7 @@ int cmn_fs_is_root_dir( const char *path );
 int cmn_fs_check_directory( const char *path );
 
 void cmn_uart_setup_sermux(void);
+void cmn_rx_handler( int usart_id, u8 data );
 
 unsigned int intlog2( unsigned int v );
 char lastchar( const char *s );

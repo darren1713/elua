@@ -16,7 +16,7 @@
 
 //#define NFFS_DBG(...)              printf(__VA_ARGS__)
 #ifndef NFFS_DBG
-#define NFFS_DBG(...)
+#define NFFS_DBG(...) { }
 #endif
 
 // FIXME: Needs to be adjusted to support non-uniform sector sizes
@@ -358,7 +358,7 @@ int nffs_create( s32_t linear_bytes )
   }
 
   niffs_paged_sectors = niffs_total_sectors - niffs_lin_sectors;
-  printf("NIFFS: LIN %li PAGE %li\n", niffs_lin_sectors, niffs_paged_sectors);
+  printf("NIFFS: LIN %lu PAGE %lu\n", niffs_lin_sectors, niffs_paged_sectors);
 
   NIFFS_init(&fs, niffs_pbase, niffs_paged_sectors, INTERNAL_FLASH_SECTOR_SIZE, NIFFS_BUF_SIZE,
       buf, sizeof(buf),

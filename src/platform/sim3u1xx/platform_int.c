@@ -17,9 +17,13 @@
 extern void I2C0_rx_handler();
 #endif
 
+extern void platform_i2c_hardware_failure();
+
 #ifndef VTMR_TIMER_ID
 #define VTMR_TIMER_ID         ( -1 )
 #endif
+
+#define UART_DIRECT
 
 // ****************************************************************************
 // Interrupt handlers
@@ -37,14 +41,30 @@ static void all_usart_irqhandler( int resnum )
   if( resnum < 2 )
   {
     while( SI32_USART_A_read_rx_fifo_count( sim3_usart[ resnum ] ) > 0 )
+    {
+#ifdef UART_DIRECT
+      int data;
+      while( -1 != ( data = platform_s_uart_recv( resnum, 0 ) ) )
+          cmn_rx_handler( resnum, ( u8 )data );
+#else
       cmn_int_handler( INT_UART_RX, resnum );
+#endif
+    }
 
     SI32_USART_A_clear_rx_data_request_interrupt(sim3_usart[ resnum ]);
   }
   else
   {
     while( SI32_UART_A_read_rx_fifo_count( sim3_uart[ resnum - 2 ] ) > 0 )
+    {
+#ifdef UART_DIRECT
+      int data;
+      while( -1 != ( data = platform_s_uart_recv( resnum, 0 ) ) )
+          cmn_rx_handler( resnum, ( u8 )data );
+#else
       cmn_int_handler( INT_UART_RX, resnum );
+#endif
+    }
 
     SI32_UART_A_clear_rx_data_request_interrupt(sim3_uart[ resnum - 2 ]);
   }

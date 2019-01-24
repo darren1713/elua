@@ -12,7 +12,7 @@ return {
     niffs = { linear_area = true },
     cdc = { buf_size = 128 },
     shell = false,
-    term = { lines = 25, cols = 80 },
+    --term = { lines = 25, cols = 80 },
     adc = { buf_size = 2 },
     xmodem = false,
     cints = true,
@@ -24,6 +24,6 @@ return {
     ram = { memory_error_callback = "memory_error" }
   },
   modules = {
-    generic = { 'all', "-spi", "-pwm", "-can", "-net",  "-lua_math", "-rpc", "-lua_table" }, --"-lua_string",
+    generic = { 'all', "-spi", "-pwm", "-can", "-net",  "-lua_math", "-rpc", "-lua_table", "-term" }, --"-lua_string",
   },
 }

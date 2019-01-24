@@ -96,92 +96,9 @@ u32 cmsis_get_cpu_frequency();
     _C( INT_GSM_TX_FAIL ), \
     _C( INT_GSM_TIMEOUT ),
 
-#define RRAM_SIZE 8
-
-#define RRAM_INT_SLEEPTIME 0
-#define RRAM_BIT_ALERT 40
-  #define ALERT_MODE_ACTIVE 1
-  #define ALERT_MODE_DISABLED 0
-#define RRAM_BIT_CHECKIN 41
-  #define CHECKIN_MODE_ACTIVE 1
-  #define CHECKIN_MODE_DISABLED 0
-#define RRAM_BIT_POWEROFF 42
-  #define POWEROFF_MODE_ACTIVE 1
-  #define POWEROFF_MODE_DISABLED 0
-#define RRAM_BIT_STORAGE_MODE 43
-  #define STORAGE_MODE_ACTIVE 1
-  #define STORAGE_MODE_DISABLED 0
-#define RRAM_BIT_SLEEP_WHEN_POWERED 44
-  #define SLEEP_WHEN_POWERED_ACTIVE 1
-  #define SLEEP_WHEN_POWERED_DISABLED 0
-#define RRAM_BIT_WAKE_ON_INPUT1 45
-  #define WAKE_ON_INPUT1_DISABLED 0
-  #define WAKE_ON_INPUT1_ACTIVE 1
-#define RRAM_BIT_WAKE_ON_INPUT1_POLARITY 46
-  #define WAKE_ON_INPUT1_POLARITY_POSITIVE 0
-  #define WAKE_ON_INPUT1_POLARITY_NEGATIVE 1
-#define RRAM_BIT_WAKE_ON_INPUT2 47
-  #define WAKE_ON_INPUT2_DISABLED 0
-  #define WAKE_ON_INPUT2_ACTIVE 1
-#define RRAM_BIT_WAKE_ON_INPUT2_POLARITY 48
-  #define WAKE_ON_INPUT2_POLARITY_POSITIVE 0
-  #define WAKE_ON_INPUT2_POLARITY_NEGATIVE 1
-#define RRAM_BIT_ALERT_SINGLE 49
-  #define ALERT_MODE_SINGLE_ACTIVE 1
-  #define ALERT_MODE_SINGLE_DISABLED 0
-#define RRAM_BIT_BLUETOOTH_WAKE 50
-  #define BLUETOOTH_WAKE_ACTIVE 1
-  #define BLUETOOTH_WAKE_DISABLED 0
-#define RRAM_BIT_TEMP_STORAGE_MODE 51
-  #define TEMP_STORAGE_MODE_ACTIVE 1
-  #define TEMP_STORAGE_MODE_DISABLED 0
-#define RRAM_BIT_BLUETOOTH_PAIRABLE 52
-  #define BLUETOOTH_PAIRABLE_ACTIVE 1
-  #define BLUETOOTH_PAIRABLE_DISABLED 0
-#define RRAM_BIT_GPS_HIBERNATE_WHILE_SLEEPING 53
-  #define GPS_HIBERNATE_WHILE_SLEEPING_ACTIVE 1
-  #define GPS_HIBERNATE_WHILE_SLEEPING_DISABLED 0
-#define RRAM_BIT_INPUT1_LAST_STATE 54
-  #define INPUT1_LAST_STATE_LOW 0
-  #define INPUT1_LAST_STATE_HIGH 1
-#define RRAM_BIT_INPUT2_LAST_STATE 55
-  #define INPUT2_LAST_STATE_LOW 0
-  #define INPUT2_LAST_STATE_HIGH 1
-#define RRAM_BIT_INPUT1_TRIGGERED 56
-  #define INPUT1_UNTRIGGERED 0
-  #define INPUT1_TRIGGERED 1
-#define RRAM_BIT_INPUT2_TRIGGERED 57
-  #define INPUT2_UNTRIGGERED 0
-  #define INPUT2_TRIGGERED 1
-#define RRAM_BIT_SLEEP_WITH_BATTERY 58
-  #define SLEEP_WITH_BATTERY_ACTIVE 1
-  #define SLEEP_WITH_BATTERY_DISABLED 0
-#define RRAM_BIT_MOVING_MODE 59
-  #define MOVING_MODE_ACTIVE 1
-  #define MOVING_MODE_DISABLED 0
-#define RRAM_BIT_BLE_OFF 59
-  #define BLE_OFF_ACTIVE 1
-  #define BLE_OFF_DISABLED 0
-#define RRAM_BIT_LED_PWR_WHILE_SLEEPING 59
-  #define LED_PWR_WHILE_SLEEPING_MASKED 1
-  #define LED_PWR_WHILE_SLEEPING_FLASH 0
-
-#define RRAM_INT_CLK_CORR 3
-#define RRAM_INT_X_Z 4
-#define RRAM_INT_Y_Z 5
-#define RRAM_INT_TIME 6
-#define RRAM_INT_Z_DRIFT 7
-
-// Sleep Persistent SRAM Storage
-extern int rram_reg[RRAM_SIZE] __attribute__((section(".sret")));
-extern int rram_read_int(int byte_number);
-extern void rram_write_int(int byte_number, int value);
-extern int rram_read_byte(int byte_number);
-extern void rram_write_byte(int byte_number, int value);
-extern int rram_read_bit(int bit_number);
-extern void rram_write_bit(int bit_number, int value);
 extern void button_down(int port, int pin);
 extern void button_up(int port, int pin);
+
 typedef enum {
   OKTOSLEEP = 0,
   WAITTOSLEEP = 1
@@ -231,6 +148,9 @@ extern int wake_reason;
 
 extern unsigned console_cdc_active;
 
+extern volatile u8 platform_flash_key_mask;
+u8 flash_erase( u32 address, u8 verify);
+u8 flash_write( u32 address, u32* data, u32 count, u8 verify );
 
 //#define PCB_V7 !!! this is defined in conf.lua now
 //#define PCB_V7_CHARGER_NPN
@@ -243,55 +163,8 @@ extern unsigned console_cdc_active;
 //define USE_EXTERNAL_MOSFETS
 
 //#define LOW_SYSTEM_CLOCK
+extern void led_init();
 
-/*extern const u8 CLED_FADEUP[];
-extern const u8 CLED_FADEDOWN[];
-extern const u8 CLED_OFF[];
-extern const u8 CLED_ON[];
-extern const u8 CLED_FASTFLASH[];
-extern const u8 CLED_MEDIUMFLASH[];
-extern const u8 CLED_SLOWFLASH[];*/
-
-enum {
-  LED_FADEUP,
-  LED_FADEDOWN,
-  LED_OFF,
-  LED_ON,
-  LED_FASTFLASH,
-  LED_MEDIUMFLASH,
-  LED_SLOWFLASH,
-  LED_FLASH1,
-  LED_FLASH2,
-  LED_FLASH3,
-  LED_FLASH4,
-  LED_FLASH5,
-  LED_BREATHE_LOW
-} enum_led_state;
-
-#if defined ( MEMBRANE_V1 )
-enum {
-  LED_COLOR_GPS = 0, // was sat
-  LED_COLOR_MSG = 1, // was pwr
-  LED_COLOR_PWR = 2, // was alrm
-  LED_COLOR_SAT = 3, // was gps
-  LED_COLOR_ALRM = 4, // was msg
-  LED_COLOR_INTERNAL = 5
-};
-#else
-enum {
-  LED_COLOR_SAT = 0,
-  LED_COLOR_PWR = 1,
-  LED_COLOR_ALRM = 2,
-  LED_COLOR_GPS = 3,
-  LED_COLOR_MSG = 4
-};
-#endif
-
-void led_set_mode(int led, int mode, int cycles);
-int led_get_mode(int led);
-void led_set_mask( u8 mask );
-void led_cache_mode(int led, int mode );
-void led_set_background(int led, u8 bkgnd);
 int external_power( void );
 s32 adc_get_single_sample( int adc_id );
 int32_t gps_get_rtc_correction( void );

@@ -105,7 +105,7 @@ int platform_uart_recv( unsigned id, unsigned timer_id, timer_data_type timeout 
 }
 
 #ifdef BUF_ENABLE_UART
-static void cmn_rx_handler( int usart_id, u8 data )
+void cmn_rx_handler( int usart_id, u8 data )
 {
 #ifdef BUILD_SERMUX
   if( usart_id == SERMUX_PHYS_ID )

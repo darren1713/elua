@@ -72,6 +72,8 @@ int elua_int_add( elua_int_id inttype, elua_int_resnum resnum )
   if( lua_getstate() == NULL || !elua_int_is_enabled( inttype ) )
     return PLATFORM_ERR;
 
+  old_status = platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
+
   // If there's no more room in the queue, set the overflow flag and return
   if( elua_int_queue[ elua_int_write_idx ].id != ELUA_INT_EMPTY_SLOT )
   {
@@ -80,10 +82,9 @@ int elua_int_add( elua_int_id inttype, elua_int_resnum resnum )
     for(i=0;i<(1 << PLATFORM_INT_QUEUE_LOG_SIZE);i++)
       printf( "%i:%i," , elua_int_queue[i].id, elua_int_queue[i].resnum);
     printf( "\n" );
+    platform_cpu_set_global_interrupts( old_status );
     return PLATFORM_ERR;
   }
-
-  old_status = platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
 
   // Queue the interrupt
   elua_int_queue[ elua_int_write_idx ].id = inttype;

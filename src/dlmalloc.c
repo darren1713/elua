@@ -71,6 +71,7 @@ extern void*     sbrk(ptrdiff_t);
 #endif /* FreeBSD etc */
 #endif /* LACKS_UNISTD_H */
 
+
 /* Declarations for locking */
 #if USE_LOCKS
 #ifndef WIN32

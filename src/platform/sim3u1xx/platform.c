@@ -45,6 +45,10 @@
 #include <gVREG0.h>
 #include <gRSTSRC0.h>
 
+#include "rram.h"
+#include "led.h"
+#include "gpio.h"
+
 // ****************************************************************************
 // Platform initialization
 
@@ -460,7 +464,7 @@ void wake_init( void )
 #endif
 
       //Don't auto-sleep for some period of seconds
-      sleep_delay = 5;
+      sleep_delay = 7;
     }
     // Not a pin wake or reset pin
     else
@@ -888,15 +892,13 @@ void SecondsTick_Handler()
   }
   if(firstSecond)
   {
-    printf("PWS 0x%x PS 0x%x RS 0x%x - %i rtc %i VMON 0x%04lX %d %d\n",
-         pmu_wake_status,
-         pmu_status,
-         reset_status,
-         wake_reason,
-         rtc_remaining,
+    printf("PWS 0x%x PS 0x%x RS 0x%x VMON 0x%04X - %lu rtc %i\n",
+         (unsigned int)pmu_wake_status,
+         (unsigned int)pmu_status,
+         (unsigned int)reset_status,
+         (unsigned int)wake_reason,
          _SI32_VMON_A_read_control(SI32_VMON_0),
-         _SI32_VMON_A_is_vreg_low_interrupt_enabled(SI32_VMON_0),
-         _SI32_VMON_A_is_vdd_low_interrupt_enabled(SI32_VMON_0)
+         rtc_remaining
       );
     firstSecond = 0;
   }
@@ -1688,7 +1690,7 @@ timer_data_type platform_timer_read_sys()
 #define SI32_ADC      SI32_SARADC_1
 #define SI32_ADC_IRQ  SARADC1_IRQn
 
-const static u32 adc_ctls[] = { 4, 3, 17 };
+static const u32 adc_ctls[] = { 4, 3, 17 };
 
 int platform_adc_check_timer_id( unsigned id, unsigned timer_id )
 {
@@ -2280,6 +2282,9 @@ void sim3_pmu_sleep( int seconds )
   if( seconds < 0 )
     seconds = 1;
 
+  //Update LED state to show power down called
+  leds_sleep_called(seconds);
+
   #ifdef EXTRA_SLEEP_HOOK
     extras_sleep_hook(seconds);
   #endif
@@ -2504,10 +2509,8 @@ void myPB_enter_off_config()
 
 void sim3_pmu_pm9( int seconds )
 {
-  //u8 i;
-  led_set_mode(LED_COLOR_PWR, LED_FADEDOWN, 10);
-  led_set_mode(LED_COLOR_GPS, LED_OFF, 255 );
-  led_set_mode(LED_COLOR_SAT, LED_OFF, 255 );
+  //Update LED state to show power down called
+  leds_sleep_called(seconds);
 
   if( seconds != TRICK_TO_REBOOT_WITHOUT_DFU_MODE )
   {
@@ -2692,7 +2695,7 @@ void sim3_pbhd_setdrivestrength( unsigned state, int pin )
 // ****************************************************************************
 // Flash access functions
 
-volatile u8 flash_key_mask  = 0x00;
+volatile u8 platform_flash_key_mask = 0x00;
 volatile u8 armed_flash_key = 0x00;
 
 u8 flash_erase( u32 address, u8 verify)
@@ -2711,8 +2714,8 @@ u8 flash_erase( u32 address, u8 verify)
     SI32_FLASHCTRL_A_enter_flash_erase_mode( SI32_FLASHCTRL_0 );
 
     // Unlock the flash interface for a single access
-    SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, flash_key_mask ^ 0xA4);
-    SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, flash_key_mask ^ 0xF0);
+    SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, platform_flash_key_mask ^ 0xA4);
+    SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, platform_flash_key_mask ^ 0xF0);
 
     // Write any value to initiate a page erase.
     SI32_FLASHCTRL_A_write_wrdata(SI32_FLASHCTRL_0, 0x0000);
@@ -2764,15 +2767,15 @@ u8 flash_write( u32 address, u32* data, u32 count, u8 verify )
     for( wc = 0; wc < count; wc++ )
     {
         // Unlock flash interface for single write
-        SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, flash_key_mask ^ 0xA4); //OxA5
-        SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, flash_key_mask ^ 0xF0); //0xF1
+        SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, platform_flash_key_mask ^ 0xA4); //OxA5
+        SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, platform_flash_key_mask ^ 0xF0); //0xF1
         // Write the address of the Flash page to WRADDR
         SI32_FLASHCTRL_A_write_wraddr( SI32_FLASHCTRL_0, address + (wc * 4) );
         SI32_FLASHCTRL_A_write_wrdata( SI32_FLASHCTRL_0, *data );
 
         // Unlock flash interface for single write
-        SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, flash_key_mask ^ 0xA4); //OxA5
-        SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, flash_key_mask ^ 0xF0); //0xF1
+        SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, platform_flash_key_mask ^ 0xA4); //OxA5
+        SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, platform_flash_key_mask ^ 0xF0); //0xF1
         // Write the address of the Flash page to WRADDR
         SI32_FLASHCTRL_A_write_wraddr( SI32_FLASHCTRL_0, address + (wc * 4) + 2 );
         SI32_FLASHCTRL_A_write_wrdata( SI32_FLASHCTRL_0, *data >> 16 );
@@ -2815,7 +2818,7 @@ u8 flash_write( u32 address, u32* data, u32 count, u8 verify )
 
 u32 platform_s_flash_write( const void *from, u32 toaddr, u32 size )
 {
-  flash_key_mask = 0x01;
+  platform_flash_key_mask = 0x01;
   if( 0 != flash_write( toaddr, ( u32 * )from, (size + (INTERNAL_FLASH_WRITE_UNIT_SIZE - 1))/INTERNAL_FLASH_WRITE_UNIT_SIZE, 1 ) ) // round up size to count of 4-byte words needed
     return 0;
   else
@@ -2824,7 +2827,7 @@ u32 platform_s_flash_write( const void *from, u32 toaddr, u32 size )
 
 int platform_flash_erase_sector( u32 sector_id )
 {
-  flash_key_mask = 0x01;
+  platform_flash_key_mask = 0x01;
   return flash_erase( sector_id * INTERNAL_FLASH_SECTOR_SIZE + INTERNAL_FLASH_START_ADDRESS, 1) == 0 ? PLATFORM_OK : PLATFORM_ERR;
 }
 

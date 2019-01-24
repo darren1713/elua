@@ -99,7 +99,8 @@ int32_t param_get_s32( const char * name, const char * prefix, int32_t *value )
     return ret;
 
   if( value != NULL )
-    *value = *( int32_t * )b;
+    memcpy(value, b, 4);
+//    *value = *( int32_t * )b;
   
   return ret;
 }

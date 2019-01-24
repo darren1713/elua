@@ -30,7 +30,7 @@ documentation and/or software.
 
 #include "md5.h"
 
-const static unsigned char PADDING[64] =
+static const unsigned char PADDING[64] =
 {
   0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
