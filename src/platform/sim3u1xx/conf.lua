@@ -25,7 +25,7 @@ fwlib_files = fwlib_files .. " " .. utils.get_files( sf( "src/platform/%s/si32Ha
 fwlib_files = fwlib_files .. " " .. utils.get_files( sf( "src/platform/%s/FreakUSB/hw/sim3u1xx", platform ), ".*%.c$", 1 )
 fwlib_files = fwlib_files .. " " .. utils.get_files( sf( "src/platform/%s/FreakUSB/class/CDC", platform ), ".*%.c$" )
 fwlib_files = fwlib_files .. " " .. utils.get_files( sf( "src/platform/%s/generated", platform ), ".*%.c$" )
-specific_files = "platform.c platform_int.c pmu.c"
+specific_files = "platform.c platform_int.c pmu.c aes.c aes_config.c"
 
 -- Choose ldscript according to choice of bootloader
 if comp.bootloader == 'none' then

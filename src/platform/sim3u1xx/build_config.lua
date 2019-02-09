@@ -26,5 +26,6 @@ end
 
 -- Return an array of all the available platform modules for the given cpu
 function get_platform_modules( board, cpu )
-  return { pmu = { guards = { 'ENABLE_PMU' }, lib = '"pmu"' } }
+  return { pmu = { guards = { 'ENABLE_PMU' }, lib = '"pmu"' },
+           aes = { lib = '"aes"' } }
 end
