@@ -2572,9 +2572,6 @@ void sim3_pmu_pm9( int seconds )
   //SI32_RTC_A_start_timer_capture(SI32_RTC_0);
   //while(SI32_RTC_A_is_timer_capture_in_progress(SI32_RTC_0));
 
-#ifdef EXTRA_SLEEP_HOOK
-    extras_sleep_hook(PIN_CHECK_INTERVAL);
-#endif
 
   // SET ALARM FOR now+s
   // RTC running at 16.384Khz so there are 16384 cycles/sec)
@@ -2600,6 +2597,10 @@ void sim3_pmu_pm9( int seconds )
     SI32_RTC_A_write_alarm0(SI32_RTC_0, /*SI32_RTC_A_read_setcap(SI32_RTC_0) +*/ (platform_timer_op(0, PLATFORM_TIMER_OP_GET_CLOCK, 0) * seconds));
   }
 
+#ifdef EXTRA_SLEEP_HOOK
+  //MUST be called after RRAM_INT_SLEEPTIME has been set
+  extras_sleep_hook(PIN_CHECK_INTERVAL);
+#endif
 
   // Sleep if buttons pressed
   // Disable the SysTick timer to prevent these interrupts
