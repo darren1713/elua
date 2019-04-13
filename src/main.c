@@ -85,6 +85,13 @@ extern void extras_init_early();
 extern void extras_exit();
 #endif
 
+// Define a weak symbol for an user init function which is called during startup
+// The user code can override this function with a regular (non-weak) symbol.
+void __attribute__((weak)) elua_user_init( void )
+{
+
+}
+
 int main( void )
 {
   int i;
@@ -124,6 +131,9 @@ int main( void )
   // Init Extras
   extras_init();
 #endif
+
+  // User-specific initialization code
+  elua_user_init();
 
   // Search for autorun files in the defined order and execute the 1st if found
   for( i = 0; i < sizeof( boot_order ) / sizeof( *boot_order ); i++ )
