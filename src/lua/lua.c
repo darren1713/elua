@@ -28,9 +28,11 @@ static lua_State *globalL = NULL;
 
 static const char *progname = LUA_PROGNAME;
 
-#ifdef EXTRA_EVENT_HOOK
-extern void extras_event_loop( void );
-#endif
+// Define a weak symbol for an event loop to process non critical data while the VM is not busy
+// The user code can override this function with a regular (non-weak) symbol.
+void __attribute__((weak)) elua_user_event_loop( void )
+{
+}
 
 static void lstop (lua_State *L, lua_Debug *ar) {
   (void)ar;  /* unused arg. */
@@ -414,9 +416,7 @@ int slip_readline(lua_State *L, char *b, const char *p)
     {
       lua_command_run(L);
       c_command_run();
-#ifdef EXTRA_EVENT_HOOK
-      extras_event_loop();
-#endif
+      elua_user_event_loop();
       spin_vm(L);
       watchdog_counter_set( 20 );
     }

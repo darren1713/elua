@@ -64,10 +64,6 @@ int wake_reason = WAKE_UNKNOWN;
 #define PLATFORM_EARLY_WARNING_THRESHOLD       (uint32_t)((16400*PLATFORM_EARLY_WARNING_DELAY_MS)/1000)
 #define PLATFORM_RESET_THRESHOLD               (uint32_t)((16400*PLATFORM_RESET_DELAY_MS)/1000)
 
-#ifdef EXTRA_SLEEP_HOOK
-extern void extras_sleep_hook( int seconds );
-#endif
-
 //I2C
 #define I2C_TIMEOUT_SYSTICKS 3
 static volatile int i2c_timeout_timer = I2C_TIMEOUT_SYSTICKS;
@@ -95,9 +91,21 @@ static u8 pending_op_used = 0;
 void sim3_pmu_reboot( void );
 void sim3_pmu_reboot_nodfu( void );
 
-extern int load_lua_function (char *func);
-extern void extras_init_early( void );
+//extern int load_lua_function (char *func);
 extern void led_init( void );
+
+// Define a weak symbol for a very early platform init function which is called during startup
+// The user code can override this function with a regular (non-weak) symbol.
+// Suggested use is setup of I/O's, timers, and very fast checking of sleep states.
+void __attribute__((weak)) platform_user_init_early( void )
+{
+}
+
+// Define a weak symbol for a sleep hook that is called when the platform code goes to sleep
+// The user code can override this function with a regular (non-weak) symbol.
+void __attribute__((weak)) platform_user_sleep_hook( int seconds )
+{
+}
 
 // forward dcls
 static void pios_init();
@@ -458,10 +466,8 @@ void wake_init( void )
         rram_write_int(RRAM_INT_SLEEPTIME, rram_read_int(RRAM_INT_SLEEPTIME) + rtc_remaining);
 
 
-#ifdef EXTRA_SLEEP_HOOK
       //pass negative time to notify early wakeup
-      //extras_sleep_hook(rtc_remaining * -1);
-#endif
+      //platform_user_sleep_hook(rtc_remaining * -1);
 
       //Don't auto-sleep for some period of seconds
       sleep_delay = 7;
@@ -522,8 +528,8 @@ void wake_init( void )
       }
       else if( rram_read_int(RRAM_INT_SLEEPTIME) > 0 )  //Go back to sleep if we woke from a PMU wakeup IE, checking pins
       {
-        //Output is not enabled on either the pins or the PWM channels without calling extras_early_init first
-        extras_init_early();
+        //Output is not enabled on either the pins or the PWM channels without calling platform_user_init_early first
+        platform_user_init_early();
 
         //Show the user that the GSatMicro is in "ACTIVE BUT SLEEPING" mode by flashing the PWR led for a moment
         wake_reason = WAKE_RTC;
@@ -2285,10 +2291,8 @@ void sim3_pmu_sleep( int seconds )
   //Update LED state to show power down called
   leds_sleep_called(seconds);
 
-  #ifdef EXTRA_SLEEP_HOOK
-    extras_sleep_hook(seconds);
-  #endif
-
+  platform_user_sleep_hook(seconds);
+  
   // GET CURRENT TIMER VALUE INTO SETCAP
   SI32_RTC_A_start_timer_capture(SI32_RTC_0);
   while(SI32_RTC_A_is_timer_capture_in_progress(SI32_RTC_0));
@@ -2597,10 +2601,8 @@ void sim3_pmu_pm9( int seconds )
     SI32_RTC_A_write_alarm0(SI32_RTC_0, /*SI32_RTC_A_read_setcap(SI32_RTC_0) +*/ (platform_timer_op(0, PLATFORM_TIMER_OP_GET_CLOCK, 0) * seconds));
   }
 
-#ifdef EXTRA_SLEEP_HOOK
   //MUST be called after RRAM_INT_SLEEPTIME has been set
-  extras_sleep_hook(PIN_CHECK_INTERVAL);
-#endif
+  platform_user_sleep_hook(PIN_CHECK_INTERVAL);
 
   // Sleep if buttons pressed
   // Disable the SysTick timer to prevent these interrupts

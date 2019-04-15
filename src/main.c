@@ -51,10 +51,6 @@ const char *boot_order[] = {
 
 extern char etext[];
 
-#ifdef EXTRA_STARTUP_HOOK
-extern void watchdog_pause( void );
-#endif
-
 #ifdef ELUA_BOOT_RPC
 void boot_rpc( void )
 {
@@ -76,20 +72,31 @@ void boot_rpc( void )
 // ****************************************************************************
 //  Program entry point
 
-#ifdef EXTRA_STARTUP_HOOK
-extern void extras_init();
-extern void extras_init_early();
-#endif
-
-#ifdef EXTRA_AUTORUN_EXIT_HOOK
-extern void extras_exit();
-#endif
-
 // Define a weak symbol for an user init function which is called during startup
 // The user code can override this function with a regular (non-weak) symbol.
+// Suggested use is printing startup data, if the board is booting up and not going back to sleep.
 void __attribute__((weak)) elua_user_init( void )
 {
+}
 
+// Define a weak symbol for a very early user init function which is called during startup
+// The user code can override this function with a regular (non-weak) symbol.
+// Suggested use is setup of I/O's, timers, and very fast checking of sleep states.
+void __attribute__((weak)) elua_user_init_early( void )
+{
+}
+
+// Define a weak symbol for notifying user modules if eLua VM exits
+// The user code can override this function with a regular (non-weak) symbol.
+// Suggested use is rebooting or restarting the eLua VM
+void __attribute__((weak)) elua_user_exit( void )
+{
+}
+
+// Define a weak symbol for pausing the watchdog while the VM is not spinning (shell for example)
+// The user code can override this function with a regular (non-weak) symbol.
+void __attribute__((weak)) elua_user_watchdog_pause( void )
+{
 }
 
 int main( void )
@@ -104,10 +111,8 @@ int main( void )
     while( 1 );
   }
 
-#ifdef EXTRA_STARTUP_HOOK
   // Early Init Extras
-  extras_init_early();
-#endif
+  elua_user_init_early();
 
   // Initialize device manager
   dm_init();
@@ -127,11 +132,6 @@ int main( void )
   // Register NIFFS
   nffs_init();
 
-#ifdef EXTRA_STARTUP_HOOK
-  // Init Extras
-  extras_init();
-#endif
-
   // User-specific initialization code
   elua_user_init();
 
@@ -150,10 +150,10 @@ int main( void )
       break; // autoruns only the first found
     }
   }
-#ifdef EXTRA_STARTUP_HOOK
+
   // Watchdog ticks only occur while in lua VM, pause watchdog if we are going to shell...
-  watchdog_pause();
-#endif
+  elua_user_watchdog_pause();
+
   printf("Lua no autorun or exited\n");
 
 #ifdef ELUA_BOOT_RPC
@@ -174,9 +174,7 @@ int main( void )
 
 printf("Lua exited\n");
 
-#ifdef EXTRA_AUTORUN_EXIT_HOOK
-  extras_exit();
-#endif
+  elua_user_exit();
 
 #ifdef ELUA_SIMULATOR
   hostif_exit(0);
