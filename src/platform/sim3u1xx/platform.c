@@ -671,12 +671,6 @@ int platform_init()
     }
   }
 
-  // Enable Timer 0
-  gTIMER0_enter_auto_reload_config();
-  // Enable Timer 1
-  gTIMER1_enter_auto_reload_config();
-
-
   buf_set( BUF_ID_RNG, 0, BUF_SIZE_32, BUF_DSIZE_U8 );
 
   // Setup Watchdog Timer
@@ -970,56 +964,6 @@ void SysTick_Handler()
   }
   if(i2c_timeout_timer)
     i2c_timeout_timer--;
-}
-
-static void gTIMER0_enter_auto_reload_config(void)
-{
-  // ENABLE TIMER0 CLOCK
-  SI32_CLKCTRL_A_enable_apb_to_modules_0(SI32_CLKCTRL_0,
-    SI32_CLKCTRL_A_APBCLKG0_TIMER0CEN_ENABLED_U32);
-
-  // INITIALIZE TIMER
-  SI32_TIMER_A_initialize (SI32_TIMER_0, 0x00, 0x00, 0x00, 0x00);
-  SI32_TIMER_A_select_single_timer_mode (SI32_TIMER_0);
-  SI32_TIMER_A_select_high_clock_source_apb_clock (SI32_TIMER_0);
-  SI32_TIMER_A_select_high_auto_reload_mode (SI32_TIMER_0);
-
-  // Set overflow frequency to SYSTICKHZ
-  SI32_TIMER_A_write_capture (SI32_TIMER_0, (unsigned) -(cmsis_get_cpu_frequency()/SYSTICKHZ));
-  SI32_TIMER_A_write_count (SI32_TIMER_0, (unsigned) -(cmsis_get_cpu_frequency()/SYSTICKHZ));
-
-  // Run Timer
-  SI32_TIMER_A_start_high_timer(SI32_TIMER_0);
-
-  // ENABLE INTERRUPTS
-  NVIC_ClearPendingIRQ(TIMER0H_IRQn);
-  NVIC_EnableIRQ(TIMER0H_IRQn);
-  SI32_TIMER_A_enable_high_overflow_interrupt(SI32_TIMER_0);
-}
-
-static void gTIMER1_enter_auto_reload_config(void)
-{
-  // ENABLE TIMER1 CLOCK
-  SI32_CLKCTRL_A_enable_apb_to_modules_0(SI32_CLKCTRL_0,
-    SI32_CLKCTRL_A_APBCLKG0_TIMER1CEN_ENABLED_U32);
-
-  // INITIALIZE TIMER
-  SI32_TIMER_A_initialize (SI32_TIMER_1, 0x00, 0x00, 0x00, 0x00);
-  SI32_TIMER_A_select_single_timer_mode (SI32_TIMER_1);
-  SI32_TIMER_A_select_high_clock_source_apb_clock (SI32_TIMER_1);
-  SI32_TIMER_A_select_high_auto_reload_mode (SI32_TIMER_1);
-
-  // Set overflow frequency to SYSTICKHZ
-  SI32_TIMER_A_write_capture (SI32_TIMER_1, (unsigned) -(cmsis_get_cpu_frequency()/TIMER1_HZ));
-  SI32_TIMER_A_write_count (SI32_TIMER_1, (unsigned) -(cmsis_get_cpu_frequency()/TIMER1_HZ));
-
-  // Run Timer
-  SI32_TIMER_A_start_high_timer(SI32_TIMER_1);
-
-  // ENABLE INTERRUPTS
-  NVIC_ClearPendingIRQ(TIMER1H_IRQn);
-  NVIC_EnableIRQ(TIMER1H_IRQn);
-  SI32_TIMER_A_enable_high_overflow_interrupt(SI32_TIMER_1);
 }
 
 // ****************************************************************************
