@@ -72,17 +72,27 @@ void boot_rpc( void )
 // ****************************************************************************
 //  Program entry point
 
-// Define a weak symbol for an user init function which is called during startup
-// The user code can override this function with a regular (non-weak) symbol.
-// Suggested use is printing startup data, if the board is booting up and not going back to sleep.
-void __attribute__((weak)) elua_user_init( void )
-{
-}
-
 // Define a weak symbol for a very early user init function which is called during startup
 // The user code can override this function with a regular (non-weak) symbol.
 // Suggested use is setup of I/O's, timers, and very fast checking of sleep states.
 void __attribute__((weak)) elua_user_init_early( void )
+{
+}
+
+// Define a weak symbol for an user init function which is called during startup, after
+// all the regular eLua initialization code, before the Lua interpreter starts.
+// The user code can override this function with a regular (non-weak) symbol.
+// Suggested use is finishing all the platform-specific initialization tasks.
+void __attribute__((weak)) elua_user_init_late( void )
+{
+}
+
+// Define a weak symbol for an application-specific user init function which is called during startup
+// The function is called right before the Lua interpreter starts, but after elua_user_init_late (above).
+// The user code can override this function with a regular (non-weak) symbol.
+// Suggested use is printing startup data, if the board is booting up and not going back to sleep,
+// or settings various hoook functions.
+void __attribute__((weak)) elua_app_user_init( void )
 {
 }
 
@@ -132,8 +142,11 @@ int main( void )
   // Register NIFFS
   nffs_init();
 
-  // User-specific initialization code
-  elua_user_init();
+  // Late initialization code
+  elua_user_init_late();
+
+  // Application-specific initialization code
+  elua_app_user_init();
 
   // Search for autorun files in the defined order and execute the 1st if found
   for( i = 0; i < sizeof( boot_order ) / sizeof( *boot_order ); i++ )
