@@ -1,5 +1,7 @@
 // Platform-dependent functions
 
+#define INSTANTIATE_PORT_STD
+#include "cpu_sim3u167.h"
 #include "platform.h"
 #include "type.h"
 #include "devman.h"
@@ -268,21 +270,6 @@ void WDTIMER0_IRQHandler(void)
 #if defined( BUILD_USB_CDC )
 unsigned console_cdc_active = 0;
 #endif
-
-
-
-// SiM3 SystemInit calls this function, disable watchdog timer
-void mySystemInit(void)
-{
-  // Setup Watchdog Timer
-  SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
-
-  // enable APB clock to the Port Bank module
-  SI32_CLKCTRL_A_enable_apb_to_modules_0 (SI32_CLKCTRL_0, SI32_CLKCTRL_A_APBCLKG0_PB0CEN_MASK);
-  // make the SWO pin (PB1.3) push-pull to enable SWV printf
-  //SI32_PBSTD_A_set_pins_push_pull_output (SI32_PBSTD_1, (1<<3));
-
-}
 
 #if defined( ELUA_BOARD_GSATMICRO_V10 )
 
@@ -2643,7 +2630,6 @@ void sim3_pbhd_setdrivestrength( unsigned state, int pin )
 // Flash access functions
 
 volatile u8 platform_flash_key_mask = 0x00;
-volatile u8 armed_flash_key = 0x00;
 
 u8 flash_erase( u32 address, u8 verify)
 {

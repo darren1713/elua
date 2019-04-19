@@ -59,7 +59,7 @@ addcf{ '-Wno-missing-field-initializers', '-Wshift-overflow=2', '-Wduplicated-co
 addcf{ '-Wno-sign-compare', '-Wno-cast-qual', '-Wno-cast-align', '-Wno-format-nonliteral'}
 -- Testing below for backtrace functionality
 -- addcf{ '-ffunction-sections', '-fdata-sections', '-fno-strict-aliasing', '-Wall' , '-mtpcs-frame', '-mtpcs-leaf-frame', '-fno-omit-frame-pointer' }
-addlf{ '-nostartfiles', '-nostdlib', '-T', ldscript, '-Wl,--gc-sections', '-Wl,--allow-multiple-definition' }
+addlf{ '-nostartfiles', '-nostdlib', '-T', ldscript, '-Wl,--gc-sections' }
 addaf{ '-x', 'assembler-with-cpp', '-Wall' }
 addlib{ 'c','gcc','m' }
 

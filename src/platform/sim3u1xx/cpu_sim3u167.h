@@ -14,7 +14,12 @@ extern unsigned platform_get_console_uart( void );
 
 #define TIMER1_HZ 1800 //High priority timer for uarts = 115200/8/1800 = 4 bytes per tick for ~57600 bps (BLE speed)
 
-SI32_PBSTD_A_Type* const port_std[] = { SI32_PBSTD_0, SI32_PBSTD_1, SI32_PBSTD_2, SI32_PBSTD_3 };
+#ifdef INSTANTIATE_PORT_STD
+SI32_PBSTD_A_Type* const port_std[ 4 ] = { SI32_PBSTD_0, SI32_PBSTD_1, SI32_PBSTD_2, SI32_PBSTD_3 };
+#undef INSTANTIATE_PORT_STD
+#else
+extern SI32_PBSTD_A_Type* const port_std[ 4 ];
+#endif
 
 #define CON_VIRTUAL_ID 255
 
