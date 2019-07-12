@@ -258,6 +258,10 @@ u32 platform_pwm_get_clock( unsigned id );
 
 int platform_cpu_set_global_interrupts( int status );
 int platform_cpu_get_global_interrupts(void);
+void platform_cpu_enter_critical_section(void);
+void platform_s_cpu_enter_critical_section(void);
+void platform_cpu_exit_critical_section(void);
+void platform_s_cpu_exit_critical_section(void);
 int platform_cpu_set_interrupt( elua_int_id id, elua_int_resnum resnum, int status );
 int platform_cpu_get_interrupt( elua_int_id id, elua_int_resnum resnum );
 int platform_cpu_get_interrupt_flag( elua_int_id id, elua_int_resnum resnum, int clear );

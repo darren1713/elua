@@ -550,7 +550,7 @@ int elua_net_socket( int type )
   if( type == ELUA_NET_SOCK_DGRAM )
     return -1;
 
-  old_status = platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
+  platform_cpu_enter_critical_section();
   // Iterate through the list of connections, looking for a free one
   for( i = 0; i < UIP_CONNS; i ++ )
   {
@@ -562,7 +562,7 @@ int elua_net_socket( int type )
       break;
     }
   }
-  platform_cpu_set_global_interrupts( old_status );
+  platform_cpu_exit_critical_section();
   return i == UIP_CONNS ? -1 : i;
 }
 
@@ -601,13 +601,13 @@ static elua_net_size elua_net_recv_internal( int s, void* buf, elua_net_size max
       break;
     if( to_us > 0 && platform_timer_get_diff_crt( timer_id, tmrstart ) >= to_us )
     {
-      old_status = platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
+      platform_cpu_enter_critical_section();
       if( pstate->state != ELUA_UIP_STATE_IDLE )
       {
         pstate->res = ELUA_NET_ERR_TIMEDOUT;
         pstate->state = ELUA_UIP_STATE_IDLE;
       }
-      platform_cpu_set_global_interrupts( old_status );
+      platform_cpu_exit_critical_section();
       break;
     }
   }
@@ -676,13 +676,13 @@ int old_status;
     return -1;
 #endif
 
-  old_status = platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
+  platform_cpu_enter_critical_section();
 
   uip_unlisten( htons( port ) );
   if (flisten)
      uip_listen( htons( port ) );
 
-  platform_cpu_set_global_interrupts( old_status );
+  platform_cpu_exit_critical_section();
 
   return 0;
 
@@ -726,9 +726,9 @@ int elua_accept( u16 port, unsigned timer_id, timer_data_type to_us, elua_net_ip
     i=elua_net_find_pending( port );
     if( i >= 0 ) {
       *pfrom = elua_uip_accept_pending[i].remote;
-      old_status=platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
+      platform_cpu_enter_critical_section();
       elua_uip_accept_pending[i].accept_request=0;
-      platform_cpu_set_global_interrupts( old_status );
+      platform_cpu_exit_critical_section();
       return elua_uip_accept_pending[i].sock;
     }
 

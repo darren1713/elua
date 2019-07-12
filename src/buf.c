@@ -160,7 +160,7 @@ int buf_write( unsigned resid, unsigned resnum, t_buf_data *data )
     return PLATFORM_ERR; 
   }
 
-  int old_status = platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
+  platform_cpu_enter_critical_section();
 
   char* d = ( char* )( pbuf->buf + pbuf->wptr );
 
@@ -171,7 +171,7 @@ int buf_write( unsigned resid, unsigned resnum, t_buf_data *data )
 
   int bufsize = BUF_REALSIZE( pbuf );
 
-  platform_cpu_set_global_interrupts( old_status );
+  platform_cpu_exit_critical_section();
 
   //If this is a UART buffer
   if( resid == BUF_ID_UART || resid == BUF_ID_CONSOLE)
@@ -245,7 +245,7 @@ int buf_read( unsigned resid, unsigned resnum, t_buf_data *data )
   if( pbuf->logsize == BUF_SIZE_NONE || BUF_COUNT( pbuf ) == 0 )
     return PLATFORM_UNDERFLOW;
  
-  int old_status = platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
+  platform_cpu_enter_critical_section();
 
   DUFF_DEVICE_8( BUF_REALDSIZE( pbuf ),  *d++ = *s++ );
 
@@ -253,7 +253,7 @@ int buf_read( unsigned resid, unsigned resnum, t_buf_data *data )
 
   BUF_MOD_INCR( pbuf, rptr );
 
-  platform_cpu_set_global_interrupts( old_status );
+  platform_cpu_exit_critical_section();
   
   return PLATFORM_OK;
 }

@@ -313,6 +313,28 @@ u32 platform_cpu_get_frequency(void)
   return CPU_FREQUENCY;
 }
 
+static volatile u32 critical_section_reentrancy_counter = 0;
+
+void platform_cpu_enter_critical_section( void )
+{
+  platform_s_cpu_enter_critical_section();
+  ++critical_section_reentrancy_counter;
+}
+
+void platform_cpu_exit_critical_section( void )
+{
+  // If critical_section_enter has not previously been called, do nothing
+  if( critical_section_reentrancy_counter == 0 )
+  {
+    return;
+  }
+  --critical_section_reentrancy_counter;
+  if( critical_section_reentrancy_counter == 0 )
+  {
+    platform_s_cpu_exit_critical_section();
+  }
+}
+
 // ****************************************************************************
 // ADC functions
 

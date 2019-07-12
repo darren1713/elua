@@ -783,6 +783,32 @@ int platform_cpu_get_global_interrupts()
   return Is_global_interrupt_enabled();
 }
 
+static int critical_interrupts_enabled = 0;
+static int state_saved = 0;
+
+void platform_s_cpu_enter_critical_section( void )
+{
+  const int interrupt_state = Is_global_interrupt_enabled();
+  Disable_global_interrupt();
+  if( state_saved )
+  {
+    return;
+  }
+  critical_interrupts_enabled = interrupt_state;
+  state_saved = 1;
+}
+
+void platform_s_cpu_exit_critical_section( void )
+{
+  state_saved = 0;
+
+  // Restore the IRQs to their state prior to entering the critical section
+  if( critical_interrupts_enabled )
+  {
+    Enable_global_interrupt();
+  }
+}
+
 // ****************************************************************************
 // ADC functions
 

@@ -167,14 +167,15 @@ timer_data_type platform_timer_read_sys( void )
 // ****************************************************************************
 // "Dummy" CPU functions
 
+void platform_s_cpu_enter_critical_section( void )
+{
+}
+
+void platform_s_cpu_exit_critical_section( void )
+{
+}
 
 int platform_cpu_set_global_interrupts( int status )
 {
   return 0;
 }
-
-int platform_cpu_get_global_interrupts( void )
-{
-  return 0;
-}
-
