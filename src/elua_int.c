@@ -30,11 +30,11 @@ static void elua_int_hook( lua_State *L, lua_Debug *ar )
   int old_status;
 
   // Get interrupt (and remove from queue)
-  old_status = platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
+  platform_cpu_enter_critical_section();
   crt = elua_int_queue[ elua_int_read_idx ];
   elua_int_queue[ elua_int_read_idx ].id = ELUA_INT_EMPTY_SLOT;
   elua_int_read_idx = ( elua_int_read_idx + 1 ) & INT_IDX_MASK;
-  platform_cpu_set_global_interrupts( old_status );
+  platform_cpu_exit_critical_section();
 
   if( elua_int_is_enabled( crt.id ) )
   {
@@ -52,10 +52,10 @@ static void elua_int_hook( lua_State *L, lua_Debug *ar )
     lua_remove( L, -1 );
   }
 
-  old_status = platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
+  platform_cpu_enter_critical_section();
   if( elua_int_queue[ elua_int_read_idx ].id == ELUA_INT_EMPTY_SLOT ) // no more interrupts in the queue, so clear the hook
     lua_sethook( L, NULL, 0, 0 );
-  platform_cpu_set_global_interrupts( old_status );
+  platform_cpu_exit_critical_section();
 }
 
 // Queue an interrupt and set the Lua hook
@@ -72,7 +72,7 @@ int elua_int_add( elua_int_id inttype, elua_int_resnum resnum )
   if( lua_getstate() == NULL || !elua_int_is_enabled( inttype ) )
     return PLATFORM_ERR;
 
-  old_status = platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
+  platform_cpu_enter_critical_section();
 
   // If there's no more room in the queue, set the overflow flag and return
   if( elua_int_queue[ elua_int_write_idx ].id != ELUA_INT_EMPTY_SLOT )
@@ -82,7 +82,7 @@ int elua_int_add( elua_int_id inttype, elua_int_resnum resnum )
     for(i=0;i<(1 << PLATFORM_INT_QUEUE_LOG_SIZE);i++)
       printf( "%i:%i," , elua_int_queue[i].id, elua_int_queue[i].resnum);
     printf( "\n" );
-    platform_cpu_set_global_interrupts( old_status );
+    platform_cpu_exit_critical_section();
     return PLATFORM_ERR;
   }
 
@@ -94,7 +94,7 @@ int elua_int_add( elua_int_id inttype, elua_int_resnum resnum )
   // Set the Lua hook (it's OK to set it even if it's already set)
   lua_sethook( lua_getstate(), elua_int_hook, LUA_MASKCOUNT, 2 ); 
 
-  platform_cpu_set_global_interrupts( old_status );
+  platform_cpu_exit_critical_section();
 
   // All OK
   return PLATFORM_OK;

@@ -232,13 +232,13 @@ lua_State *lua_getstate(void) {
 }
 LUA_API void lua_close (lua_State *L) {
 #ifndef LUA_CROSS_COMPILER  
-  int oldstate = platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
+  platform_cpu_enter_critical_section();
   lua_sethook( L, NULL, 0, 0 );
   lua_crtstate = NULL;
   lua_pushnil( L );
   lua_rawseti( L, LUA_REGISTRYINDEX, LUA_INT_HANDLER_KEY );
   elua_int_cleanup();
-  platform_cpu_set_global_interrupts( oldstate );
+  platform_cpu_exit_critical_section();
   linenoise_cleanup( LINENOISE_ID_LUA );
 #endif  
   L = G(L)->mainthread;  /* only the main thread can be closed */

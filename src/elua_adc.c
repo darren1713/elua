@@ -35,7 +35,7 @@ void adc_update_dev_sequence( unsigned dev_id  )
   int old_status;  
   if( d->ch_active != d->last_ch_active || d->force_reseq == 1 )
   {
-    old_status = platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
+    platform_cpu_enter_critical_section();
     // Update channel sequence
     d->seq_ctr = 0;
     for( id = 0; id < NUM_ADC; id ++ )
@@ -65,7 +65,7 @@ void adc_update_dev_sequence( unsigned dev_id  )
     d->last_ch_active = d->ch_active;
     d->seq_ctr = tmp_seq_ctr;
     d->force_reseq = 0;
-    platform_cpu_set_global_interrupts( old_status );
+    platform_cpu_exit_critical_section();
   }
 }
 
@@ -74,26 +74,28 @@ int adc_setup_channel( unsigned id, u8 logcount )
 {
   elua_adc_ch_state *s = adc_get_ch_state( id );
   elua_adc_dev_state *d = adc_get_dev_state( 0 );
-  int old_status = platform_cpu_get_global_interrupts();
 
 #if defined( BUF_ENABLE_ADC )
   int res;
 
-  old_status = platform_cpu_get_global_interrupts( ); // Had argument PLATFORM_CPU_DISABLE, but the prototype does not list an argument, and none of the 
+  platform_cpu_enter_critical_section();
   if( ((unsigned) ( (u16) 1 << logcount )) != buf_get_size( BUF_ID_ADC, id ) )
   {   
     res = buf_set( BUF_ID_ADC, id, logcount, BUF_DSIZE_U16 );
     if ( res != PLATFORM_OK )
+    {
+      platform_cpu_exit_critical_section();
       return res;
+    }
     buf_flush( BUF_ID_ADC, id );
   }
+  platform_cpu_exit_critical_section();
 #endif
 
   s->reqsamples = ( u16 )1 << logcount;
   s->op_pending = 1;
   
   ACTIVATE_CHANNEL( d, id );
-  platform_cpu_set_global_interrupts( old_status );
   
   return PLATFORM_OK;
 }

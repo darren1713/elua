@@ -175,12 +175,15 @@ timer_data_type platform_s_timer_op( unsigned id, int op, timer_data_type data )
 // ****************************************************************************
 // "Dummy" CPU functions
 
-int platform_cpu_set_global_interrupts( int status )
+void platform_s_cpu_enter_critical_section( void )
 {
-  return 0;
 }
 
-int platform_cpu_get_global_interrupts( void )
+void platform_s_cpu_exit_critical_section( void )
+{
+}
+
+int platform_cpu_set_global_interrupts( int status )
 {
   return 0;
 }
