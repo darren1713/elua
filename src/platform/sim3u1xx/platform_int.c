@@ -366,6 +366,7 @@ void PMATCH_IRQHandler(void)
 
 void platform_int_init()
 {
+#ifndef GSATMICRO_TEST_MODE
 /*  match_config[0].port = 3;
   match_config[0].pin = 6;
   match_config[1].port = 0;
@@ -413,6 +414,7 @@ void platform_int_init()
 
   NVIC_ClearPendingIRQ( PMATCH_IRQn );
   NVIC_EnableIRQ( PMATCH_IRQn );
+#endif // GSATMICRO_TEST_MODE
 }
 
 // ****************************************************************************

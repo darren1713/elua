@@ -278,11 +278,15 @@ int usb_power()
   return ( int )SI32_VREG_A_is_vbus_valid( SI32_VREG_0 );
 }
 
+int hv_power()
+{
+  return SI32_PBSTD_A_read_pins( PIN_HV_BANK ) & ( PIN_HV_PIN );
+}
+
 int external_power()
 {
   //check USB DC 3.9 or HVDC 3.8
-  if( ( SI32_PBSTD_A_read_pins( PIN_HV_BANK ) & ( PIN_HV_PIN ) ) ||
-      ( usb_power() ) )
+  if( hv_power() || usb_power() )
     return 1;
   else
     return 0;
@@ -598,7 +602,6 @@ int platform_init()
 
   // Enable SysTick
   SysTick_Config( cmsis_get_cpu_frequency() / SYSTICKHZ );
-
   // RTC Configuration
   SI32_RTC_A_start_timer_capture(SI32_RTC_0);
   while(SI32_RTC_A_is_timer_capture_in_progress(SI32_RTC_0));
@@ -668,7 +671,7 @@ int platform_init()
   while(SI32_WDTIMER_A_is_threshold_update_pending(SI32_WDTIMER_0));
   SI32_WDTIMER_A_set_reset_threshold (SI32_WDTIMER_0, PLATFORM_RESET_THRESHOLD);
 
-#if 1 //Option to disable Watchdog Timer
+#ifndef GSATMICRO_TEST_MODE // disable the watchdog timer in test mode
   // Enable Watchdog Timer
   SI32_WDTIMER_A_start_counter(SI32_WDTIMER_0);
 
@@ -968,7 +971,11 @@ void pios_init( void )
   SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_0, 0x0003);
   //ENABLE PWM CHANNELS  SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_0, 0x3F03);
   //Attach PWM pins to crossbar signal
+#ifndef GSATMICRO_TEST_MODE // LED outputs are regular GPIOs in test mode
   SI32_PBCFG_A_enable_xbar0_signal(SI32_PBCFG_0, SI32_XBAR0_EPCA0_CEX0_5);
+#else
+  SI32_PBSTD_A_write_pbskipen(SI32_PBSTD_0, 0x3F03);
+#endif
 
   // PB1 Setup
   SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_1, 0x07A1);
