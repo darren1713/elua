@@ -1,3 +1,5 @@
+gse-v2.0: RRAM increased to 128 bytes. Works only with the corresponding bootloader (v2.0).
+
 04.04.2013  Bogdan Marinescu <bogdan.marinescu@gmail.com>
             Dado Sutter      <dadosutter@gmail.com>
             James Snyder     <jbsnyder@gmail.com>
