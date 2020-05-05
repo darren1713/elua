@@ -29,11 +29,20 @@ specific_files = "platform.c platform_int.c pmu.c aes.c aes_config.c"
 
 -- Choose ldscript according to choice of bootloader
 if comp.bootloader == 'none' then
-  print "Compiling with standard offset"
-  ldscript = sf( "src/platform/%s/%s.ld", platform, comp.cpu:lower() )
+  if comp.large_rram then
+    print "Selecting large RRAM region (128 bytes)"
+    ldscript = sf( "src/platform/%s/%s_large_rram.ld", platform, comp.cpu:lower() )
+  else
+    ldscript = sf( "src/platform/%s/%s.ld", platform, comp.cpu:lower() )
+  end
 else
   print "Compiling for FreakUSB bootloader"
-  ldscript = sf( "src/platform/%s/%s_%s.ld", platform, comp.cpu:lower(), comp.bootloader )
+  if comp.large_rram then
+    print "Selecting large RRAM region (128 bytes)"
+    ldscript = sf( "src/platform/%s/%s_%s_large_rram.ld", platform, comp.cpu:lower(), comp.bootloader )
+  else
+    ldscript = sf( "src/platform/%s/%s_%s.ld", platform, comp.cpu:lower(), comp.bootloader )
+  end
   addm{ "USE_BOOTLOADER" }
 end
 

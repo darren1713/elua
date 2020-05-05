@@ -1,8 +1,8 @@
 MEMORY
 {
-    sret (W!RX) : ORIGIN = 0x20000000, LENGTH = 0x0020
-    sram (W!RX) : ORIGIN = 0x20000020, LENGTH = 0x7FDF
-    flash (RX) : ORIGIN = 0x00000000, LENGTH = 0x3fffc
+    sret (W!RX) : ORIGIN = 0x20000000, LENGTH = 0x0080
+    sram (W!RX) : ORIGIN = 0x20000080, LENGTH = 0x7F7F
+    flash (RX) : ORIGIN = 0x00003000, LENGTH = 0x3CFFC
 }
 
 SECTIONS
@@ -30,6 +30,7 @@ SECTIONS
     	__bss_section_table_end = .;
     	__section_table_end = . ;
     	/* End of Global Section Table */
+
 
     	*(.after_vectors*)
 
@@ -80,7 +81,7 @@ SECTIONS
 		} >sram
 		__exidx_end = .;
 
-    PROVIDE( flash_used_size = SIZEOF(.text) + SIZEOF(.data) + SIZEOF(.ARM.extab) + SIZEOF(.ARM.exidx) );
+    PROVIDE( flash_used_size = SIZEOF(.text) + SIZEOF(.data) + SIZEOF(.ARM.extab) + SIZEOF(.ARM.exidx) + 0x00003000 );
 
     .bss (NOLOAD) : {
 		. = ALIGN(4);

@@ -124,6 +124,7 @@ builder:add_option( 'boot', 'boot mode, standard will boot to shell, luarpc boot
 builder:add_option( 'romfs', 'ROMFS compilation mode', 'verbatim', { 'verbatim' , 'compress', 'compile' } )
 builder:add_option( 'cpumode', 'ARM CPU compilation mode (only affects certain ARM targets)', nil, { 'arm', 'thumb' } )
 builder:add_option( 'bootloader', 'Build for bootloader usage', 'none', { 'none', 'emblod', 'freakusb' } )
+builder:add_option( 'large_rram', 'Use large RRAM (128 bytes) on GSatMicro (needs matching bootloader)', false)
 builder:add_option( 'debug', 'Enable debug build', false )
 builder:add_option( 'extras', 'Path to directory containing build extras', '' )
 builder:add_option( 'extrasconf', 'Config file for build extras, defaults to conf.lua', '' )
