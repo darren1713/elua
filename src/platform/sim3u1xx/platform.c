@@ -41,6 +41,7 @@
 #include <SI32_SARADC_A_Type.h>
 #include <SI32_LDO_A_Type.h>
 #include <SI32_SPI_A_Type.h>
+#include <SI32_DEVICEID_A_Type.h>
 #include "myPB.h"
 #include <gVMON0.h>
 #include <gLDO0.h>
@@ -2882,3 +2883,20 @@ int sim3_usb_cdc_recv( s32 timeout )
 // }
 
 // #endif // #ifdef ENABLE_PMU
+
+// ****************************************************************************
+// CPU functions
+
+int platform_cpu_get_uid( char *uid )
+{
+  // From the datasheet, paragraph 11.2: "A 128-bit universally unique identifier
+  // (UUID) is pre-programmed into all devices. The UUID can be read by firmware
+  // at addresses 0x00040380 through 0x00040383.
+  const u32 *p_uuid = (const  u32* )0x00040380;
+  for ( int i = 0; i < 4; i ++, uid += sizeof( u32 ) ) {
+    u32 temp = p_uuid[ i ];
+    temp = __builtin_bswap32( temp ); // keep big endian representation in output buffer
+    memcpy( uid, &temp, sizeof( u32 ) );
+  }
+  return PLATFORM_OK;
+}
