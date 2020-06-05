@@ -256,6 +256,9 @@ u32 platform_pwm_get_clock( unsigned id );
 #define PLATFORM_INT_NOT_HANDLED        ( -3 )
 #define PLATFORM_INT_BAD_RESNUM         ( -4 )
 
+// Size of the CPU UID in bytes
+#define PLATFORM_CPU_UID_SIZE           16
+
 int platform_cpu_set_global_interrupts( int status );
 int platform_cpu_get_global_interrupts(void);
 void platform_cpu_enter_critical_section(void);
@@ -266,6 +269,7 @@ int platform_cpu_set_interrupt( elua_int_id id, elua_int_resnum resnum, int stat
 int platform_cpu_get_interrupt( elua_int_id id, elua_int_resnum resnum );
 int platform_cpu_get_interrupt_flag( elua_int_id id, elua_int_resnum resnum, int clear );
 u32 platform_cpu_get_frequency(void);
+int platform_cpu_get_uid( char *uid );
 
 // *****************************************************************************
 // The platform ADC functions
