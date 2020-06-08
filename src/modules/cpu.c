@@ -337,6 +337,27 @@ static int cpu_get_int_flag( lua_State *L )
 }
 #endif // #ifdef BUILD_LUA_INT_HANDLERS
 
+static int cpu_uid( lua_State *L )
+{
+  // Buffer for the UID. Double size because each byte is going to be represented as two ASCII nibbles.
+  char uid[PLATFORM_CPU_UID_SIZE * 2];
+
+  memset( uid, 0, sizeof( uid ) );
+  if( platform_cpu_get_uid( uid ) == PLATFORM_ERR ) // UID does not exist or can't be read
+    return 0;
+  // Transform the numerical UID above into a hexadecimal string in place
+  for( int i = PLATFORM_CPU_UID_SIZE - 1, dest = PLATFORM_CPU_UID_SIZE * 2 - 1; i >= 0; i --, dest -= 2)
+  {
+    u8 c = (u8)uid[ i ];
+    u8 n = c & 0x0F;
+    uid[ dest ] = n >= 10 ? n - 10 + 'A' : n + '0';
+    n = ( c >> 4 ) & 0x0F;
+    uid[ dest - 1 ] = n >= 10 ? n - 10 + 'A' : n + '0';
+  }
+  lua_pushlstring(L, uid, PLATFORM_CPU_UID_SIZE * 2);
+  return 1;
+}
+
 // Module function map
 #define MIN_OPT_LEVEL 2
 #include "lrodefs.h"
@@ -366,6 +387,7 @@ const LUA_REG_TYPE cpu_map[] =
 #ifdef HAS_CPU_CONSTANTS
   { LSTRKEY( "__index" ), LFUNCVAL( cpu_mt_index ) },
 #endif
+  { LSTRKEY( "uid" ), LFUNCVAL( cpu_uid ) },
   { LNILKEY, LNILVAL }
 };
 
