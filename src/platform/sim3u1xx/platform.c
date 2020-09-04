@@ -381,10 +381,17 @@ static int reset_status = -1;
 void reset_parameters()
 {
   int i;
+#ifdef FEATURE_GSM_FIRMWARE_UPGRADE
+  // It's too early to clear the GSM FW upgrade status now, so save it and restore it below
+  int temp = rram_read_nibble(RRAM_FW_UPG_STATUS);
+#endif
   for(i=0;i<8;i++)
   {
     rram_write_int(i, 0);
   }
+#ifdef FEATURE_GSM_FIRMWARE_UPGRADE
+  rram_write_nibble(RRAM_FW_UPG_STATUS, temp);
+#endif
 }
 
 void wake_init( void )
