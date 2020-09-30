@@ -437,5 +437,6 @@ const elua_int_descriptor elua_int_table[ INT_ELUA_LAST ] =
   { callback_set_status, callback_get_status, callback_get_flag }, // INT_GSM_TX_OK
   { callback_set_status, callback_get_status, callback_get_flag }, // INT_GSM_TX_FAIL
   { callback_set_status, callback_get_status, callback_get_flag }, // INT_GSM_TIMEOUT
+  { callback_set_status, callback_get_status, callback_get_flag }, // INT_SEN_ACCEL
 };
 
