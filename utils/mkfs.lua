@@ -42,9 +42,8 @@ end
 --   "compress" - keep the source code, but compress it with LuaSrcDiet
 -- compcmd - the command to use for compiling if "mode" is "compile"
 -- preprocess_cmd - command to run to preprocess Lua source files, nil to disable
--- extra_macros - array of extra macros to use for preprocessing (if applicable)
 -- Returns true for OK, false for error
-function mkfs( dirname, outname, flist, mode, compcmd, preprocess_cmd, extra_macros )
+function mkfs( dirname, outname, flist, mode, compcmd, preprocess_cmd )
   -- Try to create the output files
   local outfname = outname .. ".h"
   outfile = io.open( outfname, "wb" )
@@ -83,10 +82,7 @@ function mkfs( dirname, outname, flist, mode, compcmd, preprocess_cmd, extra_mac
         local fnamepart, fextpart = utils.split_ext( prename )
         if fextpart == '.lua' and preprocess_cmd then
             realname = fnamepart .. "_#pre#" .. fextpart
-            local temp_m = {}
-            for _, v in pairs(extra_macros) do temp_m[#temp_m + 1] = "-D" .. v end
-            local mdef = temp_m and table.concat(temp_m, " ") .. " " or ""
-            local cmd = sf("%s %s-o %s %s ", preprocess_cmd, mdef, realname, prename)
+            local cmd = sf("%s -o %s %s ", preprocess_cmd, realname, prename)
             print("Running " .. cmd)
             if os.execute(cmd) ~= 0 then
                 print(sf("Can't preprocess '%s', exiting", fname))

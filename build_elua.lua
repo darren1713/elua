@@ -434,9 +434,18 @@ local function make_romfs( target, deps )
   for k, v in pairs( flist ) do
     flist[ k ] = v:gsub( romdir .. utils.dir_sep, "" )
   end
+  -- Build preprocessor command line if needed
+  if lua_pre then
+    local a = {}
+    -- Macros first
+    for _, v in pairs(utils.linearize_array(cdefs)) do a[#a + 1] = "-D" .. v end
+    -- Then include paths
+    for _, v in pairs(utils.linearize_array(includes)) do a[#a + 1] = "-I" .. v end
+    if #a > 0 then lua_pre = lua_pre .. " " .. table.concat(a, " ") end
+  end
 
   print( 'Executing ' .. fscompcmd)
-  if not mkfs.mkfs( romdir, "romfiles", flist, comp.romfs, fscompcmd, lua_pre, utils.linearize_array(cdefs) ) then return -1 end
+  if not mkfs.mkfs( romdir, "romfiles", flist, comp.romfs, fscompcmd, lua_pre ) then return -1 end
   if utils.is_file( "inc/romfiles.h" ) then
     -- Read both the old and the new file
     local oldfile = io.open( "inc/romfiles.h", "rb" )
