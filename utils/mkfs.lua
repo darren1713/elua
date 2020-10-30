@@ -83,7 +83,7 @@ function mkfs( dirname, outname, flist, mode, compcmd, preprocess_cmd )
         if fextpart == '.lua' and preprocess_cmd then
             realname = fnamepart .. "_#pre#" .. fextpart
             local cmd = sf("%s -o %s %s ", preprocess_cmd, realname, prename)
-            print("Running " .. cmd)
+            print(sf("Preprocessing file %s to %s", prename, realname))
             if os.execute(cmd) ~= 0 then
                 print(sf("Can't preprocess '%s', exiting", fname))
                 return false
