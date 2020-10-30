@@ -133,6 +133,7 @@ builder:add_option( "romfs_dir", 'choose ROMFS directory', 'romfs' )
 builder:add_option( "board_config_file", "choose board configuration file", "" )
 builder:add_option( "skip_conf", "skip board configuration step, use pre-generated header file directly", false )
 builder:add_option( "config_only", "execute only the configurator, then exit", false )
+builder:add_option( "preprocess_romfs", "(EXPERIMENTAL) run 'cpp' on each Lua file in romfs/ before compiling", false )
 builder:init( args )
 builder:set_build_mode( builder.BUILD_DIR_LINEARIZED )
 
@@ -326,6 +327,7 @@ if comp.extrasconf ~= '' then
   dprint( "Extras conf:         ", comp.extrasconf )
 end
 dprint( "Version:        ", elua_vers )
+dprint( "Preprocess Lua: ", comp.preprocess_romfs )
 dprint "*********************************"
 dprint ""
 
@@ -409,6 +411,20 @@ function match_pattern_list( item, list )
   end
 end
 
+-- Find preprocessor command for Lua files if needed
+local lua_pre
+if builder:get_option("preprocess_romfs") then -- find preprocessor
+  lua_pre = toolset.compile:gsub("gcc", "cpp")
+  if os.execute(lua_pre .. " --version") ~= 0 then -- try to use default preprocessor (cpp)
+    lua_pre = "cpp"
+    if os.execute(lua_pre .. " --version") ~= 0 then
+        print("Unable to find preprocessor")
+        os.exit(-1)
+    end
+  end
+  lua_pre = lua_pre .. " -P -nostdinc -traditional"
+end
+
 local function make_romfs( target, deps )
   print "Building ROM file system ..."
   local romdir = builder:get_option( "romfs_dir" )
@@ -420,7 +436,7 @@ local function make_romfs( target, deps )
   end
 
   print( 'Executing ' .. fscompcmd)
-  if not mkfs.mkfs( romdir, "romfiles", flist, comp.romfs, fscompcmd ) then return -1 end
+  if not mkfs.mkfs( romdir, "romfiles", flist, comp.romfs, fscompcmd, lua_pre, utils.linearize_array(cdefs) ) then return -1 end
   if utils.is_file( "inc/romfiles.h" ) then
     -- Read both the old and the new file
     local oldfile = io.open( "inc/romfiles.h", "rb" )

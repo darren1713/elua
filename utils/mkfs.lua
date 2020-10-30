@@ -41,8 +41,10 @@ end
 --   "compile_raw" - precompile all files to Lua bytecode for direct loading, IE, leave as individual *.lc scripts
 --   "compress" - keep the source code, but compress it with LuaSrcDiet
 -- compcmd - the command to use for compiling if "mode" is "compile"
+-- preprocess_cmd - command to run to preprocess Lua source files, nil to disable
+-- extra_macros - array of extra macros to use for preprocessing (if applicable)
 -- Returns true for OK, false for error
-function mkfs( dirname, outname, flist, mode, compcmd )
+function mkfs( dirname, outname, flist, mode, compcmd, preprocess_cmd, extra_macros )
   -- Try to create the output files
   local outfname = outname .. ".h"
   outfile = io.open( outfname, "wb" )
@@ -71,23 +73,39 @@ function mkfs( dirname, outname, flist, mode, compcmd )
       print( sf( "Skipping %s (name longer than %d chars)", fname, maxlen ) )
     else 
       -- Get actual file name
-      local realname = dirname .. utils.dir_sep .. fname      
+      local prename = dirname .. utils.dir_sep .. fname
       -- Ensure it actually is a file
-      if not utils.is_file( realname ) then
+      if not utils.is_file( prename ) then
         print( sf( "Skipping %s ... (not found or not a regular file)", fname ) )
       else          
+        -- Preprocess the file if needed
+        local realname = prename
+        local fnamepart, fextpart = utils.split_ext( prename )
+        if fextpart == '.lua' and preprocess_cmd then
+            realname = fnamepart .. "_#pre#" .. fextpart
+            local temp_m = {}
+            for _, v in pairs(extra_macros) do temp_m[#temp_m + 1] = "-D" .. v end
+            local mdef = temp_m and table.concat(temp_m, " ") .. " " or ""
+            local cmd = sf("%s %s-o %s %s ", preprocess_cmd, mdef, realname, prename)
+            print("Running " .. cmd)
+            if os.execute(cmd) ~= 0 then
+                print(sf("Can't preprocess '%s', exiting", fname))
+                return false
+            end
+        end
         -- Try to open and read the file
         local crtfile = io.open( realname, "rb" )
         if not crtfile then
           outfile:close()
           os.remove( outfname )
+          if prename ~= realname then os.remove( realname ) end
           print( sf( "Unable to read %s", fname ) )
           return false
         end
         -- Do we need to process the file?
-        local fextpart, fnamepart = ''
+        fextpart, fnamepart = ''
         if mode == "compile" or mode == "compile_raw" or mode == "compress" then
-          fnamepart, fextpart = utils.split_ext( realname )
+          fnamepart, fextpart = utils.split_ext( prename )
           local newext = mode == "compress" and ".lua.tmp" or ".lc"
           if fextpart == ".lua" then
             newname = fnamepart .. newext
@@ -101,6 +119,7 @@ function mkfs( dirname, outname, flist, mode, compcmd )
               print "Cross-compilation error, aborting"
               outfile:close()
               crtfile:close()
+              if prename ~= realname then os.remove( realname ) end
               return false
             end
             crtfile:close()
@@ -108,6 +127,7 @@ function mkfs( dirname, outname, flist, mode, compcmd )
             if not crtfile then
               outfile:close()
               os.remove( outfname )
+              if prename ~= realname then os.remove( realname ) end
               print( sf( "Unable to read %s", newname ) )
               return false
             end
@@ -122,6 +142,7 @@ function mkfs( dirname, outname, flist, mode, compcmd )
         if fextpart == ".lua" and mode ~= "verbatim" and mode ~= "compile_raw" then
           os.remove( newname )
         end
+        if prename ~= realname then os.remove( realname ) end
         if mode ~= "compile_raw" then
           -- Write name, size, id, numpars
           _fcnt = 0
