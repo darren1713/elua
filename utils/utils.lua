@@ -197,10 +197,10 @@ gen_header_string = function( name, defines )
 end
 
 -- Generate header with the given #defines, save result to file
-gen_header_file = function( name, defines )
+gen_header_file = function( name, defines, force_name )
   local hname = concat_path{ "inc", name:lower() .. ".h" }
   local h = assert( io.open( hname, "w" ) )
-  h:write( gen_header_string( name, defines ) )
+  h:write( gen_header_string( force_name or name, defines ) )
   h:close()
 end
 
