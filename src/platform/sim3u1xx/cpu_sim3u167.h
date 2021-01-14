@@ -99,7 +99,8 @@ u32 cmsis_get_cpu_frequency();
     _C( INT_GSM_SIGNAL ), \
     _C( INT_GSM_TX_OK ), \
     _C( INT_GSM_TX_FAIL ), \
-    _C( INT_GSM_TIMEOUT ),
+    _C( INT_GSM_TIMEOUT ), \
+    _C( INT_SEN_ACCEL ),
 
 extern void button_down(int port, int pin);
 extern void button_up(int port, int pin);

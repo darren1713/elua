@@ -21,6 +21,7 @@
 #define INT_GSM_TX_OK        ( ELUA_INT_FIRST_ID + 13 )  //14
 #define INT_GSM_TX_FAIL      ( ELUA_INT_FIRST_ID + 14 )  //15
 #define INT_GSM_TIMEOUT      ( ELUA_INT_FIRST_ID + 15 )  //16
-#define INT_ELUA_LAST        INT_GSM_TIMEOUT
+#define INT_SEN_ACCEL        ( ELUA_INT_FIRST_ID + 16 )  //17
+#define INT_ELUA_LAST        INT_SEN_ACCEL
 
 #endif // #ifndef __PLATFORM_INTS_H__
