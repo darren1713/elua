@@ -1,3 +1,3 @@
 [submodule "src/platform/sim3u1xx/FreakUSB"]
 	path = src/platform/sim3u1xx/FreakUSB
-	url = https://github.com/darren1713/GSatMicroFreakUSB.git
+	url = git@github.com:darren1713/GSatMicroFreakUSB.git
