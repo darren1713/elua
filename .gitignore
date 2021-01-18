@@ -18,6 +18,7 @@ rfs_server*
 doc/dist
 doc/cache
 inc/git_version.h
+inc/gsatmicro_git_version.h
 *~
 *.*~
 luac.cross*

@@ -278,13 +278,10 @@ elseif comp.romfs == 'compress' then
 end
 
 -- Determine build version
-if utils.check_command('git describe --always') == 0 then
+if utils.check_command('git rev-parse HEAD') == 0 then
   addm( "USE_GIT_REVISION" )
-  elua_vers = utils.exec_capture('git describe --always')
-  -- If purely hexadecimal (no tag reference) prepend 'dev-'
-  if string.find(elua_vers, "^[+-]?%x+$") then
-     elua_vers = 'dev-' .. elua_vers
-  end
+  elua_vers = utils.exec_capture('git rev-parse HEAD'):sub(1, 12)
+  print(elua_vers)
   local sver = utils.gen_header_string( 'git_version', { elua_version = elua_vers, elua_str_version = ("\"" .. elua_vers .. "\"" ) } )
   if utils.get_hash_of_string( sver ) ~= utils.get_hash_of_file( utils.concat_path{ 'inc', 'git_version.h' } ) then 
     utils.gen_header_file( 'git_version', { elua_version = elua_vers, elua_str_version = ("\"" .. elua_vers .. "\"" ) } )
