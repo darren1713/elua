@@ -10,6 +10,11 @@ local md5 = require "md5"
 dir_sep = package.config:sub( 1, 1 )
 is_os_windows = dir_sep == '\\'
 
+-- Returns true if the given argument is a table, false otherwise
+istable = function(e)
+  return type(e) == "table"
+end
+
 -- Converts a string with items separated by 'sep' into a table
 string_to_table = function( s, sep )
   if type( s ) ~= "string" then return end
