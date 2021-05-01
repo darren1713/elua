@@ -2,7 +2,6 @@
 #include "romfs.h"
 #include <string.h>
 #include <errno.h>
-#include "romfiles.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include "ioctl.h"
@@ -549,14 +548,7 @@ static const DM_DEVICE romfs_device =
 // ****************************************************************************
 // ROMFS instance descriptor
 
-static const FSDATA romfs_fsdata =
-{
-  ( u8* )romfiles_fs,
-  ROMFS_FS_FLAG_DIRECT | ROMFS_FS_FLAG_READY_READ,
-  NULL,
-  NULL,
-  sizeof( romfiles_fs )
-};
+extern const FSDATA romfs_fsdata;
 
 // ****************************************************************************
 // WOFS functions and instance descriptor for the simulator (testing)

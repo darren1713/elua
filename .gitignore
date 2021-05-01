@@ -30,3 +30,6 @@ luarpc*
 *.functionsizes
 *.objdump
 wofs.img
+dist/
+GSatMicro/
+*.zip
